@@ -480,6 +480,158 @@ export class VantageClient {
         }
         return Promise.resolve<AircraftRecordDto>(null as any);
     }
+
+    earthquakes_Source(signal?: AbortSignal): Promise<EarthquakeSourceDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes/source";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEarthquakes_Source(_response);
+        });
+    }
+
+    protected processEarthquakes_Source(response: Response): Promise<EarthquakeSourceDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EarthquakeSourceDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EarthquakeSourceDto>(null as any);
+    }
+
+    earthquakes_Query(signal?: AbortSignal): Promise<EarthquakeSnapshotDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEarthquakes_Query(_response);
+        });
+    }
+
+    protected processEarthquakes_Query(response: Response): Promise<EarthquakeSnapshotDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EarthquakeSnapshotDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EarthquakeSnapshotDto>(null as any);
+    }
+
+    earthquakes_Observation(id: string, signal?: AbortSignal): Promise<EarthquakeRecordDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes/observations/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEarthquakes_Observation(_response);
+        });
+    }
+
+    protected processEarthquakes_Observation(response: Response): Promise<EarthquakeRecordDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EarthquakeRecordDto;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EarthquakeRecordDto>(null as any);
+    }
+
+    earthquakes_Versions(id: string, sourceId?: string | undefined, signal?: AbortSignal): Promise<EarthquakeRecordDto[]> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes/entities/{id}/observations?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sourceId === null)
+            throw new globalThis.Error("The parameter 'sourceId' cannot be null.");
+        else if (sourceId !== undefined)
+            url_ += "sourceId=" + encodeURIComponent("" + sourceId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEarthquakes_Versions(_response);
+        });
+    }
+
+    protected processEarthquakes_Versions(response: Response): Promise<EarthquakeRecordDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as EarthquakeRecordDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EarthquakeRecordDto[]>(null as any);
+    }
 }
 
 export interface HealthDto {
@@ -633,6 +785,74 @@ export interface ProvenanceDto {
     derivedFrom?: string[];
     transformVersion?: string;
     transformDescription?: string | undefined;
+}
+
+export interface EarthquakeSourceDto {
+    id?: string;
+    name?: string;
+    documentationUrl?: string;
+    termsUrl?: string;
+    attribution?: string;
+    capabilities?: string[];
+    pollSeconds?: number;
+    resultLimit?: number;
+    cacheHours?: number;
+    coverage?: string;
+    scopeLabel?: string;
+    staleAfterSeconds?: number;
+}
+
+export interface EarthquakeSnapshotDto {
+    records?: EarthquakeRecordDto[];
+    completeness?: EarthquakeCompletenessDto;
+    source?: EarthquakeSourceDto;
+}
+
+export interface EarthquakeRecordDto {
+    entity?: EntityDto;
+    observation?: EarthquakeObservationDto;
+    identityRule?: string;
+    identityDescription?: string | undefined;
+}
+
+export interface EarthquakeObservationDto {
+    id?: string;
+    entityId?: string;
+    sourceId?: string;
+    observedAt?: string | undefined;
+    retrievedAt?: string;
+    geometry?: PointGeometryDto | undefined;
+    locationRole?: string | undefined;
+    precision?: PrecisionDto;
+    evidenceClass?: string;
+    properties?: EarthquakePropertiesDto;
+    provenance?: ProvenanceDto;
+    supersedesObservationId?: string | undefined;
+    schemaVersion?: number;
+}
+
+export interface EarthquakePropertiesDto {
+    schemaVersion?: number;
+    magnitude?: number | undefined;
+    magnitudeType?: string | undefined;
+    depthKilometres?: number | undefined;
+    depthReference?: string;
+    place?: string | undefined;
+    sourceUpdatedAt?: string | undefined;
+    reviewStatus?: string | undefined;
+    eventType?: string | undefined;
+    network?: string | undefined;
+}
+
+export interface EarthquakeCompletenessDto {
+    returned?: number;
+    limit?: number;
+    truncated?: boolean;
+    coverage?: string;
+    feedGeneratedAt?: string | undefined;
+    feedRetrievedAt?: string | undefined;
+    providerCount?: number | undefined;
+    rejectedCount?: number;
 }
 
 export class ApiException extends Error {

@@ -1,0 +1,25 @@
+.panelHeader { min-height: 44px; padding: 6px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; letter-spacing: .07em; font-weight: 600; border-bottom: 1px solid var(--divider); }
+.eyebrow { font-size: 12px; letter-spacing: .1em; color: var(--text-muted); margin: 8px 0; }
+.grid { flex: 1; min-height: 160px; overflow: hidden; }
+.grid > :global(.bp6-table-container) { height: 100%; }
+.recordLink { background: none; color: var(--accent); border: 0; padding: 0 6px; min-height: 32px; text-decoration: underline; text-align: left; font: inherit; }
+.semanticResults { overflow: auto; min-height: 0; flex: 1; }
+.semanticResults table { width: 100%; border-collapse: collapse; text-align: left; }
+.semanticResults th { color: var(--text-muted); font-size: 12px; font-weight: 500; background: var(--surface-raised); position: sticky; top: 0; z-index: 1; }
+.semanticResults td, .semanticResults th { padding: 4px 12px; border-bottom: 1px solid var(--divider); min-height: 34px; }
+.semanticResults tr[data-selected=true] { background: var(--selection-bg); box-shadow: inset 2px 0 var(--accent); }
+.inspector { overflow: auto; flex: 1; }
+.inspectorContent { padding: 20px 16px; }
+.objectIcon { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--divider); background: var(--selection-bg); color: var(--accent); margin-bottom: 20px; }
+.inspector h2 { font-size: 20px; font-weight: 500; margin: 4px 0 12px; }
+.inspector h3 { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 0 0 16px; }
+.inspector section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--divider); }
+.inspector dl { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(0, 1.4fr); gap: 12px 8px; font-size: 12px; margin-bottom: 0; }
+.inspector dt { color: var(--text-muted); }
+.inspector dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.inspector .lineage { grid-template-columns: 1fr; gap: 4px; }
+.lineage dd { margin-bottom: 12px; }
+.muted { color: var(--text-muted); }
+.empty { padding: 32px 16px; color: var(--text-muted); }
+@media (pointer: coarse) { .recordLink { min-height: 44px; } }
+@media (max-width: 767px) { .semanticResults td, .semanticResults th { padding: 4px 6px; overflow-wrap: anywhere; } }

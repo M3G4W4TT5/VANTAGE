@@ -470,6 +470,129 @@
           }
         }
       }
+    },
+    "/api/v1/earthquakes/source": {
+      "get": {
+        "tags": [
+          "Earthquakes"
+        ],
+        "operationId": "Earthquakes_Source",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarthquakeSourceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/earthquakes": {
+      "get": {
+        "tags": [
+          "Earthquakes"
+        ],
+        "operationId": "Earthquakes_Query",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarthquakeSnapshotDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/earthquakes/observations/{id}": {
+      "get": {
+        "tags": [
+          "Earthquakes"
+        ],
+        "operationId": "Earthquakes_Observation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EarthquakeRecordDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/earthquakes/entities/{id}/observations": {
+      "get": {
+        "tags": [
+          "Earthquakes"
+        ],
+        "operationId": "Earthquakes_Versions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "sourceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EarthquakeRecordDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -962,6 +1085,235 @@
           "transformDescription": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "EarthquakeSourceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "termsUrl": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resultLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "scopeLabel": {
+            "type": "string"
+          },
+          "staleAfterSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EarthquakeSnapshotDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EarthquakeRecordDto"
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/EarthquakeCompletenessDto"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EarthquakeSourceDto"
+          }
+        }
+      },
+      "EarthquakeRecordDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/EntityDto"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/EarthquakeObservationDto"
+          },
+          "identityRule": {
+            "type": "string"
+          },
+          "identityDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EarthquakeObservationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retrievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometry": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointGeometryDto"
+              }
+            ]
+          },
+          "locationRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "precision": {
+            "$ref": "#/components/schemas/PrecisionDto"
+          },
+          "evidenceClass": {
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/EarthquakePropertiesDto"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceDto"
+          },
+          "supersedesObservationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "EarthquakePropertiesDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "magnitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "magnitudeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "depthKilometres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "depthReference": {
+            "type": "string"
+          },
+          "place": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reviewStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "string",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EarthquakeCompletenessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "returned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "feedGeneratedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "feedRetrievedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "providerCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rejectedCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       }

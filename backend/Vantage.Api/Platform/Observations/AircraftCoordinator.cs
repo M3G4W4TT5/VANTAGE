@@ -98,7 +98,7 @@ public sealed class AircraftCoordinator(IServiceScopeFactory scopes, AircraftSou
                 x.Record.Observation.Provenance.SourceId != Source.Id))
                 throw new SourceException("error", "The aircraft adapter returned mismatched source identities.");
             await store.SaveAsync(fetch, ct);
-            await store.PruneAsync(ct);
+            await store.PruneAsync(Source.Id, ct);
             var records = await store.QueryAsync(Source.Id, demand.Query, Source.ResultLimit, ct);
             records = records.Concat(fetch.Records.Select(x => x.Record).Where(x => x.Observation.Geometry is null))
                 .DistinctBy(x => x.Entity.Id).Take(Source.ResultLimit).ToArray();
@@ -127,10 +127,7 @@ public sealed class AircraftCoordinator(IServiceScopeFactory scopes, AircraftSou
         lock (gate)
         {
             if (demand.Cancellation.IsCancellationRequested) return;
-            var old = demand.Records.ToDictionary(x => x.Entity.Id, x => x.Observation.Id);
-            var ids = records.Select(x => x.Entity.Id).ToHashSet();
-            var upserts = records.Where(x => !old.TryGetValue(x.Entity.Id, out var id) || id != x.Observation.Id).ToArray();
-            var removals = old.Keys.Where(x => !ids.Contains(x)).ToArray();
+            var (upserts, removals) = BatchChanges.Between(demand.Records, records, x => x.Entity.Id, x => x.Observation.Id);
             demand.Records = records; demand.Health = health; demand.Truncated = truncated; demand.Sequence++;
             var batch = Batch(demand, false, upserts, removals);
             foreach (var subscriber in demand.Subscribers) subscriber.Writer.TryWrite(batch);

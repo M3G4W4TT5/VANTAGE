@@ -13,12 +13,6 @@ public interface IAircraftSource
 
 public sealed record AircraftDelivery(AircraftRecordDto Record, string RawJson);
 public sealed record AircraftFetch(AircraftDelivery[] Records, int Total, int Rejected, bool Truncated);
-public sealed class SourceException(string state, string message, TimeSpan? retryAfter = null) : Exception(message)
-{
-    public string State { get; } = state;
-    public TimeSpan? RetryAfter { get; } = retryAfter;
-}
-
 public sealed class AircraftSources
 {
     public IAircraftSource Active { get; }

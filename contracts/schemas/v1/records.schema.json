@@ -1263,6 +1263,87 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160
+        },
+        "liveView": {
+          "enum": [
+            "aircraft",
+            "earthquakes"
+          ]
+        },
+        "earthquakeCamera": {
+          "type": "object",
+          "properties": {
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "height": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 50000000
+            }
+          },
+          "required": [
+            "longitude",
+            "latitude",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "aircraftSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "earthquakeSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "earthquakeSettings": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "minimumMagnitude": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": -10,
+                  "maximum": 15
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxAgeHours": {
+              "enum": [
+                null,
+                1,
+                6,
+                24
+              ]
+            },
+            "sort": {
+              "enum": [
+                "occurred",
+                "magnitude",
+                "updated"
+              ]
+            }
+          },
+          "required": [
+            "query",
+            "minimumMagnitude",
+            "maxAgeHours",
+            "sort"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2339,7 +2420,8 @@
             "offline",
             "rate_limited",
             "disabled",
-            "error"
+            "error",
+            "setup_required"
           ]
         },
         "message": {
@@ -2645,6 +2727,520 @@
         "schemaVersion",
         "sourceVersion",
         "places"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeProperties": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -10,
+              "maximum": 15
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "magnitudeType": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "depthKilometres": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -20,
+              "maximum": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "depthReference": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "place": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 500
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceUpdatedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewStatus": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventType": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "network": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 40
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "magnitude",
+        "magnitudeType",
+        "depthKilometres",
+        "depthReference",
+        "place",
+        "sourceUpdatedAt",
+        "reviewStatus",
+        "eventType",
+        "network"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeObservation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "observedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retrievedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "validFrom": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validTo": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "geometry": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "const": "Point"
+                },
+                "coordinates": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    }
+                  ],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "required": [
+                "type",
+                "coordinates"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locationRole": {
+          "anyOf": [
+            {
+              "const": "epicentre"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "precision": {
+          "$ref": "#/definitions/Precision"
+        },
+        "evidenceClass": {
+          "enum": [
+            "reported",
+            "observed",
+            "inferred"
+          ]
+        },
+        "properties": {
+          "$ref": "#/definitions/EarthquakeProperties"
+        },
+        "provenance": {
+          "$ref": "#/definitions/Provenance"
+        },
+        "schemaVersion": {
+          "const": 1
+        },
+        "supersedesObservationId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "supersedesObservationId",
+        "schemaVersion",
+        "id",
+        "retrievedAt",
+        "precision",
+        "properties",
+        "sourceId",
+        "locationRole",
+        "observedAt",
+        "entityId",
+        "provenance",
+        "evidenceClass",
+        "geometry"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeRecord": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "$ref": "#/definitions/Entity"
+        },
+        "observation": {
+          "$ref": "#/definitions/EarthquakeObservation"
+        },
+        "identityRule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "identityDescription": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "entity",
+        "observation",
+        "identityRule"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeSource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "documentationUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        },
+        "termsUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        },
+        "attribution": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "coverage": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "maxItems": 20
+        },
+        "pollSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600
+        },
+        "resultLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "cacheHours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "scopeLabel": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "staleAfterSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "documentationUrl",
+        "termsUrl",
+        "attribution",
+        "coverage",
+        "capabilities",
+        "pollSeconds",
+        "resultLimit",
+        "cacheHours",
+        "scopeLabel",
+        "staleAfterSeconds"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeCompleteness": {
+      "type": "object",
+      "properties": {
+        "returned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "coverage": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "feedGeneratedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "feedRetrievedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerCount": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejectedCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "returned",
+        "limit",
+        "truncated",
+        "coverage",
+        "feedGeneratedAt",
+        "feedRetrievedAt",
+        "providerCount",
+        "rejectedCount"
+      ],
+      "additionalProperties": false
+    },
+    "EarthquakeBatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "subscriptionId": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "reset": {
+          "type": "boolean"
+        },
+        "upserts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EarthquakeRecord"
+          },
+          "maxItems": 1000
+        },
+        "removals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 1000
+        },
+        "health": {
+          "$ref": "#/definitions/AircraftHealth"
+        },
+        "completeness": {
+          "$ref": "#/definitions/EarthquakeCompleteness"
+        },
+        "source": {
+          "$ref": "#/definitions/EarthquakeSource"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "subscriptionId",
+        "sequence",
+        "generatedAt",
+        "reset",
+        "upserts",
+        "removals",
+        "health",
+        "completeness",
+        "source"
       ],
       "additionalProperties": false
     }

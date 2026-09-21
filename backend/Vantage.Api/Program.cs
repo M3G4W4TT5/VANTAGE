@@ -7,6 +7,7 @@ using Vantage.Api.Persistence;
 using Vantage.Api.Platform.Workspaces;
 using Vantage.Api.Platform.Observations;
 using Vantage.Api.Connectors.AdsbLol;
+using Vantage.Api.Connectors.Usgs;
 
 var exportIndex = Array.IndexOf(args, "--export-openapi");
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +22,7 @@ builder.Services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(
     builder.Configuration.GetConnectionString("Vantage") ?? "Host=127.0.0.1;Port=54329;Database=vantage;Username=vantage;Timeout=2",
     pg => pg.UseNetTopologySuite()));
 builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(new Dictionary<string, (int, string)> { ["atlas"] = (1, "AtlasState") }));
+builder.Services.AddSingleton(await ObservationValidation.LoadAsync());
 builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
 builder.Services.AddHttpClient<AdsbLolClient>(http =>
 {
@@ -32,6 +34,16 @@ builder.Services.AddSingleton<AircraftSources>();
 builder.Services.AddScoped<AircraftStore>();
 builder.Services.AddSingleton<AircraftCoordinator>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AircraftCoordinator>());
+builder.Services.AddHttpClient<UsgsEarthquakeSource>(http =>
+{
+    http.Timeout = TimeSpan.FromSeconds(15);
+    http.DefaultRequestHeaders.UserAgent.ParseAdd("VANTAGE-ATLAS/0.3 (local prototype)");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddTransient<IEarthquakeSource>(sp => sp.GetRequiredService<UsgsEarthquakeSource>());
+builder.Services.AddSingleton<EarthquakeSources>();
+builder.Services.AddScoped<EarthquakeStore>();
+builder.Services.AddSingleton<EarthquakeCoordinator>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EarthquakeCoordinator>());
 builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 16384; o.MaximumParallelInvocationsPerClient = 1; })
     .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new UtcTimestampConverter()));
 var app = builder.Build();

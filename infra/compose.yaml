@@ -32,6 +32,9 @@ services:
       - "127.0.0.1:${VANTAGE_HTTP_PORT:-5080}:8080"
     environment:
       URLS: http://0.0.0.0:8080
+      Sources__Earthquakes__Provider: ${VANTAGE_EARTHQUAKE_PROVIDER:-usgs-earthquakes}
+      Sources__Usgs__Enabled: ${VANTAGE_USGS_ENABLED:-true}
+      Sources__Usgs__PollSeconds: ${VANTAGE_USGS_POLL_SECONDS:-60}
       Sources__Aircraft__Provider: ${VANTAGE_AIRCRAFT_PROVIDER:-adsb-lol}
       Sources__AdsbLol__Enabled: ${VANTAGE_ADSB_ENABLED:-true}
       Sources__AdsbLol__PollSeconds: ${VANTAGE_ADSB_POLL_SECONDS:-30}

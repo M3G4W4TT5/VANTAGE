@@ -51,6 +51,13 @@ Use the verified Blueprint package set and React compatibility rules in [decisio
 - Use relational/spatial columns for common queryable fields and validated JSONB for source-specific properties. Use EF migrations and parameterized SQL where needed; test spatial operations against PostgreSQL/PostGIS.
 - ASP.NET Core serves the built frontend and API from one origin. Development uses Vite with an API/SignalR proxy. Default to local-only access as specified.
 
+## Shared component ownership
+
+- `platform/maps` owns Cesium viewer/camera lifecycle, basemaps, point-marker rendering, picking and selection. `PointMarker` carries a record reference, WGS84 surface position, optional explicit ellipsoid altitude, symbol, size, colour and rotation. Domain presenters supply these definitions and own overlays/follow rules; never use depth as altitude.
+- `platform/ui` owns themed Tabler SVGs, configurable result tables, inspector framing/field rows, UTC formatting and provenance sections. Domain views supply columns, facts and actions; both aircraft and earthquakes use these components.
+- `platform/data` owns validated observation transport/cache mechanics. Domain revision policies stay explicit: aircraft position time, earthquakes source revision time. Observation changes never enter workspace state or the user-context bus.
+- UI and platform modules consume source capability contracts via `SourceServices`. Concrete provider imports belong only to `connectors` and the `main.tsx` composition root. ESLint enforces that direction and the existing Blueprint restrictions. Backend wiring remains in `Program.cs`; ATLAS/controllers and observation services consume adapter interfaces.
+
 ## Design and data rules
 
 - Follow `DESIGN.md`: preserve its colours, typography, thin rules, square controls and open map canvas. Adapt Blueprint through a shared theme layer, including portalled overlays; centralize tokens and reuse components across apps.

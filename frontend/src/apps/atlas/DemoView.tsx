@@ -39,7 +39,7 @@ export function DemoView({ pane, host, updateState }: AppViewProps) {
       <div className={styles.toolbarGroup}><Button minimal icon="panel-stats" active={state.sidebarOpen} onClick={() => patch({ sidebarOpen: !state.sidebarOpen })}>Layers</Button>
         <span className={styles.separator} /><Button minimal icon="map" active={state.viewMode === 'canvas'} onClick={() => patch({ viewMode: 'canvas' })}>Canvas</Button>
         <Button minimal icon="list" active={state.viewMode === 'list'} onClick={() => patch({ viewMode: 'list' })}>List</Button></div>
-      <div className={styles.toolbarGroup}><Button minimal onClick={() => { host.changeContext({ layerIds: ['aircraft'], filters: { query: '', kind: 'all' }, selection: { entityIds: [], observationIds: [] }, time: { mode: 'live', cursor: null, from: null, to: null } }); patch({ dataMode: 'live' }); }}>Live aircraft</Button><Tag minimal>DEMO</Tag><span className={styles.muted}>No live sources</span></div>
+      <div className={styles.toolbarGroup}><Button minimal onClick={() => { host.changeContext({ layerIds: ['aircraft'], filters: { query: '', kind: 'all' }, selection: { entityIds: [], observationIds: [] }, time: { mode: 'live', cursor: null, from: null, to: null } }); patch({ dataMode: 'live', liveView: 'aircraft' }); }}>Live aircraft</Button><Tag minimal>DEMO</Tag><span className={styles.muted}>No live sources</span></div>
     </div>
     <div className={styles.body} data-inspector={showInspector}>
       {state.sidebarOpen && <aside className={styles.sidebar} aria-label="Layers and filters">

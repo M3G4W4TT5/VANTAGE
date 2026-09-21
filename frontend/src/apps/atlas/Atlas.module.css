@@ -37,14 +37,6 @@
 .resultsHeader strong span { font: 12px monospace; color: var(--text-muted); margin-left: 6px; }
 .resultsActions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .resultsActions label { display: flex; align-items: center; gap: 6px; }
-.grid { flex: 1; min-height: 160px; overflow: hidden; }
-.grid > :global(.bp6-table-container) { height: 100%; }
-.recordLink { background: none; color: var(--accent); border: 0; padding: 0 6px; min-height: 32px; text-decoration: underline; text-align: left; font: inherit; }
-.semanticResults { overflow: auto; min-height: 0; flex: 1; }
-.semanticResults table { width: 100%; border-collapse: collapse; text-align: left; }
-.semanticResults th { color: var(--text-muted); font-size: 12px; font-weight: 500; background: var(--surface-raised); position: sticky; top: 0; z-index: 1; }
-.semanticResults td, .semanticResults th { padding: 4px 12px; border-bottom: 1px solid var(--divider); min-height: 34px; }
-.semanticResults tr[data-selected=true] { background: var(--selection-bg); box-shadow: inset 2px 0 var(--accent); }
 .inspectorWrap { width: var(--inspector-width); border-left: 1px solid var(--divider); background: var(--surface); display: flex; flex-direction: column; flex-shrink: 0; min-height: 0; }
 .inspector { overflow: auto; flex: 1; }
 .inspectorContent { padding: 20px 16px; }
@@ -66,19 +58,11 @@
 .muted { color: var(--text-muted); }
 .empty { padding: 32px 16px; color: var(--text-muted); }
 .error { color: var(--danger); }
-.map { position: relative; flex: 1; min-height: 300px; overflow: hidden; background: var(--canvas); }
-.mapSurface { position: absolute; inset: 0; }
-.mapTools { position: absolute; top: 12px; left: 12px; display: flex; gap: 4px; flex-wrap: wrap; }
-.mapCaption { position: absolute; left: 12px; bottom: 32px; max-width: calc(100% - 24px); padding: 6px 8px; font-size: 12px; background: var(--surface); color: var(--text-muted); border: 1px solid var(--divider); pointer-events: none; }
-.mapNotice { position: absolute; top: 58px; left: 12px; right: 12px; padding: 16px; color: var(--text); background: var(--surface); }
 .fullSelect { width: 100%; }
 .sourceStats { display: grid; grid-template-columns: 1fr auto; gap: 6px; font-size: 12px; }
 .sourceStats dt { color: var(--text-muted); }
 .sourceStats dd { margin: 0; }
 .sourceBanner { padding: 8px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--divider); font-size: 12px; }
-.map :global(.cesium-widget-credits) { background: #fff; padding: 2px 5px; color: #111; font-size: 10px; }
-.map :global(.cesium-widget-credits a) { color: #245fad; }
-@media (pointer: coarse) { .recordLink { min-height: 44px; } }
 @media (max-width: 1199px) { .body[data-inspector=true] .sidebar { display: none; } .inspectorWrap { width: min(var(--inspector-width), 45%); } }
 @media (max-width: 767px) {
   .body { flex-direction: column; overflow-y: auto; }
@@ -87,7 +71,6 @@
   .workspaceCenter { min-height: 330px; overflow: visible; flex-shrink: 0; }
   .inspectorWrap { max-height: none; }
   .results { min-height: 300px; }
-  .semanticResults td, .semanticResults th { padding: 4px 6px; overflow-wrap: anywhere; }
   .toolbar { padding: 4px; gap: 4px; }
   .resultsHeader > .muted { width: 100%; }
   .resultsActions { margin-left: 0; }
@@ -97,5 +80,6 @@
 
 .placeResults { list-style: none; padding: 0; margin: 8px 0 0; }
 .searchStatus { font-size: 12px; color: var(--text-muted); }
-.basemapStatus { position: absolute; left: 12px; right: 12px; top: 56px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--divider); color: var(--text); font-size: 12px; }
-.basemapStatus button { margin-left: 8px; }
+.magnitudeLegend { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.magnitudeLegend > span { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; }
+.magnitudeLegend > span > span:last-child { color: var(--text); }

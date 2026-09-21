@@ -13,7 +13,17 @@ export default ts.config(
     rules: {
       ...hooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      'no-restricted-imports': ['error', { paths: [{ name: '@blueprintjs/core', importNames: ['Popover', 'Overlay'], message: 'Use PopoverNext / Overlay2 with React 19.' }] }],
+      'no-restricted-imports': ['error', { paths: [{ name: '@blueprintjs/core', importNames: ['Popover', 'Overlay'], message: 'Use PopoverNext / Overlay2 with React 19.' }], patterns: [{ group: ['@radix-ui/*'], message: 'Use the approved Blueprint controls.' }] }],
     },
+  },
+  {
+    files: ['src/apps/**/*.{ts,tsx}', 'src/platform/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', {
+      paths: [{ name: '@blueprintjs/core', importNames: ['Popover', 'Overlay'], message: 'Use PopoverNext / Overlay2 with React 19.' }],
+      patterns: [
+        { group: ['@radix-ui/*'], message: 'Use the approved Blueprint controls.' },
+        { group: ['**/connectors/**'], message: 'Consume capability contracts. Wire concrete providers only in main.tsx and connectors/sourceRegistration.ts.' },
+      ],
+    }] },
   },
 );

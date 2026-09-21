@@ -94,9 +94,77 @@ namespace Vantage.Api.Persistence.Migrations
                     b.ToTable("current_aircraft", "atlas");
                 });
 
+            modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentEarthquakeRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("InLatestFeed")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("OrderTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Point>("Position")
+                        .HasColumnType("geography (point,4326)");
+
+                    b.Property<string>("RecordJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SourceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Position");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Position"), "gist");
+
+                    b.HasIndex("SourceId", "InLatestFeed", "OccurredAt");
+
+                    b.ToTable("current_earthquakes", "atlas");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Observations.EarthquakeFeedRow", b =>
+                {
+                    b.Property<string>("SourceId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Rejected")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("RetrievedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("SourceId");
+
+                    b.ToTable("earthquake_feeds", "atlas");
+                });
+
             modelBuilder.Entity("Vantage.Api.Platform.Observations.ObservationRow", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DataType")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("EntityId")
@@ -133,6 +201,8 @@ namespace Vantage.Api.Persistence.Migrations
                     b.HasIndex("RetrievedAt");
 
                     b.HasIndex("EntityId", "ObservedAt");
+
+                    b.HasIndex("DataType", "SourceId", "RetrievedAt");
 
                     b.ToTable("observations", "platform");
                 });

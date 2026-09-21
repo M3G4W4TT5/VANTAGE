@@ -6,17 +6,6 @@ using Vantage.Api.Persistence;
 
 namespace Vantage.Api.Platform.Observations;
 
-public sealed class ObservationRow
-{
-    public string Id { get; set; } = "";
-    public string EntityId { get; set; } = "";
-    public string SourceId { get; set; } = "";
-    public DateTimeOffset? ObservedAt { get; set; }
-    public DateTimeOffset RetrievedAt { get; set; }
-    public Point? Position { get; set; }
-    public string RecordJson { get; set; } = "{}";
-    public string RawJson { get; set; } = "{}";
-}
 public sealed class CurrentAircraftRow
 {
     public string SourceId { get; set; } = "";
@@ -26,22 +15,23 @@ public sealed class CurrentAircraftRow
     public Point? Position { get; set; }
     public string RecordJson { get; set; } = "{}";
 }
-public sealed class AircraftStore(VantageDbContext db)
+public sealed class AircraftStore(VantageDbContext db, ObservationValidation validation)
 {
     public async Task SaveAsync(AircraftFetch fetch, CancellationToken ct)
     {
         var deliveries = fetch.Records.DistinctBy(x => x.Record.Observation.Id).ToArray();
         var ids = deliveries.Select(x => x.Record.Observation.Id).ToArray();
         var entityIds = deliveries.Select(x => x.Record.Entity.Id).ToArray();
-        var existing = (await db.Observations.Where(x => ids.Contains(x.Id)).Select(x => x.Id).ToListAsync(ct)).ToHashSet();
+        var existing = (await db.Observations.Where(x => x.DataType == "aircraft" && ids.Contains(x.Id)).Select(x => x.Id).ToListAsync(ct)).ToHashSet();
         var current = await db.CurrentAircraft.Where(x => entityIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, ct);
         foreach (var delivery in deliveries)
         {
             var record = delivery.Record; var o = record.Observation;
+            validation.Validate("AircraftRecord", record);
             if (existing.Contains(o.Id)) continue;
             var json = JsonSerializer.Serialize(record, ContractJson.Options);
             var position = o.Geometry is { } g ? new Point(g.Coordinates[0], g.Coordinates[1]) { SRID = 4326 } : null;
-            if (!existing.Contains(o.Id)) db.Observations.Add(new() { Id = o.Id, EntityId = o.EntityId, SourceId = o.SourceId,
+            if (!existing.Contains(o.Id)) db.Observations.Add(new() { Id = o.Id, EntityId = o.EntityId, SourceId = o.SourceId, DataType = "aircraft",
                 ObservedAt = o.ObservedAt, RetrievedAt = o.RetrievedAt, Position = position, RecordJson = json, RawJson = delivery.RawJson });
             var order = o.Properties.PositionObservedAt ?? o.ObservedAt;
             if (!current.TryGetValue(o.EntityId, out var row))
@@ -66,13 +56,13 @@ public sealed class AircraftStore(VantageDbContext db)
             .ThenBy(x => x.Id).Take(Math.Clamp(limit, 1, AircraftCachePolicy.ResultLimit)).Select(x => x.RecordJson).ToListAsync(ct);
         return rows.Select(x => JsonSerializer.Deserialize<AircraftRecordDto>(x, ContractJson.Options)!).ToArray();
     }
-    public async Task PruneAsync(CancellationToken ct)
+    public async Task PruneAsync(string sourceId, CancellationToken ct)
     {
         var cutoff = DateTimeOffset.UtcNow.AddHours(-AircraftCachePolicy.RetentionHours);
-        await db.CurrentAircraft.Where(x => x.RetrievedAt < cutoff).ExecuteDeleteAsync(ct);
-        await db.Database.ExecuteSqlRawAsync("DELETE FROM atlas.current_aircraft WHERE \"Id\" IN (SELECT \"Id\" FROM atlas.current_aircraft ORDER BY \"RetrievedAt\" DESC, \"Id\" OFFSET 10000)", ct);
-        await db.Observations.Where(x => x.RetrievedAt < cutoff).ExecuteDeleteAsync(ct);
-        // This is a bounded live cache, not a recording archive. Latest entity projections remain independently available.
-        await db.Database.ExecuteSqlRawAsync("DELETE FROM platform.observations WHERE \"Id\" IN (SELECT \"Id\" FROM platform.observations ORDER BY \"RetrievedAt\" DESC, \"Id\" OFFSET 50000)", ct);
+        var scope = db.CurrentAircraft.Where(x => x.SourceId == sourceId);
+        await scope.Where(x => x.RetrievedAt < cutoff).ExecuteDeleteAsync(ct);
+        var excess = scope.OrderByDescending(x => x.RetrievedAt).ThenBy(x => x.Id).Skip(10000).Select(x => x.Id);
+        await scope.Where(x => excess.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await ObservationRetention.PruneAsync(db, "aircraft", sourceId, cutoff, 50000, ct);
     }
 }

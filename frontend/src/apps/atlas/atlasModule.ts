@@ -1,18 +1,22 @@
 import type { AppModule } from '../../platform/registry/AppRegistry';
+import type { Selection } from '../../platform/contracts';
 import { validateContract } from '../../platform/contracts';
 import { AtlasView } from './AtlasView';
 import { records } from './fixtures';
 
 import type { AircraftQuery } from '../../platform/data/AircraftChannel';
-import type { CameraState } from './AircraftMap';
+import type { CameraState } from '../../platform/maps/PointMarkers';
+export type EarthquakeSettings = { query: string; minimumMagnitude: number | null; maxAgeHours: number | null; sort: 'occurred' | 'magnitude' | 'updated' };
 export type AtlasState = {
+  liveView?: 'aircraft' | 'earthquakes'; earthquakeSettings?: EarthquakeSettings; earthquakeCamera?: CameraState;
+  aircraftSelection?: Selection; earthquakeSelection?: Selection;
   basemapId?: string; dataMode?: 'live' | 'demo'; aircraftQuery?: AircraftQuery; mapMode?: '2d' | '3d'; camera?: CameraState;
   schemaVersion: 1; viewMode: 'canvas' | 'list'; resultsOpen: boolean; sidebarOpen: boolean;
   inspectorOpen: boolean; sidebarWidth: number; inspectorWidth: number; sort: 'label' | 'kind'; expandedDetails: boolean;
 };
 export const atlasModule: AppModule = {
   manifest: { id: 'atlas', name: 'ATLAS', version: '0.1.0', platformApiVersion: 1, entryView: 'AtlasView', stateSchemaVersion: 1,
-    acceptedEntityKinds: ['aircraft', 'vessel', 'place'], actions: [{ id: 'inspect-demo', label: 'Inspect record', acceptedKinds: ['aircraft', 'vessel', 'place'], requiredCapabilities: ['demo'] }], searchProviders: ['atlas-demo'] },
+    acceptedEntityKinds: ['aircraft', 'earthquake', 'vessel', 'place'], actions: [{ id: 'inspect-demo', label: 'Inspect record', acceptedKinds: ['aircraft', 'vessel', 'place'], requiredCapabilities: ['demo'] }], searchProviders: ['atlas-demo'] },
   View: AtlasView,
   actions: [{ id: 'inspect-demo', label: 'Inspect record', acceptedKinds: ['aircraft', 'vessel', 'place'], requiredCapabilities: ['demo'],
     run: (selection, _context, host) => {

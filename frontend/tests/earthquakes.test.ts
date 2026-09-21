@@ -1,0 +1,45 @@
+import { expect, test } from 'vitest';
+import { EarthquakeChannel } from '../src/platform/data/EarthquakeChannel';
+import { earthquakeFixture } from './fixtures/earthquakes';
+test('earthquake revisions use update time, validate atomically, recover sequences and isolate sources', () => {
+  const channel = new EarthquakeChannel(); const first = earthquakeFixture();
+  expect(channel.accept(first)).toBe('accepted');
+  const revised = earthquakeFixture(1, false, 5.1);
+  revised.upserts[0].observation.properties.sourceUpdatedAt = new Date(Date.parse(first.generatedAt) + 1000).toISOString();
+  revised.upserts[0].observation.observedAt = new Date(Date.parse(first.generatedAt) - 7200000).toISOString();
+  expect(channel.accept(revised)).toBe('accepted');
+  expect(channel.getSnapshot().records[0].observation.properties.magnitude).toBe(5.1);
+  const late = earthquakeFixture(2, false, 3);
+  late.upserts[0].observation.properties.sourceUpdatedAt = first.generatedAt;
+  channel.accept(late);
+  expect(channel.getSnapshot().records[0].observation.id).toBe(revised.upserts[0].observation.id);
+  const equal = earthquakeFixture(3, false, 7);
+  equal.upserts[0].observation.properties.sourceUpdatedAt = revised.upserts[0].observation.properties.sourceUpdatedAt;
+  channel.accept(equal); expect(channel.getSnapshot().records[0].observation.properties.magnitude).toBe(5.1);
+  expect(channel.accept(equal)).toBe('duplicate');
+  expect(channel.accept(earthquakeFixture(5, false))).toBe('gap');
+  const malformed = earthquakeFixture(4, false); malformed.upserts[0].observation.geometry!.coordinates.push(99);
+  expect(() => channel.accept(malformed)).toThrow(); expect(channel.getSnapshot().records[0].observation.properties.magnitude).toBe(5.1);
+  const other = earthquakeFixture(4, false); other.source.id = 'alternate';
+  expect(channel.accept(other)).toBe('gap');
+  other.reset = true;
+  expect(() => channel.accept(other)).toThrow('Mismatched source');
+  const reset = earthquakeFixture(5, true, null); reset.upserts[0].observation.properties.sourceUpdatedAt = null;
+  expect(channel.accept(reset)).toBe('accepted'); expect(channel.getSnapshot().records[0].observation.properties.magnitude).toBeNull();
+  const removed = earthquakeFixture(6, false); removed.upserts = []; removed.removals = ['quake-fixture:event1'];
+  channel.accept(removed); expect(channel.getSnapshot().records).toHaveLength(0);
+});
+
+test('depth never becomes altitude and event age never stands in for feed freshness', async () => {
+  const { earthquakeMarker, matchesEarthquake, earthquakeHealth, defaultEarthquakeSettings } = await import('../src/apps/atlas/earthquakePresentation');
+  const batch = earthquakeFixture(); const record = batch.upserts[0];
+  const marker = earthquakeMarker(record)!;
+  expect(marker.longitude).toBe(12); expect(marker.latitude).toBe(58); expect(marker.altitudeMetres).toBeUndefined();
+  expect(matchesEarthquake(record, { ...defaultEarthquakeSettings, minimumMagnitude: 5 }, Date.now())).toBe(false);
+  record.observation.observedAt = null;
+  expect(matchesEarthquake(record, defaultEarthquakeSettings, Date.now())).toBe(true);
+  expect(matchesEarthquake(record, { ...defaultEarthquakeSettings, maxAgeHours: 1 }, Date.now())).toBe(false);
+  const channel = new EarthquakeChannel(); channel.accept(batch);
+  expect(earthquakeHealth(channel.getSnapshot(), Date.now())).toBe('healthy');
+  expect(earthquakeHealth(channel.getSnapshot(), Date.now() + 181000)).toBe('stale');
+});

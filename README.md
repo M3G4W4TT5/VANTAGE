@@ -1,8 +1,8 @@
 # VANTAGE / ATLAS
 
-ATLAS now displays **live aircraft from ADSB.lol** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. The 52-record synthetic demo remains a separate view. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
+ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from the USGS past-day M2.5+ feed** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. The 52-record synthetic demo remains a separate view. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Choose **Aircraft** or **Earthquakes** to use one domain view at a time. Both share the map, markers, results table and inspector structure. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
 
-The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations.
+The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
 ## Prerequisites and pins
 
@@ -38,13 +38,13 @@ npm --prefix frontend ci
 dotnet tool restore
 dotnet restore Vantage.slnx --locked-mode
 sudo docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait db
-dotnet run --project backend/Vantage.Api -- --migrate
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --migrate
 ```
 
 In separate terminals:
 
 ```sh
-dotnet run --project backend/Vantage.Api
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --urls http://127.0.0.1:5080
 ```
 
 ```sh
@@ -86,10 +86,10 @@ For a database change, create and review an EF migration, then apply it explicit
 
 ```sh
 dotnet ef migrations add YourChangeName --project backend/Vantage.Api --output-dir Persistence/Migrations
-dotnet run --project backend/Vantage.Api -- --migrate
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --migrate
 ```
 
-Normal API startup does not migrate the database. Compose uses a separate migration job. The `/hubs/observations` SignalR hub streams the separate versioned `AircraftBatch` contract. Reconnect uses a reset snapshot because the source has no durable resume history. Schema validation and sequence checks run before frontend cache mutation.
+Normal API startup does not migrate the database. Compose uses a separate migration job. The `/hubs/observations` SignalR hub streams separate versioned `AircraftBatch` and `EarthquakeBatch` contracts. Earthquake revisions are ordered by source-update time, independently of occurrence and retrieval. The additive `EarthquakeObservations` migration preserves aircraft records/workspaces and scopes shared observation retention by data type/source. Reconnect uses a reset snapshot because the source has no durable resume history. Schema validation and sequence checks run before frontend cache mutation.
 
 ## Checks
 
@@ -101,7 +101,7 @@ npm --prefix frontend run test
 npm --prefix frontend run build
 ```
 
-The backend check creates and drops its own randomly named database on the local PostgreSQL server, applies real PostGIS migrations, and checks workspace persistence/revision handling plus aircraft evidence persistence and spatial queries. It uses the ignored local configuration, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips the database scenarios without that environment variable. The frontend checks exercise linked context/lifecycle cleanup and aircraft sequence validation/reset recovery. Aircraft integration checks use injected synthetic adapters, including a second provider to check substitution and cache isolation; browser checks mock both aircraft WebSockets and external map tiles. Live smoke checks are recorded separately.
+The backend check creates and drops its own randomly named database on the local PostgreSQL server, applies real PostGIS migrations, and checks workspace persistence/revision handling, aircraft spatial queries, earthquake normalization/revisions, source substitution, cancellation and retention isolation. It uses the ignored local configuration, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips the database scenarios without that environment variable. The frontend checks exercise linked context/lifecycle cleanup, separate domain ordering, schema validation/reset recovery, earthquake filters and surface markers. Browser checks mock observation WebSockets and public map tiles, covering selection, explicit Save/restoration and source-health states. Live smoke checks are recorded separately.
 
 On Fedora, run browser checks in the matching Playwright container against the built app; no host browser dependencies are installed. The container explicitly uses software WebGL; trace filmstrips are disabled to avoid continuous GPU readback, while DOM/network traces and selected screenshots remain available:
 
@@ -118,9 +118,9 @@ Use a fresh container name on subsequent runs, or remove the old **test containe
 
 ## Layout and configuration
 
-- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, shell and theme. It contains no ATLAS-specific branches.
-- `frontend/src/apps/atlas`: the registered app, Cesium map, aircraft/demo views and inspectors.
-- `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and `Connectors/AdsbLol` in a modular monolith.
+- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, map/marker and results/inspector components, shell and theme. It contains no ATLAS-specific branches.
+- `frontend/src/apps/atlas`: the registered app, aircraft/earthquake domain presentation and the demo view.
+- `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and replaceable `Connectors/AdsbLol` / `Connectors/Usgs` in a modular monolith.
 - `contracts`: versioned schemas, OpenAPI and NSwag configuration. `tests/` and `frontend/tests/` hold the small verification harnesses.
 - `infra`: Compose and image definitions. `scripts`: local configuration, client generation and the backend check.
 
@@ -146,4 +146,14 @@ The place index is checked into `frontend/public/data/`; ordinary builds work wi
 node frontend/scripts/prepare-places.mjs
 ```
 
-Production builds emit `third-party-licenses.txt` with bundled dependency notices, including Blueprint, React and Inter. Original repository marks are reused; design reference screenshots are not shipped.
+Production builds emit `third-party-licenses.txt` with bundled dependency notices, including Blueprint, React, Inter and Tabler Icons. Original repository marks are reused; design reference screenshots are not shipped.
+
+## Earthquakes
+
+Select **Earthquakes** in the ATLAS toolbar. The source supplies a worldwide past-day M2.5+ feed; it does not promise complete global detection. Northern Europe remains the starting camera, so use the sidebar/list and **Zoom to event** to inspect distant events. Filter by location/event ID, magnitude or event age; sort by occurrence, magnitude or source update. The legend uses size and labels, and selection adds brackets. All columns, including depth in km, magnitude type, three timestamps and provenance, are available in both grid and accessible table.
+
+Save preserves the active view, filters, camera, selection, basemap and panels. Aircraft and earthquake cameras/filters remain separate. Feed updates do not mark the workspace dirty. Occurrence drives event age; feed generation drives freshness. A stale/unavailable feed retains its last successful snapshot with a visible status. Unknown fields remain unknown; depth is never passed as Cesium altitude.
+
+Earthquake collection requires no key. Native settings: `Sources__Earthquakes__Provider=usgs-earthquakes`, `Sources__Usgs__Enabled=false` to disable, and `Sources__Usgs__PollSeconds=60` (minimum 60). Compose equivalents are `VANTAGE_EARTHQUAKE_PROVIDER`, `VANTAGE_USGS_ENABLED`, `VANTAGE_USGS_POLL_SECONDS`. Restart after configuration changes. The endpoint is fixed inside the adapter. REST exposes cached `/api/v1/earthquakes`, source metadata and typed immutable observation reads; SignalR demand starts shared collection. No open view means no upstream polling.
+
+NASA imagery and combined-layer controls are not part of this increment. The complete prototype acceptance gate remains outstanding; these checks do not certify full performance or accessibility compliance.

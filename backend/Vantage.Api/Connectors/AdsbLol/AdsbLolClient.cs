@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -28,17 +27,7 @@ public sealed partial class AdsbLolClient(HttpClient http, IConfiguration config
         // Only this fixed HTTPS origin and numeric, bounded paths can be requested. Redirects are disabled in DI.
         var url = string.Create(CultureInfo.InvariantCulture,
             $"https://api.adsb.lol/v2/point/{query.Latitude:0.00}/{query.Longitude:0.00}/{query.RadiusNm}");
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellation);
-        if (!response.IsSuccessStatusCode)
-        {
-            var retry = response.Headers.RetryAfter;
-            var delay = retry?.Delta ?? (retry?.Date is { } date ? date - DateTimeOffset.UtcNow : null);
-            throw new SourceException(response.StatusCode == HttpStatusCode.TooManyRequests ? "rate_limited" : "offline",
-                $"ADSB.lol returned HTTP {(int)response.StatusCode}. Retaining the last available observations.", delay);
-        }
-        // Bound decoded bytes as well as item count. A malformed/oversized feed cannot allocate unbounded memory.
-        await response.Content.LoadIntoBufferAsync(4 * 1024 * 1024, cancellation);
-        var payload = await response.Content.ReadAsStringAsync(cancellation);
+        var payload = await SourceTransport.ReadAsync(http, url, "ADSB.lol", cancellation);
         return Parse(payload, DateTimeOffset.UtcNow, url);
     }
 

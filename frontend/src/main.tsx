@@ -16,7 +16,10 @@ import { WorkspaceService } from './platform/workspaces/WorkspaceService';
 import { VantageShell } from './platform/shell/VantageShell';
 import { atlasModule } from './apps/atlas/atlasModule';
 
+import { SourceServicesContext } from './platform/sources/SourceServices';
+import * as sources from './connectors/sourceRegistration';
+
 const registry = new AppRegistry();
 registry.register(atlasModule);
 const workspaces = new WorkspaceService();
-createRoot(document.getElementById('root')!).render(<StrictMode><HotkeysProvider><VantageShell registry={registry} workspaces={workspaces} /></HotkeysProvider></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><HotkeysProvider><SourceServicesContext value={sources}><VantageShell registry={registry} workspaces={workspaces} /></SourceServicesContext></HotkeysProvider></StrictMode>);

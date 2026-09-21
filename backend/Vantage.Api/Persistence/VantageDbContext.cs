@@ -20,6 +20,9 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
     public DbSet<ObservationRow> Observations => Set<ObservationRow>();
     public DbSet<CurrentAircraftRow> CurrentAircraft => Set<CurrentAircraftRow>();
 
+    public DbSet<CurrentEarthquakeRow> CurrentEarthquakes => Set<CurrentEarthquakeRow>();
+    public DbSet<EarthquakeFeedRow> EarthquakeFeeds => Set<EarthquakeFeedRow>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasPostgresExtension("postgis");
@@ -28,6 +31,7 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
             e.ToTable("observations", "platform"); e.HasKey(x => x.Id);
             e.Property(x => x.Position).HasColumnType("geography (point,4326)");
             e.Property(x => x.RecordJson).HasColumnType("jsonb"); e.Property(x => x.RawJson).HasColumnType("jsonb");
+            e.HasIndex(x => new { x.DataType, x.SourceId, x.RetrievedAt });
             e.HasIndex(x => new { x.EntityId, x.ObservedAt }); e.HasIndex(x => x.RetrievedAt);
             e.HasIndex(x => x.Position).HasMethod("gist");
         });
@@ -39,6 +43,15 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
             e.Property(x => x.RecordJson).HasColumnType("jsonb");
             e.HasIndex(x => x.Position).HasMethod("gist"); e.HasIndex(x => x.RetrievedAt);
         });
+        model.Entity<CurrentEarthquakeRow>(e =>
+        {
+            e.ToTable("current_earthquakes", "atlas"); e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.SourceId, x.InLatestFeed, x.OccurredAt });
+            e.Property(x => x.Position).HasColumnType("geography (point,4326)");
+            e.Property(x => x.RecordJson).HasColumnType("jsonb");
+            e.HasIndex(x => x.Position).HasMethod("gist");
+        });
+        model.Entity<EarthquakeFeedRow>(e => { e.ToTable("earthquake_feeds", "atlas"); e.HasKey(x => x.SourceId); });
         model.Entity<WorkspaceRow>(entity =>
         {
             entity.ToTable("workspaces", "platform");

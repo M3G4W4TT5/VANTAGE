@@ -26,7 +26,7 @@ public sealed class AircraftController(AircraftStore store, AircraftSources sour
     public async Task<ActionResult<AircraftRecordDto>> Observation(string id, CancellationToken cancellationToken)
     {
         var cutoff = DateTimeOffset.UtcNow.AddHours(-AircraftCachePolicy.RetentionHours);
-        var json = await db.Observations.AsNoTracking().Where(x => x.Id == id && x.RetrievedAt >= cutoff).Select(x => x.RecordJson).SingleOrDefaultAsync(cancellationToken);
+        var json = await db.Observations.AsNoTracking().Where(x => x.DataType == "aircraft" && x.Id == id && x.RetrievedAt >= cutoff).Select(x => x.RecordJson).SingleOrDefaultAsync(cancellationToken);
         return json is null ? NotFound(new ApiError("observation_unavailable", "This observation is not in the bounded live cache; it may have expired. A newer observation is not substituted.")) :
             JsonSerializer.Deserialize<AircraftRecordDto>(json, ContractJson.Options)!;
     }
