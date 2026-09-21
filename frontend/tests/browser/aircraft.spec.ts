@@ -32,6 +32,7 @@ test('aircraft map, list, evidence, manual save and snapshot recovery', async ({
     await page.goto('/');
     const map = page.getByRole('region', { name: 'Aircraft map' });
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
+    await expect(page.getByLabel('Aircraft legend')).not.toContainText('Selected');
     await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
     await page.screenshot({ path: info.outputPath('aircraft-map-dark.png'), animations: 'disabled' });
     // The known fixture is at the initial camera centre; this exercises actual Cesium picking.
