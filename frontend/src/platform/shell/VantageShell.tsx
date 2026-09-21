@@ -47,11 +47,17 @@ export function VantageShell({ registry, workspaces }: { registry: AppRegistry; 
   const searchResults = search.trim() ? registry.search(search) : [];
   const activePane = doc?.panes.find(p => p.id === doc.appStates.shell.activePaneId);
   const activeApp = activePane ? registry.get(activePane.appId) : undefined;
+  const wordmarkColour = theme === 'dark' ? 'white' : 'black';
   return <div className={styles.shell}>
     <a className={styles.skip} href="#workspace">Skip to workspace</a>
     <header className={styles.header}>
-      <div className={styles.brand}><img src={`/brand/vantage-mark-${theme === 'dark' ? 'white' : 'black'}.svg`} alt="" /><span>VANTAGE</span></div>
-      <span className={styles.slash}>/</span><strong className={styles.appName}>{activeApp?.manifest.name ?? 'Workspace'}</strong>
+      <div className={styles.brand}>
+        <img className={styles.vantageWordmark} src={`/brand/vantage-wordmark-${wordmarkColour}.svg`} alt="VANTAGE" />
+      </div>
+      <span className={styles.slash}>/</span>
+      {activeApp?.manifest.id === 'atlas'
+        ? <img className={styles.atlasWordmark} src={`/brand/atlas-wordmark-${wordmarkColour}.svg`} alt="ATLAS" />
+        : <strong className={styles.appName}>{activeApp?.manifest.name ?? 'Workspace'}</strong>}
       <Button minimal icon="search" className={styles.searchButton} onClick={() => setDialog('search')}>Search <kbd>⌘ / Ctrl K</kbd></Button>
       <div className={styles.workspaceControls}>
         <HTMLSelect aria-label="Workspace" value={doc?.id ?? ''} disabled={busy || !list.length} options={[...(!doc ? [{ value: '', label: 'Choose workspace' }] : []), ...list.map(w => ({ value: w.id ?? '', label: w.name ?? 'Unnamed' }))]}

@@ -62,7 +62,7 @@ test('earthquake surface picking, shared grid/list/inspector, revisions and expl
     await page.getByRole('button', { name: 'Zoom to event' }).click();
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await page.getByRole('button', { name: 'Use light theme' }).click();
-    await page.getByRole('button', { name: 'Globe', exact: true }).click();
+    await page.getByRole('button', { name: '3D', exact: true }).click();
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await page.screenshot({ path: info.outputPath('earthquake-globe-light.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'List', exact: true }).click();

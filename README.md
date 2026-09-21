@@ -162,6 +162,6 @@ NASA imagery and combined-layer controls are not part of this increment. The com
 
 See the [UI refinement record](docs/ui-refinement.md) for marker rules, migration behaviour and verification.
 
-**Map / List** switches the main view. On the map, expand the bottom result-count bar to see the grid, and use **2D / Globe** at the top right. Drag the inner edge of **Filters** or the inspector to resize; focus the edge and use arrow keys, Home or End for keyboard resizing. Widths and drawer state persist only with Save.
+**Map / List** switches the main view. On the map, expand the bottom result-count bar to see the grid, and use **2D / 3D** at the top right. Drag the inner edge of **Filters** or the inspector to resize; focus the edge and use arrow keys, Home or End for keyboard resizing. Widths and drawer state persist only with Save.
 
 Aircraft are plane symbols: red for reported grounded, yellow for old/unknown-age positions, blue for recent positions. Ground state takes precedence. Purple brackets identify selection. A small superscript **?** flags missing track/heading, ground state or position time; earthquake badges flag missing magnitude, depth or occurrence time. Legends explain the rules and inspector/table fields retain explicit unknowns. Globe occlusion applies to symbols, badges and brackets. The retired demo collection and demo search provider are removed.

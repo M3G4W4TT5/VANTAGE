@@ -26,6 +26,10 @@ test.afterEach(async ({ page, request }) => {
 });
 test('live shell, drag/keyboard resizing, themed overlays and Save restoration', async ({ page, request }, info) => {
   await page.goto('/');
+  const vantageWordmark = page.getByRole('img', { name: 'VANTAGE' });
+  const atlasWordmark = page.getByRole('img', { name: 'ATLAS' });
+  await expect(vantageWordmark).toHaveAttribute('src', '/brand/vantage-wordmark-white.svg');
+  await expect(atlasWordmark).toHaveAttribute('src', '/brand/atlas-wordmark-white.svg');
   await expect(page.getByRole('table', { name: 'Aircraft results' })).toContainText('TEST01');
   await expect(page.getByRole('button', { name: /Demo collection|Northern Europe|Accessible list|^Results$/ })).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Map projection' })).toHaveCount(0);
@@ -40,6 +44,8 @@ test('live shell, drag/keyboard resizing, themed overlays and Save restoration',
   await expect(inspector).toHaveAttribute('aria-valuenow', '370');
   await page.screenshot({ path: info.outputPath('live-list-dark.png'), animations: 'disabled' });
   await page.getByRole('button', { name: 'Use light theme' }).click();
+  await expect(vantageWordmark).toHaveAttribute('src', '/brand/vantage-wordmark-black.svg');
+  await expect(atlasWordmark).toHaveAttribute('src', '/brand/atlas-wordmark-black.svg');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
   const saved = await (await request.get(`/api/v1/workspaces/${workspaceId}`)).json();

@@ -1,7 +1,9 @@
 .shell { height: 100dvh; min-height: 440px; display: flex; flex-direction: column; }
 .header { display: flex; align-items: center; min-height: 40px; padding: 4px 12px; gap: 12px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .16em; }
-.brand img { width: 22px; height: 22px; object-fit: contain; }
+.brand { display: flex; align-items: center; }
+.vantageWordmark, .atlasWordmark { display: block; object-fit: contain; object-position: left center; }
+.vantageWordmark { width: 72px; height: 20px; }
+.atlasWordmark { width: 53px; height: 19px; }
 .slash { color: var(--divider); font-size: 18px; }
 .appName { font-size: 12px; letter-spacing: .06em; font-weight: 500; }
 .header .searchButton { margin-left: 20px; color: var(--text-muted); min-width: 160px; justify-content: flex-start; }

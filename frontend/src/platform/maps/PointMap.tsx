@@ -118,7 +118,7 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
     </div>
     <div className={styles.mapModes} role="group" aria-label="Map projection">
       <Button small active={mode === '2d'} aria-pressed={mode === '2d'} onClick={() => setMode('2d')}>2D</Button>
-      <Button small icon={<UiIcon name="globe" />} active={mode === '3d'} aria-pressed={mode === '3d'} onClick={() => setMode('3d')}>Globe</Button>
+      <Button small icon={<UiIcon name="globe" />} active={mode === '3d'} aria-pressed={mode === '3d'} onClick={() => setMode('3d')}>3D</Button>
     </div>
     <div className={styles.mapCaption}>{basemap?.name ?? 'Loading basemap'}{basemap?.offline && ' · coarse map'}{caption && <><br />{caption}</>}</div>
     {!ready && !error && <div className={styles.mapNotice} role="status">Loading the map…</div>}

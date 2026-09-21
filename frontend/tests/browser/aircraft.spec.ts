@@ -50,7 +50,7 @@ test('aircraft map, list, evidence, manual save and snapshot recovery', async ({
     await expect.poll(() => subscriptions).toBeGreaterThan(before);
     await expect(page.getByRole('complementary', { name: 'Record inspector' })).toContainText('120.0 m/s');
     await page.getByRole('button', { name: 'Use light theme' }).click();
-    await page.getByRole('button', { name: 'Globe', exact: true }).click();
+    await page.getByRole('button', { name: '3D', exact: true }).click();
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await page.screenshot({ path: info.outputPath('aircraft-globe-light.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'List', exact: true }).click();
