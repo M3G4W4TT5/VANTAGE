@@ -12,14 +12,15 @@ public sealed class AtlasWorkspaceTemplate : IWorkspaceTemplate
         {
             ["schemaVersion"] = 1, ["viewMode"] = "canvas", ["resultsOpen"] = false,
             ["sidebarOpen"] = true, ["inspectorOpen"] = true, ["sidebarWidth"] = 280,
-            ["inspectorWidth"] = 360, ["sort"] = "label", ["expandedDetails"] = false
+            ["inspectorWidth"] = 360, ["sort"] = "label", ["expandedDetails"] = false,
+            ["dataMode"] = "live", ["aircraftQuery"] = new AircraftQuery(), ["mapMode"] = "2d"
         };
         var context = new Dictionary<string, object?>
         {
             ["schemaVersion"] = 1, ["workspaceId"] = workspaceId, ["paneId"] = paneId,
             ["selection"] = new { entityIds = Array.Empty<string>(), observationIds = Array.Empty<string>() },
             ["area"] = null, ["time"] = new { mode = "live", cursor = (string?)null, from = (string?)null, to = (string?)null },
-            ["layerIds"] = new[] { "demo-aircraft", "demo-vessels", "demo-places" },
+            ["layerIds"] = new[] { "aircraft" },
             ["filters"] = new { query = "", kind = "all" }, ["linkGroupId"] = null
         };
         return new([new(paneId, "atlas", 1, state, context)], [],

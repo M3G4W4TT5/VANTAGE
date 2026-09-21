@@ -1,5 +1,7 @@
 # Stage 1: contracts and shell
 
+This is the historical foundation checkpoint; [Stage 2](stage-2.md) adds live aircraft and the map.
+
 Implemented on 2026-09-21, following the first step of [the specification](../PROTOTYPE_SPEC.md#12-implementation-sequence-and-completion). This is a foundation for the complete prototype, not a claim that AC-01–16 are complete.
 
 ## Delivered

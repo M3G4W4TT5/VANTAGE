@@ -34,3 +34,4 @@ tmp/
 .cache/
 backend/Vantage.Api/wwwroot/
 artifacts/
+frontend/public/cesium/

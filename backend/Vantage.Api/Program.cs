@@ -5,6 +5,8 @@ using Vantage.Api.Atlas;
 using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
 using Vantage.Api.Platform.Workspaces;
+using Vantage.Api.Platform.Observations;
+using Vantage.Api.Connectors.AdsbLol;
 
 var exportIndex = Array.IndexOf(args, "--export-openapi");
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,18 @@ builder.Services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(
     pg => pg.UseNetTopologySuite()));
 builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(new Dictionary<string, (int, string)> { ["atlas"] = (1, "AtlasState") }));
 builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
+builder.Services.AddHttpClient<AdsbLolClient>(http =>
+{
+    http.Timeout = TimeSpan.FromSeconds(15);
+    http.DefaultRequestHeaders.UserAgent.ParseAdd("VANTAGE-ATLAS/0.2 (local prototype)");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddTransient<IAircraftSource>(sp => sp.GetRequiredService<AdsbLolClient>());
+builder.Services.AddSingleton<AircraftSources>();
+builder.Services.AddScoped<AircraftStore>();
+builder.Services.AddSingleton<AircraftCoordinator>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AircraftCoordinator>());
+builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 16384; o.MaximumParallelInvocationsPerClient = 1; })
+    .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new UtcTimestampConverter()));
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
@@ -28,10 +42,11 @@ app.Use(async (context, next) =>
     catch (Npgsql.NpgsqlException)
     {
         context.Response.StatusCode = 503;
-        await context.Response.WriteAsJsonAsync(new ApiError("storage_unavailable", "Workspace storage is unavailable. Check the database and migrations, then retry.", true));
+        await context.Response.WriteAsJsonAsync(new ApiError("storage_unavailable", "Local storage is unavailable. Check the database and migrations, then retry.", true));
     }
 });
 app.MapControllers();
+app.MapHub<ObservationsHub>("/hubs/observations");
 if (exportIndex >= 0)
 {
     var document = await app.Services.GetRequiredService<IOpenApiDocumentGenerator>().GenerateAsync("v1");

@@ -1,8 +1,8 @@
 # VANTAGE / ATLAS
 
-Stage 1 implements the app registry, versioned contracts, PostgreSQL-backed workspaces and the themed Blueprint shell. ATLAS currently explores **52 synthetic records** through filters, an inspector, a virtualised grid and a semantic table. The canvas reserves space for the next stage's map; no live providers or AI services are called.
+ATLAS now displays **live aircraft from ADSB.lol** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. The 52-record synthetic demo remains a separate view. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
 
-The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1 verification](docs/stage-1.md) records results and limitations.
+The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations.
 
 ## Prerequisites and pins
 
@@ -51,7 +51,7 @@ dotnet run --project backend/Vantage.Api
 npm --prefix frontend run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` and the reserved `/hubs` path to the API on port 5080. PostgreSQL is bound to loopback port 54329. The first browser visit creates a workspace if none exists. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, time or theme marks the workspace unsaved.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` and `/hubs` to the API on port 5080. PostgreSQL is bound to loopback port 54329. The first browser visit creates a workspace if none exists. New workspaces open live aircraft; in an existing demo workspace choose **Live aircraft**. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved.
 
 ## Run the built application in containers
 
@@ -89,7 +89,7 @@ dotnet ef migrations add YourChangeName --project backend/Vantage.Api --output-d
 dotnet run --project backend/Vantage.Api -- --migrate
 ```
 
-Normal API startup does not migrate the database. Compose uses a separate migration job. SignalR event schemas exist as contracts only; a hub and generated/validated live payload handling belong to the next stage.
+Normal API startup does not migrate the database. Compose uses a separate migration job. The `/hubs/observations` SignalR hub streams the separate versioned `AircraftBatch` contract. Reconnect uses a reset snapshot because the source has no durable resume history. Schema validation and sequence checks run before frontend cache mutation.
 
 ## Checks
 
@@ -101,9 +101,9 @@ npm --prefix frontend run test
 npm --prefix frontend run build
 ```
 
-The backend check creates and drops its own randomly named database on the local PostgreSQL server, applies real PostGIS migrations, and checks persistence/restart and revision handling. It uses the ignored local configuration, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips this scenario without that environment variable. The frontend unit check exercises linked context and app lifecycle cleanup.
+The backend check creates and drops its own randomly named database on the local PostgreSQL server, applies real PostGIS migrations, and checks workspace persistence/revision handling plus aircraft evidence persistence and spatial queries. It uses the ignored local configuration, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips the database scenarios without that environment variable. The frontend checks exercise linked context/lifecycle cleanup and aircraft sequence validation/reset recovery. Aircraft integration checks use injected synthetic adapters, including a second provider to check substitution and cache isolation; browser checks mock both aircraft WebSockets and external map tiles. Live smoke checks are recorded separately.
 
-On Fedora, run browser checks in the matching Playwright container against the built app; no host browser dependencies are installed:
+On Fedora, run browser checks in the matching Playwright container against the built app; no host browser dependencies are installed. The container explicitly uses software WebGL; trace filmstrips are disabled to avoid continuous GPU readback, while DOM/network traces and selected screenshots remain available:
 
 ```sh
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test up -d --build app
@@ -118,9 +118,9 @@ Use a fresh container name on subsequent runs, or remove the old **test containe
 
 ## Layout and configuration
 
-- `frontend/src/platform`: registry, context bus, workspace service, shell and shared theme. It contains no ATLAS-specific branches.
-- `frontend/src/apps/atlas`: the registered app, fixture adapter and ATLAS views.
-- `backend/Vantage.Api`: platform workspace/health endpoints, ATLAS default state and EF persistence in a modular monolith. Connector modules will be added when their vertical slices are implemented.
+- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, shell and theme. It contains no ATLAS-specific branches.
+- `frontend/src/apps/atlas`: the registered app, Cesium map, aircraft/demo views and inspectors.
+- `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and `Connectors/AdsbLol` in a modular monolith.
 - `contracts`: versioned schemas, OpenAPI and NSwag configuration. `tests/` and `frontend/tests/` hold the small verification harnesses.
 - `infra`: Compose and image definitions. `scripts`: local configuration, client generation and the backend check.
 
@@ -129,5 +129,21 @@ Use a fresh container name on subsequent runs, or remove the old **test containe
 There is no authentication yet. Host ports stay on loopback as required. Do not expose this stage publicly.
 
 Blueprint uses `PopoverNext` and the supported overlay path, with one theme adapter applied to the body so portals inherit the active theme. Normal `npm ci` succeeds without force/legacy-peer flags. An upstream, unused legacy `react-popper@2.3.0` dependency still reports React 19 as outside its peer range in `npm ls`; keep the restriction on deprecated `Popover`/`Overlay` components. The date control receives a bundled locale explicitly to avoid Blueprint's Webpack-specific dynamic locale loader.
+
+Cesium assets are prepared automatically by `predev` / `prebuild` from the pinned package. The coarse Natural Earth basemap requires no network service or key. **OpenStreetMap** supplies detailed online tiles through a separate adapter. The selector offers the offline map explicitly; a tile/network failure falls back to it with a visible message and manual retry. See [the basemap decision](docs/decisions/0004-cesium-basemap.md) and [DS-01 source record](docs/sources/basemap-places.md).
+
+Aircraft services consume `IAircraftSource`, selected from DI registration using `Sources__Aircraft__Provider` (Compose: `VANTAGE_AIRCRAFT_PROVIDER`, default `adsb-lol`). Register a replacement adapter in `Program.cs` and select its ID; its metadata supplies source name, query limits, coverage and polling policy. Storage and UI remain provider-independent; cached data retains its original source.
+
+ADSB.lol defaults to enabled, collecting only while an aircraft view is open. Native settings are `Sources__AdsbLol__Enabled=false` and `Sources__AdsbLol__PollSeconds=60`; Compose uses `VANTAGE_ADSB_ENABLED=false` and `VANTAGE_ADSB_POLL_SECONDS=60` in `infra/.env` or the invoking environment. Polling cannot be lowered below 30 seconds. Restart the API/container after changing these settings. No provider credential is needed. Cache budgets and retention are documented in the source record.
+
+Basemap and place capability contracts live in `frontend/src/platform/maps` and `platform/places`; adapters and their registration live in `frontend/src/connectors`. Changing the registered provider does not change the ATLAS view. Every future source follows the same capability-boundary rule.
+
+**Find a place** searches 7,342 bundled Natural Earth cities/towns, including supplied aliases and accent-insensitive matching. It makes no geocoding request. Positions are approximate map labels, not addresses or verified current observations. Selecting a place moves the camera; **Search this area** explicitly moves the aircraft collection. Save retains the camera and chosen basemap. Global Ctrl/Cmd+K search still serves the demo index in this slice.
+
+The place index is checked into `frontend/public/data/`; ordinary builds work without downloading it. To reproduce it from the checksum-pinned upstream release (or supply a previously downloaded source file as the final argument):
+
+```sh
+node frontend/scripts/prepare-places.mjs
+```
 
 Production builds emit `third-party-licenses.txt` with bundled dependency notices, including Blueprint, React and Inter. Original repository marks are reused; design reference screenshots are not shipped.

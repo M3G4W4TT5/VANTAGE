@@ -351,6 +351,135 @@ export class VantageClient {
         }
         return Promise.resolve<WorkspaceDto>(null as any);
     }
+
+    aircraft_Source(signal?: AbortSignal): Promise<AircraftSourceDto> {
+        let url_ = this.baseUrl + "/api/v1/aircraft/source";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAircraft_Source(_response);
+        });
+    }
+
+    protected processAircraft_Source(response: Response): Promise<AircraftSourceDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AircraftSourceDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AircraftSourceDto>(null as any);
+    }
+
+    aircraft_Query(longitude?: number | undefined, latitude?: number | undefined, radiusNm?: number | undefined, signal?: AbortSignal): Promise<AircraftRecordDto[]> {
+        let url_ = this.baseUrl + "/api/v1/aircraft?";
+        if (longitude === null)
+            throw new globalThis.Error("The parameter 'longitude' cannot be null.");
+        else if (longitude !== undefined)
+            url_ += "longitude=" + encodeURIComponent("" + longitude) + "&";
+        if (latitude === null)
+            throw new globalThis.Error("The parameter 'latitude' cannot be null.");
+        else if (latitude !== undefined)
+            url_ += "latitude=" + encodeURIComponent("" + latitude) + "&";
+        if (radiusNm === null)
+            throw new globalThis.Error("The parameter 'radiusNm' cannot be null.");
+        else if (radiusNm !== undefined)
+            url_ += "radiusNm=" + encodeURIComponent("" + radiusNm) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAircraft_Query(_response);
+        });
+    }
+
+    protected processAircraft_Query(response: Response): Promise<AircraftRecordDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AircraftRecordDto[];
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            result400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AircraftRecordDto[]>(null as any);
+    }
+
+    aircraft_Observation(id: string, signal?: AbortSignal): Promise<AircraftRecordDto> {
+        let url_ = this.baseUrl + "/api/v1/aircraft/observations/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAircraft_Observation(_response);
+        });
+    }
+
+    protected processAircraft_Observation(response: Response): Promise<AircraftRecordDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as AircraftRecordDto;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AircraftRecordDto>(null as any);
+    }
 }
 
 export interface HealthDto {
@@ -414,6 +543,96 @@ export interface UpdateWorkspaceRequest {
 export interface DuplicateWorkspaceRequest {
     name?: string;
     revision?: number;
+}
+
+export interface AircraftSourceDto {
+    id?: string;
+    name?: string;
+    documentationUrl?: string;
+    termsUrl?: string;
+    attribution?: string;
+    capabilities?: string[];
+    pollSeconds?: number;
+    maximumRadiusNm?: number;
+    resultLimit?: number;
+    cacheHours?: number;
+    minimumRadiusNm?: number;
+    coverage?: string;
+}
+
+export interface AircraftRecordDto {
+    entity?: EntityDto;
+    observation?: AircraftObservationDto;
+    identityRule?: string;
+    identityDescription?: string | undefined;
+}
+
+export interface EntityDto {
+    id?: string;
+    kind?: string;
+    label?: string;
+    externalIds?: ExternalIdDto[];
+    schemaVersion?: number;
+}
+
+export interface ExternalIdDto {
+    namespace?: string;
+    value?: string;
+}
+
+export interface AircraftObservationDto {
+    id?: string;
+    entityId?: string;
+    sourceId?: string;
+    observedAt?: string | undefined;
+    retrievedAt?: string;
+    geometry?: PointGeometryDto | undefined;
+    locationRole?: string | undefined;
+    precision?: PrecisionDto;
+    evidenceClass?: string;
+    properties?: AircraftPropertiesDto;
+    provenance?: ProvenanceDto;
+    schemaVersion?: number;
+}
+
+export interface PointGeometryDto {
+    coordinates?: number[];
+    type?: string;
+}
+
+export interface PrecisionDto {
+    level?: string;
+}
+
+export interface AircraftPropertiesDto {
+    schemaVersion?: number;
+    address?: string;
+    addressNamespace?: string;
+    callsign?: string | undefined;
+    registration?: string | undefined;
+    aircraftType?: string | undefined;
+    sourceType?: string;
+    speedMetresPerSecond?: number | undefined;
+    barometricAltitudeMetres?: number | undefined;
+    ellipsoidAltitudeMetres?: number | undefined;
+    trackDegrees?: number | undefined;
+    trueHeadingDegrees?: number | undefined;
+    onGround?: boolean | undefined;
+    positionObservedAt?: string | undefined;
+    containmentRadiusMetres?: number | undefined;
+    mlatFields?: string[];
+}
+
+export interface ProvenanceDto {
+    sourceId?: string;
+    sourceRecordId?: string;
+    sourceUrl?: string;
+    attribution?: string;
+    licenseRef?: string;
+    rawRef?: string;
+    derivedFrom?: string[];
+    transformVersion?: string;
+    transformDescription?: string | undefined;
 }
 
 export class ApiException extends Error {

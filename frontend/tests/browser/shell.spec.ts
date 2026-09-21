@@ -7,7 +7,10 @@ test.beforeEach(async ({ page, request }) => {
   }, { timeout: 45000 }).toBe(true);
   const result = await request.post('/api/v1/workspaces', { data: { name: 'Browser review' } });
   expect(result.status()).toBe(201);
-  workspaceId = (await result.json()).id;
+  const workspace = await result.json(); workspaceId = workspace.id;
+  workspace.panes[0].state.dataMode = 'demo';
+  workspace.panes[0].context.layerIds = ['demo-aircraft', 'demo-vessels', 'demo-places'];
+  await request.put(`/api/v1/workspaces/${workspaceId}`, { data: workspace });
   await page.addInitScript(id => localStorage.setItem('vantage.workspace', id), workspaceId);
 });
 test.afterEach(async ({ request }) => {

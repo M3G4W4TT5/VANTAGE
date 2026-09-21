@@ -11,4 +11,5 @@ logo
 design/reference
 .cache
 artifacts
+frontend/public/cesium
 **/*.tsbuildinfo

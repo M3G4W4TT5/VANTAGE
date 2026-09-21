@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  define: { CESIUM_BASE_URL: JSON.stringify('/cesium/') },
   build: { license: { fileName: 'third-party-licenses.txt' } },
   server: {
     port: 5173, strictPort: true,

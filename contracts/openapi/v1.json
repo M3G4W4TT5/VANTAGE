@@ -344,6 +344,132 @@
           }
         }
       }
+    },
+    "/api/v1/aircraft/source": {
+      "get": {
+        "tags": [
+          "Aircraft"
+        ],
+        "operationId": "Aircraft_Source",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AircraftSourceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aircraft": {
+      "get": {
+        "tags": [
+          "Aircraft"
+        ],
+        "operationId": "Aircraft_Query",
+        "parameters": [
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "default": 12.0
+            },
+            "x-position": 1
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "default": 58.0
+            },
+            "x-position": 2
+          },
+          {
+            "name": "radiusNm",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 250
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AircraftRecordDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/aircraft/observations/{id}": {
+      "get": {
+        "tags": [
+          "Aircraft"
+        ],
+        "operationId": "Aircraft_Observation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AircraftRecordDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -540,6 +666,302 @@
           "revision": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "AircraftSourceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "termsUrl": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumRadiusNm": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resultLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minimumRadiusNm": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coverage": {
+            "type": "string"
+          }
+        }
+      },
+      "AircraftRecordDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/EntityDto"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/AircraftObservationDto"
+          },
+          "identityRule": {
+            "type": "string"
+          },
+          "identityDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "EntityDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "externalIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalIdDto"
+            }
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ExternalIdDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "AircraftObservationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retrievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometry": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PointGeometryDto"
+              }
+            ]
+          },
+          "locationRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "precision": {
+            "$ref": "#/components/schemas/PrecisionDto"
+          },
+          "evidenceClass": {
+            "type": "string"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/AircraftPropertiesDto"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceDto"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PointGeometryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "PrecisionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "type": "string"
+          }
+        }
+      },
+      "AircraftPropertiesDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "address": {
+            "type": "string"
+          },
+          "addressNamespace": {
+            "type": "string"
+          },
+          "callsign": {
+            "type": "string",
+            "nullable": true
+          },
+          "registration": {
+            "type": "string",
+            "nullable": true
+          },
+          "aircraftType": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "speedMetresPerSecond": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "barometricAltitudeMetres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "ellipsoidAltitudeMetres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "trackDegrees": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "trueHeadingDegrees": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "onGround": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "positionObservedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "containmentRadiusMetres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "mlatFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ProvenanceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceId": {
+            "type": "string"
+          },
+          "sourceRecordId": {
+            "type": "string"
+          },
+          "sourceUrl": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "licenseRef": {
+            "type": "string"
+          },
+          "rawRef": {
+            "type": "string"
+          },
+          "derivedFrom": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transformVersion": {
+            "type": "string"
+          },
+          "transformDescription": {
+            "type": "string",
+            "nullable": true
           }
         }
       }

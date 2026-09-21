@@ -317,6 +317,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 160
+        },
+        "transformDescription": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
         }
       },
       "required": [
@@ -1210,6 +1217,52 @@
         },
         "expandedDetails": {
           "type": "boolean"
+        },
+        "dataMode": {
+          "enum": [
+            "live",
+            "demo"
+          ]
+        },
+        "aircraftQuery": {
+          "$ref": "#/definitions/AircraftQuery"
+        },
+        "mapMode": {
+          "enum": [
+            "2d",
+            "3d"
+          ]
+        },
+        "camera": {
+          "type": "object",
+          "properties": {
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "height": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 50000000
+            }
+          },
+          "required": [
+            "longitude",
+            "latitude",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "basemapId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
         }
       },
       "required": [
@@ -2027,6 +2080,571 @@
         "acceptedEntityKinds",
         "actions",
         "searchProviders"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftQuery": {
+      "type": "object",
+      "properties": {
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "latitude": {
+          "type": "number",
+          "minimum": -85,
+          "maximum": 85
+        },
+        "radiusNm": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 2000
+        }
+      },
+      "required": [
+        "longitude",
+        "latitude",
+        "radiusNm"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftProperties": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "addressNamespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "callsign": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "registration": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aircraftType": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceType": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "speedMetresPerSecond": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1600
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "barometricAltitudeMetres": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -610,
+              "maximum": 30480
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ellipsoidAltitudeMetres": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -610,
+              "maximum": 30480
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trackDegrees": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trueHeadingDegrees": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "onGround": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "positionObservedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "containmentRadiusMetres": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mlatFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 40
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "address",
+        "addressNamespace",
+        "callsign",
+        "registration",
+        "aircraftType",
+        "sourceType",
+        "speedMetresPerSecond",
+        "barometricAltitudeMetres",
+        "ellipsoidAltitudeMetres",
+        "trackDegrees",
+        "trueHeadingDegrees",
+        "onGround",
+        "positionObservedAt",
+        "containmentRadiusMetres",
+        "mlatFields"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftObservation": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Observation"
+        },
+        {
+          "properties": {
+            "properties": {
+              "$ref": "#/definitions/AircraftProperties"
+            }
+          }
+        }
+      ]
+    },
+    "AircraftRecord": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "$ref": "#/definitions/Entity"
+        },
+        "observation": {
+          "$ref": "#/definitions/AircraftObservation"
+        },
+        "identityRule": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "identityDescription": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "entity",
+        "observation",
+        "identityRule"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftHealth": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": [
+            "loading",
+            "healthy",
+            "degraded",
+            "offline",
+            "rate_limited",
+            "disabled",
+            "error"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "lastSuccessAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nextAttemptAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providerCount": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rejectedCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "state",
+        "message",
+        "lastSuccessAt",
+        "nextAttemptAt",
+        "providerCount",
+        "rejectedCount"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftCompleteness": {
+      "type": "object",
+      "properties": {
+        "returned": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "coverage": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "returned",
+        "limit",
+        "truncated",
+        "coverage"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftBatch": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "subscriptionId": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "reset": {
+          "type": "boolean"
+        },
+        "query": {
+          "$ref": "#/definitions/AircraftQuery"
+        },
+        "upserts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AircraftRecord"
+          },
+          "maxItems": 500
+        },
+        "removals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "maxItems": 500
+        },
+        "health": {
+          "$ref": "#/definitions/AircraftHealth"
+        },
+        "completeness": {
+          "$ref": "#/definitions/AircraftCompleteness"
+        },
+        "source": {
+          "$ref": "#/definitions/AircraftSource"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "subscriptionId",
+        "sequence",
+        "generatedAt",
+        "reset",
+        "query",
+        "upserts",
+        "removals",
+        "health",
+        "completeness",
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "AircraftSource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "documentationUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        },
+        "termsUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        },
+        "attribution": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "coverage": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "maxItems": 20
+        },
+        "pollSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "minimumRadiusNm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "maximumRadiusNm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2000
+        },
+        "resultLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "cacheHours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "documentationUrl",
+        "termsUrl",
+        "attribution",
+        "coverage",
+        "capabilities",
+        "pollSeconds",
+        "minimumRadiusNm",
+        "maximumRadiusNm",
+        "resultLimit",
+        "cacheHours"
+      ],
+      "additionalProperties": false
+    },
+    "PlaceIndex": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "sourceVersion": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "places": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "country": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "maxLength": 1024
+                }
+              },
+              "longitude": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180
+              },
+              "latitude": {
+                "type": "number",
+                "minimum": -90,
+                "maximum": 90
+              },
+              "rank": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "country",
+              "aliases",
+              "longitude",
+              "latitude",
+              "rank"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "sourceVersion",
+        "places"
       ],
       "additionalProperties": false
     }

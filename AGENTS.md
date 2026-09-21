@@ -8,6 +8,8 @@ Instructions for Codex and other coding agents working in this repository.
 - [DESIGN.md](DESIGN.md): visual tokens, layout, interactions and accessibility; screenshots are in `design/reference/`.
 - [VANTAGE_ECOSYSTEM.md](VANTAGE_ECOSYSTEM.md): exploratory context only; future apps are not committed scope.
 - [Approved stack decision](docs/decisions/0001-prototype-stack.md) and [Blueprint UI decision](docs/decisions/0002-blueprint-ui.md): rationale and implementation consequences; decision 0002 supersedes the original Radix choice.
+- [Replaceable source adapters](docs/decisions/0003-replaceable-source-adapters.md): mandatory provider boundaries for every source type.
+- [Cesium basemap decision](docs/decisions/0004-cesium-basemap.md): free raster substitution and offline place-index boundary.
 
 Build the VANTAGE framework and the complete ATLAS prototype defined in the specification. Build stages do not reduce completion scope. The specification governs behaviour and acceptance; DESIGN.md governs appearance and accessibility; this file governs implementation workflow and the approved stack. Future-app ideas remain exploratory.
 
@@ -37,6 +39,9 @@ Use the verified Blueprint package set and React compatibility rules in [decisio
 ## Architecture and contracts
 
 - Keep frontend, backend, contracts and documentation in one repository. Use a modular monolith with explicit platform, ATLAS and connector boundaries. Apps use shared service contracts rather than querying another app's tables.
+- Every source must use a replaceable adapter from its first implementation, including APIs, streams, imagery/tiles, media, catalogs and imports. Shared services and domain views depend on capability contracts, not concrete providers. Equivalent providers must be replaceable without rewriting those consumers; new formats or capabilities may require new adapters or explicit contract evolution.
+- Keep provider endpoints, authentication, response parsing, normalization and identity rules inside adapters. Expose attribution, provenance, coverage, limits, configuration requirements and supported operations through source metadata and contracts; do not hard-code a provider into shared storage, schemas or UI. Preserve original source identity on stored observations when providers change.
+- Use small interfaces appropriate to the source capability; introduce them as their sources are implemented. Consider known reuse and replacement needs before building each slice. Establish the boundary for the existing aircraft source before adding more providers, following decision 0003.
 - The React shell owns registration, navigation, workspaces and shared context. Register ATLAS through the common app contract; keep ATLAS-specific branching out of the shell. Show only implemented apps.
 - Reuse host services and components. Preserve independent pane state, opt-in linking, lifecycle cleanup and error containment.
 - Keep credentials and coordinated ingestion on the backend. Public tiles and permitted media may load directly in the browser using approved source configuration. Collectors need cancellation, bounded work, shared demand and graceful shutdown. Persist work that must survive restarts; a hosted service alone is not a durable queue.

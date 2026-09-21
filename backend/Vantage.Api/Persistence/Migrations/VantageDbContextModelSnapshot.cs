@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Vantage.Api.Persistence;
 
@@ -56,6 +57,84 @@ namespace Vantage.Api.Persistence.Migrations
                     b.HasIndex("UpdatedAt");
 
                     b.ToTable("workspaces", "platform");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentAircraftRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("OrderTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Point>("Position")
+                        .HasColumnType("geography (point,4326)");
+
+                    b.Property<string>("RecordJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("RetrievedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Position");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Position"), "gist");
+
+                    b.HasIndex("RetrievedAt");
+
+                    b.HasIndex("SourceId", "RetrievedAt");
+
+                    b.ToTable("current_aircraft", "atlas");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Observations.ObservationRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ObservedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Point>("Position")
+                        .HasColumnType("geography (point,4326)");
+
+                    b.Property<string>("RawJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("RecordJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset>("RetrievedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Position");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Position"), "gist");
+
+                    b.HasIndex("RetrievedAt");
+
+                    b.HasIndex("EntityId", "ObservedAt");
+
+                    b.ToTable("observations", "platform");
                 });
 #pragma warning restore 612, 618
         }
