@@ -1,6 +1,6 @@
 # VANTAGE / ATLAS
 
-ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from the USGS past-day M2.5+ feed** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. The 52-record synthetic demo remains a separate view. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Choose **Aircraft** or **Earthquakes** to use one domain view at a time. Both share the map, markers, results table and inspector structure. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
+ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from the USGS past-day M2.5+ feed** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Choose **Aircraft** or **Earthquakes** to use one domain view at a time. Both share the map, markers, results table and inspector structure. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
 
 The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
@@ -51,7 +51,7 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no
 npm --prefix frontend run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` and `/hubs` to the API on port 5080. PostgreSQL is bound to loopback port 54329. The first browser visit creates a workspace if none exists. New workspaces open live aircraft; in an existing demo workspace choose **Live aircraft**. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` and `/hubs` to the API on port 5080. PostgreSQL is bound to loopback port 54329. The first browser visit creates a workspace if none exists. New workspaces open live aircraft; legacy demo workspaces open Aircraft and keep their stored state unchanged until Save. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved.
 
 ## Run the built application in containers
 
@@ -119,7 +119,7 @@ Use a fresh container name on subsequent runs, or remove the old **test containe
 ## Layout and configuration
 
 - `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, map/marker and results/inspector components, shell and theme. It contains no ATLAS-specific branches.
-- `frontend/src/apps/atlas`: the registered app, aircraft/earthquake domain presentation and the demo view.
+- `frontend/src/apps/atlas`: the registered app, aircraft/earthquake domain presentation.
 - `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and replaceable `Connectors/AdsbLol` / `Connectors/Usgs` in a modular monolith.
 - `contracts`: versioned schemas, OpenAPI and NSwag configuration. `tests/` and `frontend/tests/` hold the small verification harnesses.
 - `infra`: Compose and image definitions. `scripts`: local configuration, client generation and the backend check.
@@ -138,7 +138,7 @@ ADSB.lol defaults to enabled, collecting only while an aircraft view is open. Na
 
 Basemap and place capability contracts live in `frontend/src/platform/maps` and `platform/places`; adapters and their registration live in `frontend/src/connectors`. Changing the registered provider does not change the ATLAS view. Every future source follows the same capability-boundary rule.
 
-**Find a place** searches 7,342 bundled Natural Earth cities/towns, including supplied aliases and accent-insensitive matching. It makes no geocoding request. Positions are approximate map labels, not addresses or verified current observations. Selecting a place moves the camera; **Search this area** explicitly moves the aircraft collection. Save retains the camera and chosen basemap. Global Ctrl/Cmd+K search still serves the demo index in this slice.
+**Find a place** searches 7,342 bundled Natural Earth cities/towns, including supplied aliases and accent-insensitive matching. It makes no geocoding request. Positions are approximate map labels, not addresses or verified current observations. Selecting a place moves the camera; **Search this area** explicitly moves the aircraft collection. Save retains the camera and chosen basemap. Global Ctrl/Cmd+K searches saved workspaces; use each domain’s filters for live records.
 
 The place index is checked into `frontend/public/data/`; ordinary builds work without downloading it. To reproduce it from the checksum-pinned upstream release (or supply a previously downloaded source file as the final argument):
 
@@ -150,10 +150,18 @@ Production builds emit `third-party-licenses.txt` with bundled dependency notice
 
 ## Earthquakes
 
-Select **Earthquakes** in the ATLAS toolbar. The source supplies a worldwide past-day M2.5+ feed; it does not promise complete global detection. Northern Europe remains the starting camera, so use the sidebar/list and **Zoom to event** to inspect distant events. Filter by location/event ID, magnitude or event age; sort by occurrence, magnitude or source update. The legend uses size and labels, and selection adds brackets. All columns, including depth in km, magnitude type, three timestamps and provenance, are available in both grid and accessible table.
+Select **Earthquakes** in the ATLAS toolbar. The source supplies a worldwide past-day M2.5+ feed; it does not promise complete global detection. Northern Europe remains the starting camera, so use the map results drawer or List and **Zoom to event** to inspect distant events. Filter by location/event ID, magnitude or event age; sort by occurrence, magnitude or source update. The legend uses size and labels, and selection adds brackets. All columns, including depth in km, magnitude type, three timestamps and provenance, are available in both grid and accessible table.
 
 Save preserves the active view, filters, camera, selection, basemap and panels. Aircraft and earthquake cameras/filters remain separate. Feed updates do not mark the workspace dirty. Occurrence drives event age; feed generation drives freshness. A stale/unavailable feed retains its last successful snapshot with a visible status. Unknown fields remain unknown; depth is never passed as Cesium altitude.
 
 Earthquake collection requires no key. Native settings: `Sources__Earthquakes__Provider=usgs-earthquakes`, `Sources__Usgs__Enabled=false` to disable, and `Sources__Usgs__PollSeconds=60` (minimum 60). Compose equivalents are `VANTAGE_EARTHQUAKE_PROVIDER`, `VANTAGE_USGS_ENABLED`, `VANTAGE_USGS_POLL_SECONDS`. Restart after configuration changes. The endpoint is fixed inside the adapter. REST exposes cached `/api/v1/earthquakes`, source metadata and typed immutable observation reads; SignalR demand starts shared collection. No open view means no upstream polling.
 
 NASA imagery and combined-layer controls are not part of this increment. The complete prototype acceptance gate remains outstanding; these checks do not certify full performance or accessibility compliance.
+
+## Map and panel controls
+
+See the [UI refinement record](docs/ui-refinement.md) for marker rules, migration behaviour and verification.
+
+**Map / List** switches the main view. On the map, expand the bottom result-count bar to see the grid, and use **2D / Globe** at the top right. Drag the inner edge of **Filters** or the inspector to resize; focus the edge and use arrow keys, Home or End for keyboard resizing. Widths and drawer state persist only with Save.
+
+Aircraft are plane symbols: red for reported grounded, yellow for old/unknown-age positions, blue for recent positions. Ground state takes precedence. Purple brackets identify selection. A small superscript **?** flags missing track/heading, ground state or position time; earthquake badges flag missing magnitude, depth or occurrence time. Legends explain the rules and inspector/table fields retain explicit unknowns. Globe occlusion applies to symbols, badges and brackets. The retired demo collection and demo search provider are removed.

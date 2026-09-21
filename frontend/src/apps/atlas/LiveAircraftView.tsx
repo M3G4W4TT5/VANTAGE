@@ -1,6 +1,9 @@
+import { AircraftLegend } from './AircraftLegend';
+import { ResultsDock } from '../../platform/ui/ResultsDock';
+import { PanelResize } from '../../platform/ui/PanelResize';
 import { lazy, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { CSSProperties } from 'react';
-import { Button, InputGroup, Tag } from '@blueprintjs/core';
+import { InputGroup, Tag } from '@blueprintjs/core';
 import type { AppViewProps } from '../../platform/registry/AppRegistry';
 import { aircraftChannel } from '../../platform/data/AircraftChannel';
 import type { AircraftQuery, AircraftRecord } from '../../platform/data/AircraftChannel';
@@ -51,8 +54,8 @@ export function LiveAircraftView({ pane, host, updateState }: AppViewProps) {
   return <main id="workspace" className={styles.atlas} style={{ '--sidebar-width': `${state.sidebarWidth}px`, '--inspector-width': `${state.inspectorWidth}px` } as CSSProperties}>
     <ViewToolbar pane={pane} host={host} updateState={updateState} />
     <div className={styles.body} data-inspector={showInspector}>
-      {state.sidebarOpen && <aside className={styles.sidebar} aria-label="Layers and filters">
-        <div className={styles.panelHeader}><span>LAYERS & FILTERS</span><span className={styles.muted}>01</span></div>
+      {state.sidebarOpen && <div className={styles.sidebarWrap}><aside className={styles.sidebar} aria-label="Filters">
+        <div className={styles.panelHeader}><span>FILTERS</span><span className={styles.muted}>01</span></div>
         <MapOptions paneId={pane.id} basemapId={state.basemapId} setBasemap={basemapId => patch({ basemapId })}
           setCamera={camera => { setFollow(false); patch({ viewMode: 'canvas', camera }); }} />
         <div className={styles.sidebarSection}><InputGroup leftIcon={<UiIcon name="search" />} aria-label="Filter aircraft" placeholder="Callsign, ICAO, registration…" value={query}
@@ -62,6 +65,7 @@ export function LiveAircraftView({ pane, host, updateState }: AppViewProps) {
             <option value="all">All available observations</option><option value="recent">Updated within 60 seconds</option><option value="stale">Older or age unknown</option>
           </select>
         </div>
+        <AircraftLegend />
         <div className={styles.sidebarSection}><div className={styles.sectionHeading}><span><UiIcon name="plane" /> Aircraft · {source?.name ?? 'Connecting'}</span><Tag minimal>{healthLabel}</Tag></div>
           <p className={styles.muted}>{snapshot.health.message}</p>
           <dl className={styles.sourceStats}><dt>Last success</dt><dd>{ageLabel(snapshot.health.lastSuccessAt, now)}</dd>
@@ -73,34 +77,23 @@ export function LiveAircraftView({ pane, host, updateState }: AppViewProps) {
           <select className={styles.fullSelect} id={`${pane.id}-radius`} value={area.radiusNm} onChange={e => patch({ aircraftQuery: { ...area, radiusNm: +e.target.value } })}>
             {[...new Set([25, 50, 100, area.radiusNm, maximumRadius])].filter(n => n >= (source?.minimumRadiusNm ?? 10) && n <= maximumRadius).sort((a, b) => a - b).map(n => <option key={n} value={n}>{n} nautical miles</option>)}
           </select>
-          <Button minimal icon={<UiIcon name="locate" />} onClick={() => patch({ aircraftQuery: { ...northernEurope, radiusNm: maximumRadius }, camera: { longitude: 12, latitude: 58, height: 2400000 } })}>Northern Europe</Button>
+
         </div>
-        <div className={styles.sidebarSection}><div className={styles.sectionHeading}>Matching aircraft <span>{filtered.length}</span></div>
-          {filtered.slice(0, 6).map(record => <button key={record.entity.id} className={styles.resultRow} data-selected={selectedId === record.entity.id} onClick={() => select(record.entity.id)}>
-            <UiIcon name="plane" /><span>{record.entity.label}<small>{record.observation.properties.address.toUpperCase()} · {ageLabel(record.observation.properties.positionObservedAt, now)}</small></span><UiIcon name="right" />
-          </button>)}
-          {!filtered.length && <p className={styles.muted}>{snapshot.health.state === 'loading' ? 'Waiting for aircraft observations…' : 'No aircraft match this query. This is not proof that the airspace is empty.'}</p>}
-          <Button minimal rightIcon={<UiIcon name="right" />} onClick={() => patch({ viewMode: 'list' })}>Show all results</Button>
-        </div>
-        <div className={styles.sidebarFooter}><label>Panel width <input aria-label="Sidebar width" type="range" min="240" max="440" step="10" value={state.sidebarWidth} onChange={e => patch({ sidebarWidth: +e.target.value })} /></label></div>
-      </aside>}
+      </aside><PanelResize label="Filters width" edge="right" value={state.sidebarWidth} min={240} max={440} onChange={sidebarWidth => patch({ sidebarWidth })} /></div>}
       <div className={styles.workspaceCenter}>
         {isOffline && <div className={styles.sourceBanner} role="status">{snapshot.health.message} {snapshot.health.nextAttemptAt && `Next attempt: ${utc(snapshot.health.nextAttemptAt)}.`}</div>}
         {selectedId && !selected && <div className={styles.sourceBanner}>The selected aircraft is outside the current result or no longer in this cache. Its selection has been preserved.</div>}
         {state.viewMode === 'canvas' && <Suspense fallback={<div className={styles.empty}>Loading the map…</div>}>
-          <AircraftMap key={`${state.mapMode}:${area.longitude}:${area.latitude}:${area.radiusNm}`} basemapId={state.basemapId ?? defaultBasemapId} channel={channel} mode={state.mapMode ?? '2d'} camera={state.camera} selectedId={selectedId} query={area} matches={matches} select={select}
+          <AircraftMap key={`${state.mapMode}:${area.longitude}:${area.latitude}:${area.radiusNm}`} basemapId={state.basemapId ?? defaultBasemapId} channel={channel} mode={state.mapMode ?? '2d'} setMode={mapMode => patch({ mapMode })} camera={state.camera} selectedId={selectedId} query={area} matches={matches} select={select}
             setCamera={camera => patch({ camera })} setQuery={aircraftQuery => { setFollow(false); patch({ aircraftQuery }); }} follow={follow} />
         </Suspense>}
-        {(state.viewMode === 'list' || state.resultsOpen) && <section className={styles.results} data-full={state.viewMode === 'list'} aria-label="Results">
-          <div className={styles.resultsHeader}><strong>Aircraft <span>{filtered.length}</span></strong><span className={styles.muted}>{filtered.filter(r => r.observation.geometry).length} mappable · {snapshot.records.length} available · {snapshot.completeness.truncated ? 'result limit reached' : 'coverage incomplete'}</span>
-            <div className={styles.resultsActions}>{state.viewMode === 'canvas' && <><Button minimal onClick={() => patch({ viewMode: 'list' })}>Accessible list</Button><Button minimal icon={<UiIcon name="close" />} aria-label="Close results" onClick={() => patch({ resultsOpen: false })} /></>}</div>
-          </div>
+        <ResultsDock title="Aircraft" count={filtered.length} summary={<>{filtered.filter(r => r.observation.geometry).length} mappable · {snapshot.records.length} available · {snapshot.completeness.truncated ? 'result limit reached' : 'coverage incomplete'}</>} list={state.viewMode === 'list'} open={state.resultsOpen} toggle={() => patch({ resultsOpen: !state.resultsOpen })}>
           <ResultsTable records={filtered} columns={aircraftColumns} getId={r => r.entity.id} label="Aircraft results" selectedId={selectedId} select={select} semantic={state.viewMode === 'list'} />
-        </section>}
+        </ResultsDock>
       </div>
       {showInspector && <div className={styles.inspectorWrap}><AircraftInspector record={selected} now={now} selectedObservationId={context.selection.observationIds[0]} expanded={state.expandedDetails}
         toggleExpanded={() => patch({ expandedDetails: !state.expandedDetails })} close={() => { setFollow(false); patch({ inspectorOpen: false }); }} follow={follow} toggleFollow={() => { setFollow(!follow); patch({ viewMode: 'canvas' }); }} />
-        <label className={styles.inspectorResize}>Panel width <input aria-label="Inspector width" type="range" min="280" max="520" step="10" value={state.inspectorWidth} onChange={e => patch({ inspectorWidth: +e.target.value })} /></label>
+        <PanelResize label="Inspector width" edge="left" value={state.inspectorWidth} min={280} max={520} onChange={inspectorWidth => patch({ inspectorWidth })} />
       </div>}
     </div>
     <footer className={styles.timebar}><div className={styles.toolbarGroup}><UiIcon name="clock" /><strong>Live collection</strong><span className={styles.mono}>{new Date(now).toISOString().slice(11, 19)} UTC</span></div><span className={styles.muted}>{source?.pollSeconds ?? '—'} s refresh · observed positions only · recording/replay not yet available</span></footer>

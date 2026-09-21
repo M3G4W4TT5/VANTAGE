@@ -12,9 +12,9 @@ import styles from './PointMap.module.css';
 import { mountBasemap } from './mountBasemap';
 import type { BasemapStatus } from './mountBasemap';
 
-export function PointMap({ label, basemapId, subscribe, getMarkers, mode, camera, selectedId, select, setCamera,
+export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMode, camera, selectedId, select, setCamera,
   setup, afterPaint, suppressCameraSave = false, action, caption }: {
-  label: string; basemapId: string; mode: '2d' | '3d'; camera?: CameraState; selectedId?: string;
+  label: string; basemapId: string; mode: '2d' | '3d'; setMode(mode: '2d' | '3d'): void; camera?: CameraState; selectedId?: string;
   subscribe(listener: () => void): () => void; getMarkers(): PointMarker[];
   select(reference: RecordReference): void; setCamera(camera: CameraState): void;
   setup?(viewer: Viewer): () => void; afterPaint?(viewer: Viewer): void; suppressCameraSave?: boolean;
@@ -115,6 +115,10 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, camera
       {action && <Button small icon={<UiIcon name="search" />} disabled={!ready} onClick={() => { const current = getCamera(); if (current) action.onClick(current); }}>{action.label}</Button>}
       <Button small icon={<UiIcon name="plus" />} aria-label="Zoom in" onClick={() => { interacted.current = true; viewerRef.current?.camera.zoomIn(viewerRef.current.camera.positionCartographic.height * .4); }} />
       <Button small icon={<UiIcon name="minus" />} aria-label="Zoom out" onClick={() => { interacted.current = true; viewerRef.current?.camera.zoomOut(viewerRef.current.camera.positionCartographic.height * .6); }} />
+    </div>
+    <div className={styles.mapModes} role="group" aria-label="Map projection">
+      <Button small active={mode === '2d'} aria-pressed={mode === '2d'} onClick={() => setMode('2d')}>2D</Button>
+      <Button small icon={<UiIcon name="globe" />} active={mode === '3d'} aria-pressed={mode === '3d'} onClick={() => setMode('3d')}>Globe</Button>
     </div>
     <div className={styles.mapCaption}>{basemap?.name ?? 'Loading basemap'}{basemap?.offline && ' · coarse map'}{caption && <><br />{caption}</>}</div>
     {!ready && !error && <div className={styles.mapNotice} role="status">Loading the map…</div>}

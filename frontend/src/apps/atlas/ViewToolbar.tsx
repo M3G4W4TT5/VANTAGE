@@ -16,22 +16,14 @@ export function ViewToolbar({ pane, host, updateState }: AppViewProps) {
   };
   return <div className={styles.toolbar}>
     <div className={styles.toolbarGroup}>
-      <Button minimal icon={<UiIcon name="layers" />} active={state.sidebarOpen} onClick={() => patch({ sidebarOpen: !state.sidebarOpen })}>Layers</Button>
+      <Button minimal icon={<UiIcon name="layers" />} active={state.sidebarOpen} onClick={() => patch({ sidebarOpen: !state.sidebarOpen })}>Filters</Button>
       <span className={styles.separator} />
       <Button minimal icon={<UiIcon name="map" />} active={state.viewMode === 'canvas'} onClick={() => patch({ viewMode: 'canvas' })}>Map</Button>
       <Button minimal icon={<UiIcon name="list" />} active={state.viewMode === 'list'} onClick={() => patch({ viewMode: 'list' })}>List</Button>
-      <Button minimal icon={<UiIcon name="table" />} active={state.resultsOpen} onClick={() => patch({ resultsOpen: !state.resultsOpen })}>Results</Button>
-      <span className={styles.separator} />
-      <Button minimal active={(state.mapMode ?? '2d') === '2d'} onClick={() => patch({ mapMode: '2d' })}>2D</Button>
-      <Button minimal icon={<UiIcon name="globe" />} active={state.mapMode === '3d'} onClick={() => patch({ mapMode: '3d' })}>Globe</Button>
     </div>
     <div className={styles.toolbarGroup} role="group" aria-label="ATLAS domain view">
       <Button minimal icon={<UiIcon name="plane" />} active={view === 'aircraft'} aria-pressed={view === 'aircraft'} onClick={() => changeView('aircraft')}>Aircraft</Button>
       <Button minimal icon={<UiIcon name="event" />} active={view === 'earthquakes'} aria-pressed={view === 'earthquakes'} onClick={() => changeView('earthquakes')}>Earthquakes</Button>
-      <Button minimal onClick={() => {
-        host.changeContext({ layerIds: ['demo-aircraft', 'demo-vessels', 'demo-places'], filters: { query: '', kind: 'all' },
-          selection: { entityIds: [], observationIds: [] }, time: { mode: 'live', cursor: null, from: null, to: null } }); patch({ dataMode: 'demo' });
-      }}>Demo collection</Button>
     </div>
   </div>;
 }

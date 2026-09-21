@@ -88,9 +88,9 @@ export function VantageShell({ registry, workspaces }: { registry: AppRegistry; 
           onKeyDown={e => { if (e.key === 'Enter' && name.trim()) void submit(); }} /></FormGroup>}
         {dialog === 'delete' && <p>Delete “{doc?.name}” and its saved layout? This cannot be undone. Other workspaces remain available.</p>}
         {dialog === 'switch' && <p>{dirty ? 'Discard your unsaved changes and open the stored version?' : 'Open the latest stored version of this workspace?'}</p>}
-        {dialog === 'settings' && <><p>Appearance and pane settings are stored with this workspace. Use Save to keep changes.</p><dl className={styles.settings}><dt>Appearance</dt><dd>{theme}</dd><dt>Workspace revision</dt><dd>{doc?.revision ?? '—'}</dd><dt>Data mode</dt><dd>Bundled demo fixtures</dd><dt>AI providers</dt><dd>Unconfigured · no provider calls</dd></dl></>}
+        {dialog === 'settings' && <><p>Appearance and pane settings are stored with this workspace. Use Save to keep changes.</p><dl className={styles.settings}><dt>Appearance</dt><dd>{theme}</dd><dt>Workspace revision</dt><dd>{doc?.revision ?? '—'}</dd><dt>Sources</dt><dd>Status and coverage are shown in each view</dd><dt>AI providers</dt><dd>Unconfigured · no provider calls</dd></dl></>}
         {dialog === 'search' && <><InputGroup leftIcon="search" aria-label="Search records and workspaces" placeholder="Record name, ID or workspace…" autoFocus value={search} onChange={e => setSearch(e.target.value)} />
-          <p className={styles.help}>Local demo records and saved workspaces. No external lookup.</p>
+          <p className={styles.help}>Search saved workspaces. Use the active view’s filters to find live records.</p>
           <div className={styles.searchResults}>{list.filter(w => search.trim() && w.name?.toLowerCase().includes(search.toLowerCase())).map(w => <Button key={w.id} fill minimal alignText="left" icon="projects" onClick={() => {
             if (!w.id) return; if (dirty) { setPendingId(w.id); setDialog('switch'); } else { void workspaces.open(w.id); setDialog(null); }
           }}>{w.name}</Button>)}

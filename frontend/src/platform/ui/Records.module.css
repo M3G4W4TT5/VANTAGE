@@ -7,7 +7,7 @@
 .semanticResults table { width: 100%; border-collapse: collapse; text-align: left; }
 .semanticResults th { color: var(--text-muted); font-size: 12px; font-weight: 500; background: var(--surface-raised); position: sticky; top: 0; z-index: 1; }
 .semanticResults td, .semanticResults th { padding: 4px 12px; border-bottom: 1px solid var(--divider); min-height: 34px; }
-.semanticResults tr[data-selected=true] { background: var(--selection-bg); box-shadow: inset 2px 0 var(--accent); }
+.semanticResults tr[data-selected=true] { background: var(--selection-bg); box-shadow: inset 2px 0 var(--selection-outline); }
 .inspector { overflow: auto; flex: 1; }
 .inspectorContent { padding: 20px 16px; }
 .objectIcon { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--divider); background: var(--selection-bg); color: var(--accent); margin-bottom: 20px; }

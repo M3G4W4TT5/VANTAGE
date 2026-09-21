@@ -40,7 +40,7 @@ test('earthquake surface picking, shared grid/list/inspector, revisions and expl
     await page.getByRole('button', { name: 'Supporting details' }).click();
     await expect(inspector).toContainText('fixture-event/v1');
     await expect(inspector).toContainText('obs:quake-0');
-    await page.getByRole('button', { name: 'Results', exact: true }).click();
+    await page.getByRole('button', { name: /^Earthquakes 1 .*mappable/ }).click();
     const grid = page.getByLabel('Virtualised earthquake results'); await expect(grid).toContainText('Magnitude');
     await page.screenshot({ path: info.outputPath('earthquake-selection-dark.png'), animations: 'disabled' });
     await page.getByRole('button', { name: 'List', exact: true }).click();
@@ -112,6 +112,48 @@ test('earthquake loading, partial, stale, unavailable and empty feed states rema
     await expect(page.getByRole('table', { name: 'Earthquake results' })).toContainText('TEST EPICENTRE');
     const empty = earthquakeFixture(4, false); empty.upserts = []; empty.removals = ['quake-fixture:event1']; empty.completeness.returned = 0; empty.completeness.providerCount = 0;
     send(empty); await expect(page.getByRole('status').filter({ hasText: 'No events were returned' })).toBeVisible();
+  } finally {
+    await page.goto('about:blank').catch(() => {});
+    const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();
+    await request.delete(`/api/v1/workspaces/${workspace.id}?revision=${saved.revision}`);
+  }
+});
+
+test('globe hides far-side markers and badges while map results remain available', async ({ page, request }, info) => {
+  test.setTimeout(120000);
+  await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({ contentType: 'image/jpeg', body: tile }));
+  const batch = earthquakeFixture(); batch.upserts[0].observation.properties.depthKilometres = null;
+  await page.routeWebSocket('**/hubs/observations*', ws => ws.onMessage(message => {
+    for (const part of message.toString().split('\x1e').filter(Boolean)) {
+      const value = JSON.parse(part); if (value.protocol) ws.send('{}\x1e');
+      if (value.type === 4) ws.send(JSON.stringify({ type: 2, invocationId: value.invocationId, item: batch }) + '\x1e');
+    }
+  }));
+  const workspace = await (await request.post('/api/v1/workspaces', { data: { name: 'Globe occlusion verification' } })).json();
+  Object.assign(workspace.panes[0].state, { liveView: 'earthquakes', mapMode: '3d', basemapId: 'natural-earth',
+    earthquakeCamera: { longitude: -168, latitude: -58, height: 2400000 }, resultsOpen: false });
+  await request.put(`/api/v1/workspaces/${workspace.id}`, { data: workspace });
+  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
+  try {
+    await page.goto('/'); const map = page.getByRole('region', { name: 'Earthquake map' });
+    await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
+    const canvas = map.locator('canvas').first(); const bounds = (await canvas.boundingBox())!;
+    await canvas.click({ position: { x: bounds.width / 2, y: bounds.height / 2 } });
+    await expect(page.getByRole('complementary', { name: 'Record inspector' })).toHaveCount(0);
+    await page.screenshot({ path: info.outputPath('far-side-hidden.png'), animations: 'disabled' });
+    const drawer = page.getByRole('button', { name: /^Earthquakes 1 .*mappable/ });
+    await expect(drawer).toHaveAttribute('aria-expanded', 'false'); await drawer.click();
+    await expect(drawer).toHaveAttribute('aria-expanded', 'true');
+    await page.getByRole('button', { name: 'TEST EPICENTRE', exact: true }).click();
+    await page.getByRole('button', { name: 'Zoom to event' }).click();
+    await page.getByRole('button', { name: 'Close inspector' }).click(); await drawer.click();
+    const near = (await canvas.boundingBox())!;
+    await canvas.click({ position: { x: near.width / 2, y: near.height / 2 } });
+    await expect(page.getByRole('heading', { name: 'TEST EPICENTRE', exact: true })).toBeVisible();
+    await page.screenshot({ path: info.outputPath('near-side-selected-badge.png'), animations: 'disabled' });
+    await page.getByRole('button', { name: 'List', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Map projection' })).toHaveCount(0);
+    await expect(page.getByRole('table', { name: 'Earthquake results' })).toContainText('TEST EPICENTRE');
   } finally {
     await page.goto('about:blank').catch(() => {});
     const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();

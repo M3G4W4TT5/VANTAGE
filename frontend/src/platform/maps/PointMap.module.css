@@ -7,3 +7,6 @@
 .map :global(.cesium-widget-credits a) { color: #245fad; }
 .basemapStatus { position: absolute; left: 12px; right: 12px; top: 56px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--divider); color: var(--text); font-size: 12px; }
 .basemapStatus button { margin-left: 8px; }
+
+.mapModes { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; }
+@media (max-width: 500px) { .mapTools { max-width: 48%; } .mapModes { max-width: 48%; } }

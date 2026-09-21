@@ -2,7 +2,6 @@ import type { AppModule } from '../../platform/registry/AppRegistry';
 import type { Selection } from '../../platform/contracts';
 import { validateContract } from '../../platform/contracts';
 import { AtlasView } from './AtlasView';
-import { records } from './fixtures';
 
 import type { AircraftQuery } from '../../platform/data/AircraftChannel';
 import type { CameraState } from '../../platform/maps/PointMarkers';
@@ -16,17 +15,9 @@ export type AtlasState = {
 };
 export const atlasModule: AppModule = {
   manifest: { id: 'atlas', name: 'ATLAS', version: '0.1.0', platformApiVersion: 1, entryView: 'AtlasView', stateSchemaVersion: 1,
-    acceptedEntityKinds: ['aircraft', 'earthquake', 'vessel', 'place'], actions: [{ id: 'inspect-demo', label: 'Inspect record', acceptedKinds: ['aircraft', 'vessel', 'place'], requiredCapabilities: ['demo'] }], searchProviders: ['atlas-demo'] },
+    acceptedEntityKinds: ['aircraft', 'earthquake'], actions: [], searchProviders: [] },
   View: AtlasView,
-  actions: [{ id: 'inspect-demo', label: 'Inspect record', acceptedKinds: ['aircraft', 'vessel', 'place'], requiredCapabilities: ['demo'],
-    run: (selection, _context, host) => {
-      host.changeContext({ selection: { ...selection, observationIds: records.filter(r => selection.entityIds.includes(r.id)).map(r => r.observationId) },
-        layerIds: ['demo-aircraft', 'demo-vessels', 'demo-places'], filters: { query: '', kind: 'all' },
-        time: { mode: 'live', cursor: null, from: null, to: null } });
-      host.updateState({ ...host.getState(), inspectorOpen: true, dataMode: 'demo' });
-    } }],
-  searchProviders: [{ id: 'atlas-demo', search: text => records.filter(r => `${r.label} ${r.id}`.toLowerCase().includes(text.toLowerCase())).slice(0, 30)
-    .map(r => ({ id: r.id, label: r.label, kind: r.kind.toLowerCase() })) }],
+  actions: [], searchProviders: [],
   serializeState: state => structuredClone(state),
   restoreState: state => { validateContract<AtlasState>('AtlasState', state); return state; },
 };

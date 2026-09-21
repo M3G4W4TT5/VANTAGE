@@ -26,6 +26,6 @@ Unrelated editor configuration and the relocated native launch-profile file were
 
 ## Review and remaining scope
 
-Open the local application at port 5080, choose Live aircraft if a legacy workspace opens in demo mode, then select **Earthquakes**. Use **List** to inspect events outside Northern Europe, select one and **Zoom to event**. Save and reload to verify your preferred view.
+Open the local application at port 5080 and select **Earthquakes**. The subsequent UI refinement removed the demo view; legacy demo workspaces now open Aircraft. Use **List** to inspect events outside Northern Europe, select one and **Zoom to event**. Save and reload to verify your preferred view.
 
-The feed is a bounded current snapshot, not complete detection or historical replay. Cache retention is not evidence preservation. Unknown depth, magnitude, times and location remain unknown. Global shell search still indexes demo data. Full performance targets, full accessibility certification and AC-01–16 remain later prototype work. NASA imagery and combined-layer controls stop here for review.
+The feed is a bounded current snapshot, not complete detection or historical replay. Cache retention is not evidence preservation. Unknown depth, magnitude, times and location remain unknown. Global shell search now searches saved workspaces; use domain filters for live records. Full performance targets, full accessibility certification and AC-01–16 remain later prototype work. NASA imagery and combined-layer controls stop here for review.

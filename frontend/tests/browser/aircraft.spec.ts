@@ -93,7 +93,7 @@ test('offline place search, detailed basemap fallback and saved camera', async (
     await page.getByLabel('Find a place').fill('Copenhagen');
     await page.getByRole('button', { name: 'København Denmark · approximate' }).click();
     await expect(page.getByRole('region', { name: 'Place search' })).toContainText('Centred on København');
-    await expect(page.getByRole('complementary', { name: 'Layers and filters' })).toContainText('Query centre 58.00° N, 12.00° E');
+    await expect(page.getByRole('complementary', { name: 'Filters' })).toContainText('Query centre 58.00° N, 12.00° E');
     await page.getByLabel('Basemap', { exact: true }).selectOption('natural-earth');
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await page.getByRole('button', { name: 'Save', exact: true }).click();

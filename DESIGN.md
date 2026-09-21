@@ -45,10 +45,11 @@ Preserve the exact values below when adapting Blueprint. Keep one VANTAGE token 
 | `--accent` | `#8AB4F8` | `#245FAD` |
 | `--on-accent` | `#11161B` | `#FFFFFF` |
 | `--selection-bg` | `#23354D` | `#E5EFFC` |
+| `--selection-outline` | `#D8A6FF` | `#873FCC` |
 | `--focus-ring` | `#8AB4F8` | `#245FAD` |
 
-- **Colour roles:** cool charcoal surfaces and restrained blue for interaction and selection. Use `--on-accent` on accent-filled actions. Reserve amber, red and green for meaningful states; define separate semantic status and map-category tokens. Colour must not be the only cue.
-- **Surface roles:** use `--divider` for decorative rules and `--control-border` for essential control boundaries. Selected surfaces use `--selection-bg` with an accent edge or outline. Links remain underlined. Validate composed states in both themes, including focus on accent-filled controls.
+- **Colour roles:** cool charcoal surfaces and restrained blue for interaction; purple outlines/brackets for selected records. Use `--on-accent` on accent-filled actions. Reserve amber, red and green for meaningful states; define separate semantic status and map-category tokens. Colour must not be the only cue.
+- **Surface roles:** use `--divider` for decorative rules and `--control-border` for essential control boundaries. Selected surfaces use `--selection-bg` with a purple selection edge or outline. Links remain underlined. Validate composed states in both themes, including focus on accent-filled controls.
 - **Font:** Inter with Arial/sans-serif fallback; a chosen substitute, not an identified source font. System monospace for coordinates, timestamps and IDs; tabular numerals for data.
 - **Type scale:** metadata 12px; working text 13–14px; reading 16px; panel titles 14–16px; standalone page titles 18–24px. Keep operational information readable instead of shrinking it to fit more content.
 - **Type treatment:** weight 400 for labels, 500 for emphasis and 600 for object names and headings; line-height 1.4–1.45 for UI and 1.6 for reading. Uppercase and modest letter spacing are reserved for short section labels. Establish hierarchy through alignment, weight and grouping.
@@ -75,7 +76,7 @@ Package versions and React 19 restrictions are in [decision 0002](docs/decisions
 
 ```text
 ┌ VANTAGE / ATLAS ── Search ── Workspace ── Sources / Settings ┐
-│ Layers & filters │                                        │
+│ Filters          │                                        │
 │                  │       MAP / GLOBE       │ Inspector    │
 │                  │                        │ (selection)  │
 │                  │                        │              │
@@ -90,6 +91,8 @@ Package versions and React 19 restrictions are in [decision 0002](docs/decisions
 - **Context layers:** expose maritime, rail, energy and hiking presets within infrastructure. Distinguish approximate IP locations from exact observations using labelled areas or uncertainty markers. Dated aerial layers show acquisition date/interval and footprint; available acquisitions remain selectable in comparison panes.
 - **Alerts, air quality and roads:** provide distinct layer controls and legends for official warning areas, pollutant stations and road incidents. Alerts expose type, severity, urgency, certainty and lifecycle status; roads expose type/status and schedules. Air-quality filters select pollutant and time, with units and averaging interval beside readings. Preserve points/lines/areas, use labelled zone boundaries, and keep unknown locations accessible in the table. Selection and source freshness remain visually separate from hazard severity.
 - **Imagery discovery, hazards and outages:** required DS-26–28 views include imagery catalog results that show footprints and available acquisitions with a separate render/download action and unavailable-asset state. Hazard catalogs expose original sources and overlapping reports. Outage context uses labelled regions or ASN tables, distinguishing anomalies from annotated outages without device-location pins. Show only implemented source capabilities.
+- **Current ATLAS controls:** Map / List in the toolbar. Results expand from the map’s bottom summary bar; 2D / Globe controls sit at the map’s top right. Filters and inspector resize by dragging their inner edge, with keyboard arrow keys on the focused separator. No duplicate matching-record lists or panel-width sliders.
+- **Marker states:** aircraft use plane symbols: recent blue, older than 60 seconds or unknown age yellow, reported grounded red (ground state takes precedence). A small superscript question mark indicates missing central facts; domain legends define them. Unknown direction is never conveyed by colour or a circle. Earthquakes remain surface epicentres; far-side markers, badges and selection brackets are hidden by the globe.
 - **Views:** coordinate map, table and media; keep a list-only workflow available. Use a task-appropriate dock rather than opening every view at once. Preserve source imagery colours; dock players with explicit play/mute/stop controls.
 - **Time:** keep Live/Pause/Replay mode and UTC time visible. Expand history tracks, retained coverage and playback details on demand; gaps and unavailable history remain explicit. Time state belongs to its pane unless deliberately linked.
 - **Solar tool:** open on demand beside the canvas with observer, pane time, sun direction/elevation and daylight state. Optional height input reveals a labelled flat-ground shadow estimate; show assumptions and unavailable results beside the values. Provide the same information numerically without map interaction, and keep calculated overlays visually distinct from observations.

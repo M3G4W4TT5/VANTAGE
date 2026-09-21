@@ -1,0 +1,9 @@
+.dock { flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--divider); background: var(--surface); }
+.dock[data-open=true]:not([data-list=true]) { height: 38%; min-height: 200px; }
+.dock[data-list=true] { flex: 1; }
+.header { width: 100%; display: flex; align-items: center; flex-wrap: wrap; text-align: left; gap: 12px; min-height: 44px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--divider); background: var(--surface); color: var(--text); font-size: 12px; }
+button.header:hover { background: var(--hover); }
+.header strong { font-weight: 500; }
+.header strong span { margin-left: 6px; font-variant-numeric: tabular-nums; }
+.summary { color: var(--text-muted); flex: 1; }
+.content { display: flex; flex: 1; min-height: 0; }

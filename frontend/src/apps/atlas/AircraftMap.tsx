@@ -1,22 +1,17 @@
 import { Cartesian3, Color } from 'cesium';
+import { aircraftMarker } from './aircraftPresentation';
 import type { AircraftChannel, AircraftQuery, AircraftRecord } from '../../platform/data/AircraftChannel';
 import { PointMap } from '../../platform/maps/PointMap';
 import type { CameraState } from '../../platform/maps/PointMarkers';
 
-export function AircraftMap({ basemapId, channel, mode, camera, selectedId, query, matches, select, setCamera, setQuery, follow }: {
-  basemapId: string; channel: AircraftChannel; mode: '2d' | '3d'; camera?: CameraState; selectedId?: string; query: AircraftQuery;
+export function AircraftMap({ basemapId, channel, mode, setMode, camera, selectedId, query, matches, select, setCamera, setQuery, follow }: {
+  basemapId: string; channel: AircraftChannel; mode: '2d' | '3d'; setMode(mode: '2d' | '3d'): void; camera?: CameraState; selectedId?: string; query: AircraftQuery;
   matches(record: AircraftRecord): boolean; select(id: string, observationId?: string): void; setCamera(camera: CameraState): void;
   setQuery(query: AircraftQuery): void; follow: boolean;
 }) {
-  return <PointMap label="Aircraft map" basemapId={basemapId} mode={mode} camera={camera} selectedId={selectedId}
+  return <PointMap label="Aircraft map" basemapId={basemapId} mode={mode} setMode={setMode} camera={camera} selectedId={selectedId}
     subscribe={channel.subscribe} setCamera={setCamera} select={reference => select(reference.entityId, reference.observationId)} suppressCameraSave={follow}
-    getMarkers={() => channel.getSnapshot().records.filter(record => record.observation.geometry && matches(record)).map(record => {
-      const o = record.observation; const p = o.properties; const [longitude, latitude] = o.geometry!.coordinates;
-      const age = p.positionObservedAt ? Date.now() - Date.parse(p.positionObservedAt) : Infinity;
-      return { reference: { entityId: record.entity.id, observationId: o.id }, longitude, latitude,
-        altitudeMetres: p.ellipsoidAltitudeMetres ?? 0, symbol: p.trackDegrees === null ? 'circle' : 'plane', size: 24,
-        colour: age > 60000 ? '--text-muted' : '--accent', rotationDegrees: p.trackDegrees === null ? 0 : p.trackDegrees - 90 };
-    })}
+    getMarkers={() => channel.getSnapshot().records.filter(matches).map(record => aircraftMarker(record, Date.now())).filter(marker => marker !== null)}
     setup={viewer => {
       const circle = viewer.entities.add({ position: Cartesian3.fromDegrees(query.longitude, query.latitude),
         ellipse: { semiMajorAxis: query.radiusNm * 1852, semiMinorAxis: query.radiusNm * 1852,

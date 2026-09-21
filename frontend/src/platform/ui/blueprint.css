@@ -63,7 +63,7 @@
 }
 :root .vantage-theme .bp6-table-cell { border-right: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
 :root .vantage-theme .bp6-table-header { background: var(--surface-raised); color: var(--text-muted); font-weight: 500; }
-:root .vantage-theme .bp6-table-selection-region { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+:root .vantage-theme .bp6-table-selection-region { border-color: var(--selection-outline); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 :root .vantage-theme .bp6-table-body .bp6-table-cell { line-height: 32px; }
 :root .vantage-theme .bp6-table-cell.bp6-table-cell-interactive:focus { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 :root .vantage-theme .bp6-datepicker .rdp {

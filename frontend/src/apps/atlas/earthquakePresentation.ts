@@ -10,7 +10,7 @@ export function earthquakeMarker(record: EarthquakeRecord): PointMarker | null {
   const o = record.observation;
   if (!o.geometry) return null;
   return { reference: { entityId: record.entity.id, observationId: o.id }, longitude: o.geometry.coordinates[0], latitude: o.geometry.coordinates[1],
-    symbol: o.properties.magnitude === null ? 'circle' : 'event', ...magnitudeStyle(o.properties.magnitude) };
+    symbol: 'event', missingInformation: o.properties.magnitude === null || o.properties.depthKilometres === null || o.observedAt === null, ...magnitudeStyle(o.properties.magnitude) };
 }
 export function matchesEarthquake(record: EarthquakeRecord, settings: EarthquakeSettings, now: number) {
   const o = record.observation; const p = o.properties;
