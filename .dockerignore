@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.env*
+**/appsettings.*.local.json
+**/test-results
+**/playwright-report
+logo
+design/reference
+.cache
+artifacts
+**/*.tsbuildinfo

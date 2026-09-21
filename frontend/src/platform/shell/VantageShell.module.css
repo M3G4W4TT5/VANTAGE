@@ -1,0 +1,24 @@
+.shell { height: 100dvh; min-height: 440px; display: flex; flex-direction: column; }
+.header { display: flex; align-items: center; min-height: 40px; padding: 4px 12px; gap: 12px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .16em; }
+.brand img { width: 22px; height: 22px; object-fit: contain; }
+.slash { color: var(--divider); font-size: 18px; }
+.appName { font-size: 12px; letter-spacing: .06em; font-weight: 500; }
+.header .searchButton { margin-left: 20px; color: var(--text-muted); min-width: 160px; justify-content: flex-start; }
+.searchButton kbd { font-size: 12px; margin-left: 16px; font-family: inherit; }
+.workspaceControls { display: flex; align-items: center; margin-left: auto; gap: 4px; flex-wrap: wrap; }
+.workspaceControls select { max-width: 200px; text-overflow: ellipsis; }
+.saveStatus { color: var(--text-muted); font-size: 12px; padding: 0 4px; }
+.error, .notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--divider); }
+.error, .dialogError { color: var(--danger); }
+.notice { color: var(--accent); }
+.loading { display: grid; place-items: center; flex: 1; padding: 24px; }
+.skip { position: fixed; top: -100px; left: 8px; background: var(--surface); padding: 8px; z-index: 100; }
+.skip:focus { top: 8px; }
+.help { color: var(--text-muted); font-size: 12px; }
+.searchResults { max-height: 45vh; overflow: auto; }
+.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.settings dt { color: var(--text-muted); }.settings dd { margin: 0; }
+.panes { padding: 4px 12px; border-bottom: 1px solid var(--divider); }
+@media (max-width: 1199px) { .header .searchButton { margin-left: 0; min-width: 32px; } .searchButton kbd { display: none; } }
+@media (max-width: 767px) { .header { gap: 6px; } .workspaceControls { width: 100%; margin: 0; } .workspaceControls select { max-width: 150px; } .header .searchButton { margin-left: auto; } .saveStatus { margin-left: auto; } }

@@ -1,0 +1,12 @@
+{
+  "runtime": "Net100",
+  "documentGenerator": { "fromDocument": { "url": "openapi/v1.json" } },
+  "codeGenerators": {
+    "openApiToTypeScriptClient": {
+      "className": "VantageClient", "template": "Fetch", "typeStyle": "Interface",
+      "dateTimeType": "String", "generateClientClasses": true,
+      "generateOptionalParameters": true, "operationGenerationMode": "SingleClientFromOperationId",
+      "useAbortSignal": true, "output": "../frontend/src/api/generated/client.ts"
+    }
+  }
+}

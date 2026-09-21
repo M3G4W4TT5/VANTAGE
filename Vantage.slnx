@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="backend/Vantage.Api/Vantage.Api.csproj" />
+  <Project Path="tests/Vantage.Api.Tests/Vantage.Api.Tests.csproj" />
+</Solution>

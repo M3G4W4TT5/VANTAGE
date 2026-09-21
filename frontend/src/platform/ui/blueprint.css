@@ -1,0 +1,90 @@
+/* One adapter for app content and body-mounted portals. The root scope also
+   outranks Blueprint's fixed dark-state selectors without !important. */
+:root .vantage-theme {
+  --bp-typography-family-default: Inter, Arial, sans-serif;
+  --bp-typography-color-default-rest: var(--text); --bp-typography-color-default-hover: var(--text);
+  --bp-typography-color-default-active: var(--text); --bp-typography-color-default-disabled: var(--text-muted);
+  --bp-typography-color-muted: var(--text-muted); --bp-typography-line-height-default: 1.45;
+  --bp-typography-size-body-medium: 13px;
+  --bp-surface-background-color-default-rest: var(--surface); --bp-surface-background-color-default-hover: var(--hover);
+  --bp-surface-background-color-default-active: var(--selection-bg); --bp-surface-border-radius: 2px;
+  --bp-surface-border-color-default: var(--divider); --bp-surface-border-color-strong: var(--control-border);
+  --bp-intent-primary-rest: var(--accent); --bp-intent-primary-foreground: var(--on-accent);
+  --bp-surface-background-color-primary-rest: var(--accent); --bp-emphasis-focus-color: var(--focus-ring);
+  --bp-typography-color-primary-rest: var(--accent); --bp-typography-color-warning-rest: var(--warning);
+  --bp-typography-color-danger-rest: var(--danger); --bp-typography-color-success-rest: var(--success);
+  color: var(--text); font-family: Inter, Arial, sans-serif;
+}
+:root .vantage-theme .bp6-button {
+  min-height: 32px; min-width: 32px; border: 1px solid var(--control-border); border-radius: 2px;
+  background: var(--surface); color: var(--text); box-shadow: none; font-size: 13px;
+}
+:root .vantage-theme .bp6-button:hover { background: var(--hover); color: var(--text); box-shadow: none; }
+:root .vantage-theme .bp6-button.bp6-minimal { border-color: transparent; background: transparent; }
+:root .vantage-theme .bp6-button.bp6-minimal:hover { background: var(--hover); }
+:root .vantage-theme .bp6-button.bp6-active { background: var(--selection-bg); color: var(--accent); border-color: var(--accent); }
+:root .vantage-theme .bp6-button.bp6-intent-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+:root .vantage-theme .bp6-button.bp6-intent-danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+:root .vantage-theme .bp6-button:disabled, :root .vantage-theme .bp6-button.bp6-disabled { color: var(--text-muted); opacity: .6; background: var(--surface); }
+:root .vantage-theme .bp6-icon { color: inherit; }
+:root .vantage-theme .bp6-input, :root .vantage-theme .bp6-html-select select, :root .vantage-theme select {
+  min-height: 32px; background: var(--canvas); color: var(--text); border: 1px solid var(--control-border); border-radius: 2px; box-shadow: none;
+}
+:root .vantage-theme .bp6-input::placeholder { color: var(--text-muted); opacity: 1; }
+:root .vantage-theme .bp6-input:focus { border-color: var(--focus-ring); outline: 2px solid var(--focus-ring); outline-offset: 1px; box-shadow: none; }
+:root .vantage-theme .bp6-control { color: var(--text); min-height: 24px; }
+:root .vantage-theme .bp6-control-indicator { border: 1px solid var(--control-border); border-radius: 2px; background: var(--canvas); box-shadow: none; }
+:root .vantage-theme .bp6-control input:checked ~ .bp6-control-indicator { background: var(--accent); color: var(--on-accent); }
+:root .vantage-theme .bp6-control.bp6-checkbox input:checked ~ .bp6-control-indicator::before {
+  background: none; width: 9px; height: 5px; border-left: 2px solid var(--on-accent); border-bottom: 2px solid var(--on-accent);
+  position: absolute; top: 4px; left: 2px; transform: rotate(-45deg);
+}
+:root .vantage-theme .bp6-menu, :root .vantage-theme .bp6-popover-content, :root .vantage-theme .bp6-dialog,
+:root .vantage-theme .bp6-dialog-body, :root .vantage-theme .bp6-datepicker {
+  background: var(--surface); color: var(--text); border-radius: 2px;
+}
+:root .vantage-theme .bp6-menu-item { color: var(--text); min-height: 32px; border-radius: 0; }
+:root .vantage-theme .bp6-menu-item:hover, :root .vantage-theme .bp6-menu-item.bp6-active { color: var(--text); background: var(--selection-bg); }
+:root .vantage-theme .bp6-menu-divider { border-color: var(--divider); }
+:root .vantage-theme .bp6-menu-header, :root .vantage-theme .bp6-heading { color: var(--text); }
+:root .vantage-theme .bp6-popover { border: 1px solid var(--control-border); border-radius: 2px; box-shadow: 0 8px 24px #0004; }
+:root .vantage-theme .bp6-popover-arrow { display: none; }
+:root .vantage-theme .bp6-dialog { border: 1px solid var(--control-border); width: min(460px, calc(100vw - 32px)); padding-bottom: 16px; }
+:root .vantage-theme .bp6-dialog-header { background: var(--surface); box-shadow: none; border-bottom: 1px solid var(--divider); min-height: 48px; }
+:root .vantage-theme .bp6-dialog-footer { margin: 0 20px; }
+:root .vantage-theme .bp6-dialog-footer-actions { display: flex; gap: 8px; justify-content: flex-end; }
+:root .vantage-theme .bp6-label { color: var(--text); }
+:root .vantage-theme .bp6-text-muted, :root .vantage-theme .bp6-form-helper-text, :root .vantage-theme .bp6-non-ideal-state-description { color: var(--text-muted); }
+:root .vantage-theme .bp6-tag { border-radius: 2px; background: var(--selection-bg); color: var(--accent); font-size: 12px; letter-spacing: .04em; }
+:root .vantage-theme .bp6-divider { border-color: var(--divider); }
+:root .vantage-theme .bp6-table-container, :root .vantage-theme .bp6-table-cell, :root .vantage-theme .bp6-table-quadrant,
+:root .vantage-theme .bp6-table-column-headers, :root .vantage-theme .bp6-table-row-headers {
+  background: var(--surface); color: var(--text); box-shadow: none; border-color: var(--divider); font-size: 13px;
+}
+:root .vantage-theme .bp6-table-cell { border-right: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
+:root .vantage-theme .bp6-table-header { background: var(--surface-raised); color: var(--text-muted); font-weight: 500; }
+:root .vantage-theme .bp6-table-selection-region { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+:root .vantage-theme .bp6-table-body .bp6-table-cell { line-height: 32px; }
+:root .vantage-theme .bp6-table-cell.bp6-table-cell-interactive:focus { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+:root .vantage-theme .bp6-datepicker .rdp {
+  --rdp-cell-size: 32px; --rdp-accent-color: var(--accent); --rdp-selected-color: var(--on-accent);
+  --rdp-outline: 2px solid var(--focus-ring); --rdp-outline-selected: 2px solid var(--focus-ring);
+}
+:root .vantage-theme .bp6-datepicker .rdp-day { color: var(--text); border-radius: 0; min-width: 32px; height: 32px; }
+:root .vantage-theme .bp6-datepicker .rdp-day:not([disabled], .rdp-day_selected):hover,
+:root .vantage-theme .bp6-datepicker .rdp-day:not([disabled], .rdp-day_selected):focus { background: var(--selection-bg); color: var(--accent); }
+:root .vantage-theme .bp6-datepicker .rdp-day.rdp-day_selected,
+:root .vantage-theme .bp6-datepicker .rdp-day.rdp-day_selected:hover,
+:root .vantage-theme .bp6-datepicker .rdp-day.rdp-day_selected:active { background: var(--accent); color: var(--on-accent); border-radius: 0; }
+:root .vantage-theme .bp6-datepicker .rdp-day.rdp-day_outside,
+:root .vantage-theme .bp6-datepicker .rdp-day.rdp-day_disabled,
+:root .vantage-theme .bp6-datepicker .rdp-head_cell { color: var(--text-muted); }
+:root .vantage-theme .bp6-datepicker .rdp-caption { border-color: var(--divider); }
+:root .vantage-theme .bp6-overlay-backdrop { background: #0007; }
+:root .vantage-theme .bp6-popover-target:focus-visible, :root .vantage-theme .bp6-button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (pointer: coarse) {
+  :root .vantage-theme .bp6-button, :root .vantage-theme .bp6-input, :root .vantage-theme .bp6-menu-item,
+  :root .vantage-theme .bp6-control, :root .vantage-theme select { min-height: 44px; }
+  :root .vantage-theme .bp6-datepicker .rdp { --rdp-cell-size: 44px; }
+  :root .vantage-theme .bp6-datepicker .rdp-day { min-width: 44px; height: 44px; }
+}
