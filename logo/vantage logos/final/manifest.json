@@ -1,0 +1,154 @@
+{
+  "source": "vantage-logo-concept-02-aligned-v.png",
+  "source_sha256": "2f5fffb067495d44274a79a9cbdefe92c480d756abe75496b81a8a98ef4af5bf",
+  "method": "Approved clean raster source; shared alpha mask; unchanged 50-percent outline; normalized flat interiors; original antialiasing; no resampling.",
+  "parts": {
+    "full": {
+      "source_crop": [
+        145,
+        247,
+        1896,
+        544
+      ],
+      "size": [
+        1815,
+        361
+      ],
+      "padding_px": 32
+    },
+    "mark": {
+      "source_crop": [
+        145,
+        247,
+        708,
+        503
+      ],
+      "size": [
+        627,
+        320
+      ],
+      "padding_px": 32
+    },
+    "text": {
+      "source_crop": [
+        711,
+        258,
+        1896,
+        544
+      ],
+      "size": [
+        1249,
+        350
+      ],
+      "padding_px": 32
+    }
+  },
+  "validation": {
+    "approved_outline_preserved": true,
+    "part_masks_reconstruct_full": true,
+    "six_real_alpha_exports": true,
+    "opaque_exports_match_alpha_compositing": true
+  },
+  "assets": [
+    {
+      "filename": "01-vantage-full-white-transparent.png",
+      "part": "full",
+      "foreground": "white",
+      "background": "transparent",
+      "width": 1815,
+      "height": 361,
+      "mode": "RGBA",
+      "sha256": "500cf9d98df362b15dc4915d43232420656ca87bf71c46af0283cbcf3d36cbf4"
+    },
+    {
+      "filename": "02-vantage-full-black-transparent.png",
+      "part": "full",
+      "foreground": "black",
+      "background": "transparent",
+      "width": 1815,
+      "height": 361,
+      "mode": "RGBA",
+      "sha256": "e7ce6c2cfae8c872303150483d1eed85ef16efd938b7e76b68c7fbde451e57b4"
+    },
+    {
+      "filename": "03-vantage-full-white-on-black.png",
+      "part": "full",
+      "foreground": "white",
+      "background": "black",
+      "width": 1815,
+      "height": 361,
+      "mode": "RGB",
+      "sha256": "017657f29d133a364735d4cb91e9cea512167fdde5db0c6460e9d5225f780c0a"
+    },
+    {
+      "filename": "04-vantage-full-black-on-white.png",
+      "part": "full",
+      "foreground": "black",
+      "background": "white",
+      "width": 1815,
+      "height": 361,
+      "mode": "RGB",
+      "sha256": "92dbd814ee5653ff18d22b79798b1d015499352f1deda0d1bd159c6355acdaf3"
+    },
+    {
+      "filename": "05-vantage-mark-white-transparent.png",
+      "part": "mark",
+      "foreground": "white",
+      "background": "transparent",
+      "width": 627,
+      "height": 320,
+      "mode": "RGBA",
+      "sha256": "4eea1aab7b10d0430be1f52b2148ae2976df206c9c1374777b3bdde2e8a66622"
+    },
+    {
+      "filename": "06-vantage-mark-black-transparent.png",
+      "part": "mark",
+      "foreground": "black",
+      "background": "transparent",
+      "width": 627,
+      "height": 320,
+      "mode": "RGBA",
+      "sha256": "f567513fa900bd3a3731b4f1cd9b9b1bb8c65ced3f16b9e69a05465162cbea68"
+    },
+    {
+      "filename": "07-vantage-mark-white-on-black.png",
+      "part": "mark",
+      "foreground": "white",
+      "background": "black",
+      "width": 627,
+      "height": 320,
+      "mode": "RGB",
+      "sha256": "4fd4fb5b589279c397e38e15deb6d95db8a86ba7b2c51c3bbd8d35f1344ea4a2"
+    },
+    {
+      "filename": "08-vantage-mark-black-on-white.png",
+      "part": "mark",
+      "foreground": "black",
+      "background": "white",
+      "width": 627,
+      "height": 320,
+      "mode": "RGB",
+      "sha256": "31970dce90a70ccf12215f22a2111dc55570850f8841bdacf2b0e75a03312db2"
+    },
+    {
+      "filename": "09-vantage-text-white-transparent.png",
+      "part": "text",
+      "foreground": "white",
+      "background": "transparent",
+      "width": 1249,
+      "height": 350,
+      "mode": "RGBA",
+      "sha256": "e23bb433351ded3d73e47142519cad933e6dc2424dcece62f233f23bf726b1e1"
+    },
+    {
+      "filename": "10-vantage-text-black-transparent.png",
+      "part": "text",
+      "foreground": "black",
+      "background": "transparent",
+      "width": 1249,
+      "height": 350,
+      "mode": "RGBA",
+      "sha256": "b67ae265728c3d4070f608ea86dddc822bb2dc5d16ab521a268a26c354e5a15d"
+    }
+  ]
+}

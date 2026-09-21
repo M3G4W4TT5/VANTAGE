@@ -1,0 +1,54 @@
+{
+  "assets": [
+    {
+      "file": "vantage logos\\vantage-wordmark-white.svg",
+      "silhouette_iou": 0.9912897426591606,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "vantage logos\\vantage-wordmark-black.svg",
+      "silhouette_iou": 0.9912897426591606,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "atlas logos\\atlas-wordmark-white.svg",
+      "silhouette_iou": 0.9928530588907948,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "atlas logos\\atlas-wordmark-black.svg",
+      "silhouette_iou": 0.9928530588907948,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "atlas logos\\atlas-logomark-white.svg",
+      "silhouette_iou": 0.997741935483871,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "atlas logos\\atlas-logomark-black.svg",
+      "silhouette_iou": 0.997741935483871,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "vantage logos\\vantage-logomark-white.svg",
+      "silhouette_iou": 0.9948158722321803,
+      "pure_vector_paths": true,
+      "transparent": true
+    },
+    {
+      "file": "vantage logos\\vantage-logomark-black.svg",
+      "silhouette_iou": 0.9948158722321803,
+      "pure_vector_paths": true,
+      "transparent": true
+    }
+  ],
+  "white_black_geometry_identical": true,
+  "atlas_a_uses_exact_vantage_v_path_rotated_180": true
+}

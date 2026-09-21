@@ -1,0 +1,30 @@
+{
+  "source": "../../vantage logos/final/09-vantage-text-white-transparent.png",
+  "A": "Exact original V alpha mask rotated 180 degrees, no resampling and no crossbar.",
+  "t_and_a": "Direct original Vantage glyphs, unchanged.",
+  "l_and_s": "Segoe UI Semibold with adjusted weight/proportions to match Vantage lettering.",
+  "colorways": "Pure white and pure black RGB with identical alpha masks.",
+  "checks": {
+    "exact_rotated_V": true,
+    "identical_colorway_geometry": true,
+    "real_alpha_transparency": true
+  },
+  "assets": [
+    {
+      "file": "atlas-text-white-transparent.png",
+      "size": [
+        827,
+        284
+      ],
+      "sha256": "5a8b22964980ebb835e44bcb41b02383cc91038838c720b6a6f2c4fa8a03245a"
+    },
+    {
+      "file": "atlas-text-black-transparent.png",
+      "size": [
+        827,
+        284
+      ],
+      "sha256": "d190bde95698d888ae29dff98d0cb0a0d0f232f1ec1151f6941c697dd614d904"
+    }
+  ]
+}

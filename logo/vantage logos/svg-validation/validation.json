@@ -1,0 +1,27 @@
+{
+  "source": "final\\06-vantage-mark-black-transparent.png",
+  "tracer": "potracelib 1.16",
+  "viewBox": [
+    0,
+    0,
+    627,
+    320
+  ],
+  "matching_colorway_geometry": true,
+  "assets": [
+    {
+      "file": "vantage-logomark-black.svg",
+      "paths": 3,
+      "bytes": 1737,
+      "silhouette_iou": 0.9948158722321803,
+      "transparent": true
+    },
+    {
+      "file": "vantage-logomark-white.svg",
+      "paths": 3,
+      "bytes": 1737,
+      "silhouette_iou": 0.9948158722321803,
+      "transparent": true
+    }
+  ]
+}

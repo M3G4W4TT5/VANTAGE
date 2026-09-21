@@ -1,0 +1,33 @@
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+secrets.json
+
+# JavaScript / Vite
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# IDE and OS files
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local scratch files
+tmp/
+*.log
+
