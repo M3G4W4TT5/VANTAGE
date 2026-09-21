@@ -1,7 +1,8 @@
 .shell { height: 100dvh; min-height: 440px; display: flex; flex-direction: column; }
 .header { display: flex; align-items: center; min-height: 40px; padding: 4px 12px; gap: 12px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
-.brand { display: flex; align-items: center; }
-.vantageWordmark, .atlasWordmark { display: block; object-fit: contain; object-position: left center; }
+.brand { display: flex; align-items: center; gap: 6px; }
+.vantageMark, .vantageWordmark, .atlasWordmark { display: block; object-fit: contain; object-position: left center; }
+.vantageMark { width: 38px; height: 20px; }
 .vantageWordmark { width: 72px; height: 20px; }
 .atlasWordmark { width: 53px; height: 19px; }
 .slash { color: var(--divider); font-size: 18px; }

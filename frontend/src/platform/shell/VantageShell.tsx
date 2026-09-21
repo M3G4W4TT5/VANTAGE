@@ -52,6 +52,7 @@ export function VantageShell({ registry, workspaces }: { registry: AppRegistry; 
     <a className={styles.skip} href="#workspace">Skip to workspace</a>
     <header className={styles.header}>
       <div className={styles.brand}>
+        <img className={styles.vantageMark} src={`/brand/vantage-mark-${wordmarkColour}.svg`} alt="" />
         <img className={styles.vantageWordmark} src={`/brand/vantage-wordmark-${wordmarkColour}.svg`} alt="VANTAGE" />
       </div>
       <span className={styles.slash}>/</span>
