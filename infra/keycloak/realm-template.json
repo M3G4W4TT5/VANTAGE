@@ -2,6 +2,7 @@
   "realm": "vantage",
   "enabled": true,
   "displayName": "VANTAGE",
+  "loginTheme": "vantage",
   "sslRequired": "none",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
