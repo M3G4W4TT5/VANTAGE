@@ -1,13 +1,15 @@
 # VANTAGE — Design guide
 
-> Implementation reference for Codex. Software-inspired direction approved on 2026-09-21, based on 16 user-supplied Palantir software screenshots. See the [reference index](design/reference/README.md) for primary software references and historical website captures.
+> Implementation reference for Codex. Visual direction approved on 2026-09-21; ecosystem and composed-ATLAS refinements approved on 2026-09-22, informed by the additional Gotham Europa screenshots/text. See the [reference index](design/reference/README.md) and [change record](docs/atlas-workspace-change-record-2026-09-22.md). These are requirements, not claims of implemented screens.
 > Component implementation: Palantir Blueprint, approved on 2026-09-21 in [decision 0002](docs/decisions/0002-blueprint-ui.md). The VANTAGE colours and visual tokens below remain authoritative.
 
 ## 1. Product
 
 - **VANTAGE** — Open-source intelligence operating environment.
-- **ATLAS** — first app; a global observatory inside the shared VANTAGE shell.
+- **ATLAS** — first analytical app; a global observatory inside the shared VANTAGE shell.
+- **NEXUS — Data Manager** — system utility for connections, datasets and health, alongside system-wide Settings and separate from the analytical app list.
 - Share navigation, tokens, components and context across apps. Future app names are illustrative; show only usable apps.
+- Preserve the full supplied mark-plus-wordmark branding, white in dark mode and black in light mode; do not reduce the lockup to a wordmark or invent a NEXUS mark. Shell branding comes from registration metadata.
 - Use Blueprint as the primary component library, themed to this guide; retain CSS Modules for application layout and custom views.
 - Core use requires no paid services. Optional AI and paid connectors use user-provided credentials.
 
@@ -72,31 +74,57 @@ Preserve the exact values below when adapting Blueprint. Keep one VANTAGE token 
 
 Package versions and React 19 restrictions are in [decision 0002](docs/decisions/0002-blueprint-ui.md). Use `PopoverNext` and `Overlay2` when those primitives are needed; avoid deprecated legacy `Popover` and `Overlay`.
 
-## 4. ATLAS composition
+## 4. Shell and ATLAS composition
+
+### Sign-in, Home and system surfaces
+
+The normal flow is **Sign in → VANTAGE Home → Open/create workspace → Use apps**. Use the identity provider's password/authenticator-app enrollment, sign-in and recovery screens; VANTAGE supplies the return path and session/failure feedback, without duplicating credential forms. Passkeys are a later addition. Sign-out returns to the unauthenticated entry and stops live subscriptions and session-bound recording; retained work/data follows its normal persistence/retention rules.
+
+Home uses the same compact typography, ruled sections and theme as the working environment. Provide four distinct areas:
+
+| Area | Contents and actions |
+| --- | --- |
+| Workspaces | Recent/pinned project contexts; Open, Create and Duplicate, with rename/delete available contextually |
+| Apps | ATLAS; launching identifies or creates the destination workspace |
+| System | NEXUS — Data Manager and Settings, usable without an open workspace |
+| Account | Current identity, personal preferences, provider-managed account/recovery actions and Sign out |
+
+Keep Home accessible throughout the shell and label the active workspace/app. Do not auto-open an old ATLAS workspace in place of the normal Home entry or show speculative launcher tiles. Workspace selection is not a permission switch. Theme is a personal preference; system settings and connection edits have their own persistence, while pane/layout changes retain explicit Workspace Save and unsaved-state feedback.
+
+NEXUS provides a connection list with connector type, availability scope, health, active demand and data age, plus contextual details/datasets. Support Add from template or connector, Edit, Duplicate, Test/preview, Disable, Remove and Import/Export. Forms share typed labels, validation and status; specialized connector fields are allowed. Show affected workspaces before shared edits, distinguish validation from successful connectivity, and retain the working configuration after a failed edit. Credentials use write-only setup/replacement controls. Display provider cadence/limits as metadata; global or per-connection polling controls are deferred.
+
+Global/workspace-only availability is explicit. Deletion/disable effects on dependent layers and retained evidence are clear before the action. ATLAS Sources links to the same NEXUS connection detail; Settings may link there too, but neither duplicates the manager. Loading, empty, denied, setup-required, invalid-session and unavailable-provider states have accessible next actions. Never display an authenticated Home merely because a provider is offline.
+
+### ATLAS working area
 
 ```text
-┌ VANTAGE / ATLAS ── Search ── Workspace ── Sources / Settings ┐
-│ Filters          │                                        │
-│                  │       MAP / GLOBE       │ Inspector    │
-│                  │                        │ (selection)  │
-│                  │                        │              │
-├ Time / live state ── Expand timeline / results / media ────┤
+┌ Home / ATLAS ── Search ── Workspace / Save ── Account ─────┐
+│ Layers /         │                                        │
+│ Sources / Tools  │       MAP / GLOBE       │ Inspector    │
+│ Category → layer │                        │ (record)     │
+│ Layer controls   │                        │              │
+├ Time / live state ── Results / Timeline / Media ───────────┤
 └ Coordinates / scale ── Attribution ── Source freshness ────┘
 ```
 
 - **Desktop:** 40px shell bar, 280px primary sidebar, 360px contextual inspector and 32px compact time bar. Side panels collapse and resize; the canvas gets remaining space. These are starting dimensions, not limits on text reflow or zoom.
-- **Initial view:** show the canvas, one primary sidebar for layers/search and compact time/status controls. Open the inspector on selection; expand tables, media and the full timeline when needed. Restore user-chosen panel visibility, widths and arrangement with the workspace.
+- **Initial ATLAS view:** show the canvas, one primary sidebar with Layers / Sources / Tools and compact time/status controls. Open the inspector on record selection; expand results, media and the full timeline when needed. Restore user-chosen panel visibility, widths and arrangement with the workspace.
 - **Canvas:** quiet, dark or desaturated basemap with distinct layer symbols. Prioritise selected and relevant labels, cluster dense features and vary detail with zoom. Keep selected objects identifiable when labels are suppressed. Selection adds an outline/bracket and opens the inspector.
-- **Layers:** aircraft, vessels, public transit, bikeshare, satellites, launch events, public cameras, radio/news streams, internet-device metadata, public Wi-Fi/RF observations, cellular sites and coverage, imagery, environment, infrastructure and events.
+- **Layers:** compose aircraft, earthquakes and other implemented datasets together in one pane. Use category → layer configuration with expandable groups, mixed group visibility, names, symbol/scale cues, active-filter indicators and significant status problems. Individual records belong in Results. Categories are Vehicles & satellites; Events & alerts; Places & infrastructure; Environment & measurements; Imagery & overlays; Feeds & reports; My work. Examples do not add providers to the specification.
+- **Layer controls:** focusing a layer reveals Filters / Appearance / Legend / Coverage & time / Actions below the hierarchy. Share framing while retaining meaningful domain controls and units, including earthquake magnitude/type and aircraft altitude. A compact combined legend covers visible layers. Keep focus independent of record selection, result scope and camera position. Drawing order is separate from category order.
+- **Visibility and participation:** the eye controls map display; participation controls the layer's pane data demand and ordinary results. Distinguish both from global connection enable/disable and explicit recording. Show active recording and its stop control; Pause, hidden layers and closing NEXUS do not silently mean Stop recording.
+- **Sources:** search available datasets by category/tags and show connection, coverage, time support, capabilities and limits. Add as layer selects a dataset; connection configuration opens NEXUS. Multiple filtered layers may use one dataset without implying multiple source records.
 - **Context layers:** expose maritime, rail, energy and hiking presets within infrastructure. Distinguish approximate IP locations from exact observations using labelled areas or uncertainty markers. Dated aerial layers show acquisition date/interval and footprint; available acquisitions remain selectable in comparison panes.
 - **Alerts, air quality and roads:** provide distinct layer controls and legends for official warning areas, pollutant stations and road incidents. Alerts expose type, severity, urgency, certainty and lifecycle status; roads expose type/status and schedules. Air-quality filters select pollutant and time, with units and averaging interval beside readings. Preserve points/lines/areas, use labelled zone boundaries, and keep unknown locations accessible in the table. Selection and source freshness remain visually separate from hazard severity.
 - **Imagery discovery, hazards and outages:** required DS-26–28 views include imagery catalog results that show footprints and available acquisitions with a separate render/download action and unavailable-asset state. Hazard catalogs expose original sources and overlapping reports. Outage context uses labelled regions or ASN tables, distinguishing anomalies from annotated outages without device-location pins. Show only implemented source capabilities.
-- **Current ATLAS controls:** Map / List in the toolbar. Results expand from the map’s bottom summary bar; 2D / 3D controls sit at the map’s top right. Filters and inspector resize by dragging their inner edge, with keyboard arrow keys on the focused separator. No duplicate matching-record lists or panel-width sliders.
+- **ATLAS controls:** Map / List in the toolbar; List fills the main working area with results. Results expand from the map's bottom summary bar; projection controls remain labelled **2D / 3D** at the map's top right. Sidebar and inspector resize by dragging their inner edge, with keyboard arrow keys on the focused separator. No duplicate matching-record lists or panel-width sliders.
 - **Marker states:** aircraft use plane symbols: recent blue, older than 60 seconds or unknown age yellow, reported grounded red (ground state takes precedence). A small superscript question mark indicates missing central facts; domain legends define them. Unknown direction is never conveyed by colour or a circle. Earthquakes remain surface epicentres; far-side markers, badges and selection brackets are hidden by the globe.
-- **Views:** coordinate map, table and media; keep a list-only workflow available. Use a task-appropriate dock rather than opening every view at once. Preserve source imagery colours; dock players with explicit play/mute/stop controls.
-- **Time:** keep Live/Pause/Replay mode and UTC time visible. Expand history tracks, retained coverage and playback details on demand; gaps and unavailable history remain explicit. Time state belongs to its pane unless deliberately linked.
+- **Results:** offer a category → layer → records explorer and mixed/domain tables. Mixed rows use name, type, concise domain summary, relevant time, source and status; a domain scope exposes richer columns. Label scope (participating layers, selected layers or map area) and distinguish unique records from layer appearances, mappable counts and truncation. Unknown locations remain accessible. Raster rows represent products/acquisitions; sampling appears only when supported. Keep selection/focus stable under updates.
+- **Views:** coordinate map, results and media in the Results / Timeline / Media dock. Preserve source imagery colours; dock ordinary video, audio and still-image players with explicit play/mute/stop controls. Gotham-style video intelligence remains deferred.
+- **Time:** one pane camera/area/time context serves all layers. Keep Live/Pause/Replay and UTC visible. Expand tracks for observations, validity, acquisitions, predictions and retained coverage on demand; gaps and unavailable history remain explicit. Provide previous/next available acquisition or observation. Pinned older imagery shows its actual date and age relative to the cursor; current imagery is never a silent historical substitute. Time changes reach other panes only through deliberate linking.
 - **Solar tool:** open on demand beside the canvas with observer, pane time, sun direction/elevation and daylight state. Optional height input reveals a labelled flat-ground shadow estimate; show assumptions and unavailable results beside the values. Provide the same information numerically without map interaction, and keep calculated overlays visually distinct from observations.
 - Keep attribution and map controls visible. Corner controls must not obscure data or require hidden gestures.
+- Record selection opens the inspector without automatically moving the camera; Zoom to is separate. An overlap picker identifies selectable records/layer appearances. Panning alone does not execute provider searches or replace a layer's collection area.
 
 ## 5. Shared interactions
 
@@ -123,15 +151,18 @@ Use `@blueprintjs/table` for the virtualised results grid, verifying row selecti
 | --- | --- |
 | Buttons / segments | Outline default; accent fill for the primary action. Active segments use a tint and edge/underline. Distinguish hover, pressed, selected, disabled and focus states. |
 | Layer / result rows | Aligned icon, label, comparison values and status. Persistent selection uses an outline or edge marker plus tint, independently of hover. Keep the selected record recognisable across map, table and inspector. |
-| Inspector | Title → key facts → time/location → source → actions. Compact metrics and ruled sections; full provenance and supporting observations expand within the same context. |
+| Inspector | Overview / Sources / History / Notes with title, key facts, time/location and actions. Compact metrics and ruled sections; expanded detail retains the selection/context and separates source revisions, annotation history and derived assessments. |
 | Tabs / contextual tools | Small labelled tabs and grouped controls. Tool rails have accessible names; selected tools and their effect on the current area or object are explicit. |
 | Search / app switcher | Keyboard-accessible and labelled. `Ctrl/Cmd+K` opens search; Escape dismisses overlays and restores focus. |
 | Saved queries | Show name, source/execution scope, active criteria and fixed or relative time. Provide an explicit Run action and show effective bounds and incomplete results. Restoring criteria does not run provider lookups or enable monitoring. |
 | Radius search | Offer point selection and labelled numeric longitude/latitude plus radius/unit inputs; keep results usable in the table. Distinguish definite, possible and unknown proximity where precision limits the answer; a displayed circle does not assert exact source locations. |
 | Saved evidence | Separate Save reference from Save permitted snapshot. Show external-only versus retained content, plus expired/unavailable states; disabled snapshot actions explain policy or budget limits. Export identifies referenced assets that are not included. |
+| Image-region notes | Draw or enter numeric image coordinates; show the exact acquisition/version, region and note in an accessible list. Preserve original pixels; edits create annotation revisions. Optional geographic positioning shows its transform/precision. Missing/replaced imagery does not move an old annotation. |
+| Evidence clips | Title, concise note, exact references and view/layer/area/time context, with optional preview and separately identified permitted snapshot. A preview is not proof that source content was retained. |
+| Saved-work library | Searchable rows with type, name, relevant dates, source/availability and preview; Open and Open alongside for workspaces, queries, areas, collections, snapshots and clips. Opening criteria does not run a query. |
 | Linked panes | Explicit opt-in entity/area/time linking. “Open in” passes stable entity/evidence references to compatible apps. |
 
-Persist workspace layers, filters and pane arrangement, including expanded details. Apps reuse shared components and context contracts; future app workflows remain governed by their own specifications.
+Persist workspace layers, filters and pane arrangement, including expanded details, through explicit Save. Keep theme/account preferences and NEXUS connection settings separate. Apps reuse shared components and context contracts; future app workflows remain governed by their own specifications. Optional Open in actions appear only for available compatible destinations.
 
 ## 6. Data and feedback
 
@@ -151,6 +182,7 @@ Persist workspace layers, filters and pane arrangement, including expanded detai
 - Below 1200px, show one side panel; below 768px, use a full-width canvas with one details sheet. Preserve usability at 200% zoom.
 - Transitions: 120–180ms colour/opacity, 180–240ms panels. Respect `prefers-reduced-motion`; omit decorative motion and animated map travel.
 - Streaming updates preserve focus and layout. Cluster features, virtualise large lists and limit concurrent playback.
+- Hierarchies support labelled expand/collapse, mixed visibility and keyboard movement without stealing record selection. Offer numeric/list alternatives for region annotation and spatial tools. Authentication redirects, session loss and return navigation preserve understandable focus and status; protected content is not exposed after sign-out.
 
 ## 8. Implementation checklist
 
@@ -161,6 +193,11 @@ Persist workspace layers, filters and pane arrangement, including expanded detai
 - [ ] Review overview, selection and expanded-detail states. Default panels stay focused; active filters, source problems and incomplete results remain visible.
 - [ ] Check dense map labels, selected objects, result rows and contextual panels at representative data volumes. Grids and other overlays serve an active task or actual data.
 - [ ] Verify selection, filters, inspector, playback and workspace restore.
+- [ ] Verify Home's four areas, app launch destination and NEXUS/Settings without an open workspace; check personal theme versus workspace Save and system/connection edits.
+- [ ] Verify real provider password/TOTP enrollment/sign-in/recovery, expired/denied states and sign-out feedback, including recording termination and no automatic restart after login.
+- [ ] Check NEXUS connection lifecycle, affected consumers, dataset preview, unresolved credentials and unavailable layers; connection health, demand and data age remain distinct.
+- [ ] Check combined layers, category/drawing order, independent layer focus/record selection, group visibility, participation, overlap picking, shared legends and grouped/mixed/domain results with honest counts.
+- [ ] Verify acquisition/observation stepping, older imagery age, accessible image-region notes, reference/snapshot clips and saved-library Open alongside without unintended queries/context changes.
 - [ ] Verify fact support, identity rationale, conflicting/corrected observations, annotation history and reference/snapshot availability in map and list-only workflows.
 - [ ] Check saved-query fixed/relative time, explicit execution, effective bounds, missing sources and restoration; check numeric radius entry, units, uncertainty and linked/unlinked pane behaviour.
 - [ ] Check infrastructure presets, IP uncertainty, aerial acquisition comparison and the solar tool in linked/unlinked panes; verify numeric solar access and polar/no-shadow states.
@@ -171,4 +208,4 @@ Persist workspace layers, filters and pane arrangement, including expanded detai
 - [ ] Verify icons and loading indicators have accessible names or adjacent status text; retain required third-party licence notices.
 - [ ] Keep reference captures as documentation; ship original VANTAGE assets.
 
-**References:** the 16 primary software screenshots are retained unchanged in [design/reference/software/](design/reference/software/). The 16 earlier website/case-study captures remain at their existing paths under [design/reference/](design/reference/), including the historical [overview](design/reference/16-overview.png). See the [reference index](design/reference/README.md) for attribution and source mapping. This guide establishes visual direction; implemented behaviour still requires testing.
+**References:** the 16 initial software screenshots remain unchanged in [design/reference/software/](design/reference/software/); the 14 Europa screenshots and supplied feature text remain in [Gotham Europa Info](<design/reference/Gotham Europa Info/>). The 16 earlier website/case-study captures remain at their existing paths under [design/reference/](design/reference/), including the historical [overview](design/reference/16-overview.png). See the [reference index](design/reference/README.md) for attribution and source mapping. This guide establishes visual direction; implemented behaviour still requires testing.

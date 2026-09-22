@@ -1,6 +1,6 @@
 # Shared components and earthquake increment
 
-The four approved stages are implemented in order after checkpoint `a9724cf`. No NASA imagery or combined-layer controls were added. The complete prototype remains governed by the specification.
+The four approved stages are implemented in order after checkpoint `a9724cf`. No NASA imagery or combined-layer controls were added in this increment. On 2026-09-22, the owner approved [composed ATLAS and platform ownership](decisions/0006-vantage-shell-and-composed-atlas.md), [NEXUS connections](decisions/0007-configurable-connections.md) and [authentication](decisions/0008-authentication-and-session-lifecycle.md). Those changes are documented requirements pending implementation; the delivered/verification record below remains historical.
 
 ## Delivered
 
@@ -28,4 +28,4 @@ Unrelated editor configuration and the relocated native launch-profile file were
 
 Open the local application at port 5080 and select **Earthquakes**. The subsequent UI refinement removed the demo view; legacy demo workspaces now open Aircraft. Use **List** to inspect events outside Northern Europe, select one and **Zoom to event**. Save and reload to verify your preferred view.
 
-The feed is a bounded current snapshot, not complete detection or historical replay. Cache retention is not evidence preservation. Unknown depth, magnitude, times and location remain unknown. Global shell search now searches saved workspaces; use domain filters for live records. Full performance targets, full accessibility certification and AC-01–16 remain later prototype work. NASA imagery and combined-layer controls stop here for review.
+The feed is a bounded current snapshot, not complete detection or historical replay. Cache retention is not evidence preservation. Unknown depth, magnitude, times and location remain unknown. Global shell search currently searches saved workspaces; use domain filters for live records. Follow the revised [implementation sequence](../PROTOTYPE_SPEC.md#12-implementation-sequence-and-completion) for platform/identity foundations and the approved combined-layer migration. NASA imagery, remaining connector breadth, full accessibility/performance targets and AC-01–21 remain prototype work.

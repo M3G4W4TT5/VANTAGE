@@ -1,7 +1,7 @@
 # VANTAGE prototype specification
 
-> Version 0.8 · 2026-09-21 · Implementation requirements, not a claim of existing functionality.
-> Scope: VANTAGE framework + ATLAS. The approved stack is recorded in [AGENTS.md](AGENTS.md), with rationale in [decision 0001](docs/decisions/0001-prototype-stack.md) and the [Blueprint UI decision](docs/decisions/0002-blueprint-ui.md).
+> Version 0.9 · 2026-09-22 · Implementation requirements, not a claim of existing functionality.
+> Scope: VANTAGE shell/data platform, NEXUS, Settings, authentication and complete ATLAS. The approved stack is recorded in [AGENTS.md](AGENTS.md); the 2026-09-22 changes are traced in the [consolidated change record](docs/atlas-workspace-change-record-2026-09-22.md) and decisions [0006](docs/decisions/0006-vantage-shell-and-composed-atlas.md), [0007](docs/decisions/0007-configurable-connections.md) and [0008](docs/decisions/0008-authentication-and-session-lifecycle.md).
 
 ## 1. Purpose and document boundaries
 
@@ -10,9 +10,9 @@ Build a self-hosted, single-operator intelligence environment for exploring publ
 | Document | Authority |
 | --- | --- |
 | This specification | Prototype behaviour, architecture, contracts and acceptance criteria |
-| [AGENTS.md](AGENTS.md), [decision 0001](docs/decisions/0001-prototype-stack.md) and [decision 0002](docs/decisions/0002-blueprint-ui.md) | Approved implementation stack, agent workflow and decision rationale |
+| [AGENTS.md](AGENTS.md) and [decision records](docs/decisions/) | Approved implementation stack, agent workflow and architecture rationale; later decisions identify any superseded choices |
 | [DESIGN.md](DESIGN.md) | Visual system, layout, accessibility and interaction styling |
-| [VANTAGE_ECOSYSTEM.md](VANTAGE_ECOSYSTEM.md) | Exploratory future directions; not implementation requirements |
+| [VANTAGE_ECOSYSTEM.md](VANTAGE_ECOSYSTEM.md) | Confirmed ecosystem boundaries and exploratory future apps; this specification defines prototype requirements |
 
 **MUST** is required for prototype completion. **OPTIONAL** is explicitly outside the completion gate. Requirements apply to supplied capabilities, not universal provider coverage. “Global” means worldwide navigation and geographically diverse sources; it does not promise every aircraft, vessel, camera or device.
 
@@ -20,38 +20,63 @@ Build a self-hosted, single-operator intelligence environment for exploring publ
 
 | Included — MUST | Deferred / OPTIONAL |
 | --- | --- |
-| VANTAGE shell, registered apps, shared contracts and persistent workspaces | Third-party plugin marketplace or untrusted app execution |
+| VANTAGE Home, NEXUS, Settings, registered apps, shared data contracts and persistent workspaces | Third-party plugin marketplace or untrusted app execution |
 | Complete ATLAS workflows and the reference connectors in §5 | Every possible provider and worldwide exhaustive collection |
 | Map + globe, tables, media dock, inspection and comparison | Photorealistic terrain, VR and a native desktop wrapper |
 | Search, saved queries, areas/radius search, collections, bounded recording/replay, import/export | Full case management, graph analysis, Markdown desk, analytical monitoring and reporting apps |
-| Source configuration, health, inspectable provenance, saved evidence and tested backup/restore | Enterprise tenancy, real-time team editing, SSO and complex roles |
+| Editable connections, templates, dataset discovery, health, inspectable provenance, image-region notes, evidence clips and tested backup/restore | Enterprise tenancy, chat, real-time team editing and advanced permission administration |
+| Keycloak reference deployment, OIDC session, password + authenticator-app MFA, ownership and platform access enforcement | Passkeys, corporate directory integration and unattended recording/collection management |
 | AI capability interface and disabled/unconfigured states | Live OpenAI/Jev adapters; autonomous investigations |
 | Solar context, maritime/rail/energy/hiking presets, approximate IP geolocation and dated regional aerial imagery | Optional source candidates in §13; realistic terrain/building shadow reconstruction |
 | Official weather alerts, station air quality, regional road incidents, imagery discovery, hazard catalogs and internet-outage context | Additional providers beyond the required reference connectors |
 
 - Deliver a web interface, backend services and durable storage runnable on one machine. Document one reproducible launch path and a container deployment path.
-- Default deployment serves one local operator and binds to loopback. Remote exposure requires operator authentication and HTTPS; anonymous public hosting is not an acceptance target.
+- Default deployment serves one explicitly provisioned operator and binds to loopback. Authentication is required locally as well as remotely; remote exposure also requires HTTPS. No public signup or anonymous public hosting is required.
 - No paid subscription, credit card or AI key is required. A free account/key is permitted where a connector requires it. Compute, storage and internet access are supplied by the operator.
 - Ship a clearly labelled, deterministic demo workspace with redistributable fixtures and a bundled coarse basemap. Live and demo data remain visibly distinct.
+- ATLAS is the only shipping analytical app. NEXUS and Settings are included system utilities, separate from the app launcher. Ordinary camera/radio/TV discovery and playback remain required; Gotham-style video intelligence, tracking overlays and advanced video analysis are deferred.
+- Use bounded provider-appropriate refresh defaults. Global polling controls, per-connection frequency overrides, passive server recording and a broader long-term collection/history-provider strategy are deferred. Existing provider-supported historical queries and bounded Record/Replay remain required.
 
 ## 3. ATLAS workflows
 
 | ID | Requirement |
 | --- | --- |
 | AT-01 Explore | Navigate worldwide in 2D and globe views; retain area, layers, filters, time and selection when switching. Provide zoom, reset north, coordinates, scale and attribution. |
-| AT-02 Layers | Group by domain; enable, reorder, set opacity, inspect legend, configure filters and see source/coverage/freshness. Persist settings per workspace. |
+| AT-02 Layers | Compose multiple datasets in one pane with shared camera/area/time. Organize category → layer, configure independent filters/appearance/legends, reorder and set applicable opacity, distinguish map visibility from participation and show coverage/freshness. Persist layer instances per pane/workspace; drawing order is separate from category order. |
 | AT-03 Search | Search indexed names, identifiers, coordinates, places and source records. Filter by domain, source, area and time. Clearly distinguish local results from explicit provider lookups. |
-| AT-04 Inspect | Map/table selection resolves the same record. Show facts, observations, source links, timestamps, precision, conflicts and available actions. Resolve displayed source-derived facts to supporting observations; explain preferred display values and cross-source identity associations. Distinguish source updates/corrections, operator annotations and derived assessments. Missing facts stay unknown. |
+| AT-04 Inspect | Map/results selection resolves the same stable record, independently of layer focus. Provide Overview, Sources, History and Notes with expanded detail. Show facts, observations, source links, timestamps, precision, conflicts and available actions. Resolve displayed source-derived facts to supporting observations; explain preferred display values and cross-source identity associations. Distinguish source updates/corrections, operator annotations and derived assessments. Missing facts stay unknown; Zoom to is a separate action and overlaps offer a record picker. |
 | AT-05 Movement | Select/follow aircraft, vessels, public-transit vehicles and satellites; inspect recorded tracks or orbital predictions. Show gaps and prediction styling; allow follow mode to be cancelled. |
-| AT-06 Time | Provide Live, Pause and Replay, a selectable interval and playback speed. Show retained coverage per layer; unavailable historical layers are hidden or labelled outside the selected time. |
+| AT-06 Time | Provide Live, Pause and Replay, a selectable interval and playback speed. Tracks show observations, validity intervals, acquisitions, predictions, retained coverage and gaps as appropriate; provide previous/next available acquisition or observation. Unavailable historical layers are hidden or labelled outside the selected time. Pinned imagery shows its actual acquisition date and age relative to the cursor. |
 | AT-07 Media | Discover cameras, radio and TV by origin/coverage, language and category. Open one or multiple players beside the map; detach into an internal pane, mute, stop or open the source page. |
 | AT-08 Areas | Draw/edit bounding boxes and polygons; save named areas; measure distance/area; query within an area or a stated radius of a selected/entered point. Show distance units, filters, location uncertainty and result completeness. Handle the antimeridian without selecting the wrong hemisphere. Radius searches remain available through numeric input and table results. Route-corridor search is OPTIONAL. |
 | AT-09 Compare | Open two ATLAS panes. Explicitly link or unlink selection, area and time independently; compare locations or periods without overwriting the other pane. |
-| AT-10 Results | Sort/filter a virtualised table; synchronise selection with the canvas. Counts identify returned, visible and truncated results. Support a list-only workflow. |
+| AT-10 Results | Offer a virtualised/paged category → layer → records explorer and sortable/filterable mixed/domain tables with stable keyboard selection synchronized with the map. Scope results explicitly to participating layers, chosen layers or map area. Counts distinguish unique records, layer appearances, matching/mappable results and truncation. Unknown locations remain accessible. Results can fill the main working area for list-only operation. |
 | AT-11 Collect | Save bookmarks and named collections of entity/observation references, short plain-text notes and saved views. Provide distinct Save reference and Save permitted snapshot actions. Show whether supporting content is retained, external-only, expired or unavailable. Preserve reference identity across source corrections; a bookmark alone does not preserve data. |
-| AT-12 Import/export | Preview and import GeoJSON, coordinate CSV and a documented media-directory JSON format. Export selected permitted data as GeoJSON/CSV and workspace configuration, saved queries, areas and collections/notes as versioned JSON for reimport. Preserve reference/provenance metadata and identify snapshots or assets not included; exclude secrets. Configuration export is not a backup. |
+| AT-12 Import/export | Preview and import GeoJSON, coordinate CSV and a documented media-directory JSON format. Export selected permitted data as GeoJSON/CSV and workspace configuration, saved queries, areas, collections/notes, image-region annotations and clips as versioned JSON for reimport. Preserve reference/provenance metadata and identify snapshots or assets not included; exclude secrets. Configuration export is not a backup. |
 | AT-13 Solar context | For a selected observer location and pane time, calculate sun azimuth/elevation, sunrise/sunset, twilight and day/night state locally. Show a sun-direction overlay and numeric alternative; allow an explicit object height for modelled flat-ground shadow direction/length. Preserve observer and tool settings per pane/workspace. |
 | AT-14 Saved queries | Create, name, edit, duplicate, delete and explicitly rerun reusable query definitions independently of a workspace. Preserve source scope, typed filters, spatial criteria and fixed or relative time semantics. Show effective bounds and completeness for each run. Restoring/importing a query does not execute it; running one does not create a monitor or recording. Provider lookups require an explicit user-started run. |
+| AT-15 Image-region notes | Draw a region and attach a short note to an exact image/acquisition version. Preserve image coordinates, dimensions/reference system, optional georeferencing and separate annotation revisions. Provide numeric/list input and inspection; never alter the original asset or move the note to a later image automatically. |
+| AT-16 Evidence clips and library | Save a titled clip containing exact record/version references, layer/view/area/time context and a note; distinguish references from separately permitted snapshots. Search/preview saved workspaces, queries, areas, collections, snapshots and clips; Open or Open alongside preserves unlinked context and never executes a saved provider query implicitly. |
+
+### Composition, controls and results
+
+The left panel has **Layers / Sources / Tools**. Layers holds category → layer configuration; Sources discovers available datasets and opens NEXUS for reusable connection changes; Tools holds explicit spatial/measurement/solar actions. Individual records belong in the separate results explorer, not the configuration tree. The dock offers Results / Timeline / Media according to the current task.
+
+| Navigation category | Examples; not additional connector commitments |
+| --- | --- |
+| Vehicles & satellites | Aircraft, vessels, public-transit vehicles, satellites |
+| Events & alerts | Earthquakes, warnings, incidents, hazards, launches |
+| Places & infrastructure | Ports, airports, transport/energy/telecom features, camera sites |
+| Environment & measurements | Weather, wind, air quality and other measurements |
+| Imagery & overlays | Dated imagery and thematic raster/vector products |
+| Feeds & reports | News, bulletins and published records, including unknown locations |
+| My work | Areas, annotations, selected query results and collections |
+
+A layer has a default category and searchable tags. Categories organize navigation; capability contracts determine motion, history, sampling, playback and filters. Category membership establishes neither identity nor an evidential relationship. A layer's focused controls use **Filters / Appearance / Legend / Coverage & time / Actions**, with domain fields and units. Aircraft altitude and earthquake magnitude remain different controls; earthquakes preserve the supplied magnitude type rather than a universal Richter label. Provide a compact layer symbol/scale cue and combined legend for visible layers.
+
+Layer focus, record selection, results scope and camera movement are independent. Selecting a record opens its inspector without an automatic camera jump or filter change. Multiple layers may display one stable record using distinct rendering keys. Mixed tables show name, type, domain summary, relevant time, source and status; a domain scope exposes richer domain columns. Label time roles explicitly. Raster results are products/acquisitions, with location sampling only where supported.
+
+The pane owns shared camera, area and time; domain filters and styling belong to its layer instances. Distinguish local display filtering from upstream query criteria and actual source coverage. Camera panning does not run every source search. A visibility eye changes map rendering only; participation adds/removes that layer's pane demand and normal results. Explicit recording supplies separate demand, governed by §8. Disabling a connection in NEXUS affects every consumer of that connection. Hiding or removing a layer never deletes shared observations or saved evidence.
 
 ### Domain behaviour
 
@@ -76,10 +101,11 @@ Build a self-hosted, single-operator intelligence environment for exploring publ
 | Connectivity / RF | Distinguish public Wi-Fi availability, historical Wi-Fi radio observations, cellular antenna/site locations and mobile-coverage surfaces. Show source date, technology, provider, precision and observed/reported/modelled status. A site point never implies a coverage footprint; no scanning, connection attempts, credentials, packet content or client-device tracking. |
 | Infrastructure / context | Airports, ports, transport, energy and telecom features from bounded online queries/imports. Supply maritime (harbours/seamarks/lighthouses), railway (tracks/stations), energy (power lines/substations/pipelines) and hiking (paths/routes) presets with filters and legends. Preserve OSM feature IDs across presets; repeated views of one feature are not independent corroboration. Infrastructure geometry proves neither live vehicle position nor current operating/access conditions. RSS/Atom headline cards with source links; map stories only with explicit or user-confirmed location evidence. |
 | Solar context | Use a pinned, verified local calculation library such as [SunCalc](https://github.com/mourner/suncalc). Show UTC, azimuth in degrees clockwise from true north and elevation in degrees; optional local time is labelled with its timezone. Handle polar day/night and absent rise/set events. Shadows assume a vertical object of supplied height in metres on unobstructed flat ground; below-horizon or numerically unstable near-horizon results are unavailable with an explanation. Label output modelled (`predicted` evidence), preserve inputs/method version and distinguish calculation time from the modelled instant. Terrain/building shadows are OPTIONAL and require suitable geometry; current geometry cannot establish historical shadows or weather. |
+| Configurable GeoJSON | DS-29 generic features with validated geometry, mapped identity/label/time, provenance and property inspection. Unknown geometry remains off-map. Generic mappings do not confer aircraft, earthquake or tracking semantics. |
 
 Broadcast country/city knowledge uses an area or an explicitly labelled approximate marker. Never substitute a stream server’s IP location for editorial origin. Camera directories may describe places with no playable feed; the UI must communicate that distinction.
 
-**Time semantics:** Pause freezes the displayed cursor while permitted collection continues. Replay filters observations by their source time; it does not reconstruct what an investigator knew at an earlier date. Show current-only metadata as current, and distinguish later corrections. Returning Live jumps to the latest available data, not an invented present position.
+**Time semantics:** Pause freezes the displayed cursor while permitted collection continues within the authenticated session/demand rules in §8. Replay filters observations by their source time; it does not reconstruct what an investigator knew at an earlier date. Show current-only metadata as current, and distinguish later corrections. Returning Live jumps to the latest available data, not an invented present position. An older pinned image retains its acquisition date/age; never substitute current imagery for missing history.
 
 Solar calculations follow the pane cursor in Pause/Replay and current UTC in Live; they are derived results, not retained observations. Compute on demand without upstream calls. Area/time linking affects the solar tool only through explicitly linked context fields; an observer remains independently selected unless selection linking is enabled. Expose the calculation's supported date range and decline dates outside it.
 
@@ -87,35 +113,45 @@ Solar calculations follow the pane cursor in Pause/Replay and current UTC in Liv
 
 | ID | Platform capability | Prototype boundary |
 | --- | --- | --- |
-| OS-01 Shell | App registry, launcher, active-app identity, commands, settings and notifications | ATLAS is the only required production app; no speculative launcher entries |
-| OS-02 Workspaces | Create, rename, duplicate, restore and delete workspaces; pane layout and app state | Durable IDs, schema version, safe migrations and recoverable invalid state |
+| OS-01 Shell | Sign-in → Home; registry, navigation, active-app identity, commands and notifications | Home separates Workspaces / Apps / System / Account; ATLAS is the only analytical app, NEXUS and Settings are system tools; no speculative entries |
+| OS-02 Workspaces | Create, rename, duplicate, restore and delete project contexts; pane layout, app state and saved-work references | Owner, durable IDs, explicit Save, revision checks, safe migrations and recoverable invalid state; no extra Project hierarchy |
 | OS-03 Shared context | Entity/evidence selection, area, time and pane linking | Explicit link groups; no implicit global pan/time changes |
 | OS-04 Search/actions | Federated search-provider and action registries, reusable saved queries | Search current app records and saved items; no universal web crawler or implicit analytical monitoring |
-| OS-05 Data services | Sources, catalog, entity lookup, observations, evidence/provenance resolution and bounded queries | Apps use service contracts; they do not query another app’s tables |
-| OS-06 Connectors | Configuration, scheduler, subscriptions, cache, credentials and health | One coordinated upstream subscription/query per equivalent demand |
-| OS-07 Persistence | Workspaces, collections/notes, areas, saved queries, snapshots, imported datasets, source config and recording; backup/restore | PostgreSQL/PostGIS plus local persistent file storage behind an interface; coordinated recovery under §§8/10 |
+| OS-05 Data services | Connections, datasets, domain records/current projections, queries, observations and evidence/provenance resolution | Platform ownership/lifetime; no required app-to-app dependencies or queries against another app's tables |
+| OS-06 Connectors / NEXUS | System interface for connection instances, templates, dataset discovery and health; platform scheduling, subscriptions, cache and credentials | Multiple instances per connector type; one coordinated upstream operation per equivalent authorized demand; management UI lifetime does not govern collection |
+| OS-07 Persistence | Workspaces, collections/notes, image-region annotations, clips, areas, saved queries, snapshots, imported datasets, connection config and recording; backup/restore | PostgreSQL/PostGIS plus local persistent file storage behind an interface; coordinated recovery under §§8/10 |
 | OS-08 Operations | Background job progress/cancel, health panel and local structured logs | In-app notifications for jobs and source issues; no external messaging |
 | OS-09 Optional AI | Register capabilities, credentials reference, explicit request, cancellation and result provenance | Core workflow runs unchanged with no provider configured |
+| OS-10 Identity/access | External OIDC provider, backend session, ownership and platform authorization | Keycloak reference; password + TOTP; one explicitly provisioned operator; enforce access for API, live subscriptions and background work |
+| OS-11 Settings/library | Personal preferences, system configuration and shared saved-work discovery | Separate these from workspace/app state and NEXUS connection configuration; do not duplicate configuration forms in apps |
+
+Home and system destinations work without an open workspace. Opening an app selects or creates a stated destination workspace; returning Home does not delete its working state. Theme belongs to personal preferences, system options to platform configuration, and layer/pane layout to explicitly saved workspace state. Connection changes have their own Save in NEXUS. A workspace groups work; availability scope is not authorization or a security boundary.
 
 ### Architecture
 
 ```text
-Browser: VANTAGE shell → app registry → ATLAS views
-                  ↓ shared UI services / typed context events
-             Versioned application API + data subscription channel
+Browser: VANTAGE Home / shell → system tools (NEXUS, Settings)
+                             → registered apps (ATLAS)
+                  ↓ shared services / typed context events
+          Authenticated versioned API + data subscriptions
                   ↓
-Backend: catalog / queries / storage / connector coordinator / jobs
+Backend: platform identity/access / catalog / queries / evidence
+         storage / connector coordinator / jobs
                   ↓
-         Provider adapters → public APIs, feeds, tiles and imports
+         Configured adapters → APIs, feeds, tiles and imports
+         OIDC boundary → Keycloak reference provider
 ```
 
 Use a **modular monolith**: cohesive deployment, explicit internal modules and independently testable contracts. Background workers may share the backend process. A message broker, separate microservices and a graph database are not prerequisites.
 
 - First-party apps are trusted registered modules. Registration supplies views and actions without ATLAS-specific branching in the shell.
+- Apps depend on platform contracts, never another app's runtime or storage. ATLAS owns presentation, while vehicles, earthquakes and their observations/current projections belong to the platform. A facade over an ATLAS-dependent service does not establish independence. Preserve domain schemas and revision rules rather than forcing all data into one generic model.
+- Use typed module boundaries plus frontend import restrictions and backend architecture checks. Concrete provider wiring belongs to composition roots. Unregistering ATLAS leaves Home, NEXUS, shared data and authorized consumers usable; preserve unavailable app state for recovery. Optional cross-app actions require an available compatible destination.
 - An app/view error is contained within its pane; the shell and other panes remain usable.
 - High-frequency observation updates use the data subscription channel; the UI context bus carries user actions and shared state changes.
-- Reuse a common data cache across panes. Dispose subscriptions and media when panes close; background recording continues only while explicitly enabled.
+- Reuse a common authorized data cache across panes. Dispose pane subscriptions and media when panes close; explicit recording has independent demand but stops on sign-out, session expiry or access revocation. Clear/re-scope client caches when identity/access changes.
 - Follow the approved stack, rendering and storage choices in [decision 0001](docs/decisions/0001-prototype-stack.md) and the Blueprint component choice in [decision 0002](docs/decisions/0002-blueprint-ui.md). Theme shared controls to DESIGN.md using its existing colours and CSS-variable tokens. Record material changes in short decision records against these requirements; implementation choices must not redefine the product scope.
+- Implement the shell/composition, connection and identity boundaries in decisions [0006](docs/decisions/0006-vantage-shell-and-composed-atlas.md), [0007](docs/decisions/0007-configurable-connections.md) and [0008](docs/decisions/0008-authentication-and-session-lifecycle.md). These retain the existing modular monolith, map/UI components and source-isolated revision/retention rules.
 
 ## 5. Reference data connectors
 
@@ -151,29 +187,38 @@ Documentation checked **2026-09-21**. These are reference integration targets, n
 | DS-26 Imagery discovery | [Element 84 Earth Search](https://element84.com/earth-search/) / [STAC catalog](https://earth-search.aws.element84.com/v1) | Bounded area/date/collection search for imagery acquisitions alongside DS-09/22. Preserve collection/item IDs, footprint, acquisition interval/precision, bands, resolution, cloud metadata and asset lineage; deduplicate shared NAIP acquisitions. Catalog results are not renderable tiles: verify collection-specific asset rights/access and budget COG reading, reprojection, tiling and cache storage separately. |
 | DS-27 Hazard catalog | [NASA EONET v3](https://eonet.gsfc.nasa.gov/docs/v3) | Cross-hazard catalog alongside USGS/FIRMS. Preserve original source links, category, geometry dates and temporal precision; midnight placeholders must not imply exact timing. Catalog closure does not establish the physical end of a hazard. Link overlapping reports without treating them as independent corroboration. |
 | DS-28 Internet outages | [Cloudflare Radar outages](https://developers.cloudflare.com/radar/investigate/outages/) / [traffic anomalies](https://developers.cloudflare.com/api/resources/radar/subresources/traffic_anomalies/methods/get/) | Backend-token connectivity context after quota and intended-use rights checks. Distinguish detected anomalies from annotated outages and provider status pages. Preserve country/region/ASN scope, time interval, supporting references and attributed cause/confidence; aggregate signals neither locate individual devices nor establish causes. |
+| DS-29 Configurable GeoJSON feed | Operator-configured HTTP endpoint serving [RFC 7946 GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) | Bounded polling FeatureCollections with declarative identity/label/time mappings, declared geometry support and validated backend authentication. Test/preview and add a compatible live feed through NEXUS without code changes. Generic features remain distinct from specialized domain semantics; see §8 and decision 0007. |
 
-All DS-01–DS-28 rows are part of the connector implementation scope; free-key connectors may be unconfigured at runtime. A named regional source establishes a working adapter, not worldwide coverage. Solar context is a required local calculation capability, not a network connector. Optional sources are listed separately in §13; the [source candidate review](docs/source-candidate-review.md) and [provider inventory assessment](docs/source-inventory-review-2026-09-21.md) record the evaluation rationale. The [complete provider inventory](docs/source-inventory-2026-09-21.md) is archival reference material, not additional implementation scope.
+All DS-01–DS-29 rows are part of the connector implementation scope; free-key connectors may be unconfigured at runtime. DS-29 was added on 2026-09-22; the existing reference-provider rows retain their earlier review date. A named regional source establishes a working adapter, not worldwide coverage. Solar context is a required local calculation capability, not a network connector. Optional sources are listed separately in §13; the [source candidate review](docs/source-candidate-review.md) and [provider inventory assessment](docs/source-inventory-review-2026-09-21.md) record the evaluation rationale. The [complete provider inventory](docs/source-inventory-2026-09-21.md) is archival reference material, not additional implementation scope.
 
 **Playback:** implement browser-supported audio/video, HLS when supported by the selected player, periodic images and approved provider embeds. Unsupported codec, CORS, mixed-content, geographic or embedding restrictions produce a specific unavailable state plus source link. Do not bypass restrictions through an unrestricted media proxy.
 
-## 6. Shared data contract v1
+## 6. Shared data contracts and ownership
 
-Publish language-neutral JSON Schemas with the implementation. Required common fields remain small; domain-specific fields live in versioned, validated property schemas. These contracts do not prescribe a future universal ontology.
+Publish versioned language-neutral JSON Schemas with the implementation. Required common fields remain small; domain-specific fields live in validated property schemas. These contracts do not prescribe a future universal ontology. Existing v1 payloads need explicit compatibility/migration handling; this document does not make unmodified runtime schemas support the new fields.
 
 | Record | Minimum fields |
 | --- | --- |
-| Source | `id`, `name`, `connectorId`, `documentationUrl`, `termsUrl`, `attribution`, `capabilities`, `configurationSchema`, `credentialRef?` |
+| Source origin | `id`, `name`, `documentationUrl`, `termsUrl`, `attribution`; identifies the original provider/publisher in provenance |
+| Connector type | `id`, `version`, `capabilities`, versioned `configurationSchema`, supported authentication, coverage/limits and operation constraints |
+| Connection template | `id`, `version`, `connectorTypeId`, `name`, non-secret starting settings and `schemaVersion` |
+| Connection | `id`, `name`, `connectorTypeId`, `revision`, `availabilityScope` (`global` or `workspace` with `workspaceId`), `enabled`, validated `settings`, backend `credentialRef?`, `schemaVersion` |
+| Dataset | `id`, `connectionId`, provider product identity, `sourceIds`, domain/schema, capabilities, coverage, attribution and operation permissions |
 | Entity | `id`, `kind`, `label`, `externalIds[{namespace,value}]`, `schemaVersion` |
 | Observation | `id`, `entityId`, `sourceId`, `observedAt?`, `retrievedAt`, `validFrom?`, `validTo?`, `geometry?`, `locationRole?`, `precision`, `evidenceClass`, `properties`, `provenance`, `schemaVersion` |
 | Provenance | `sourceId`, `sourceRecordId?`, `sourceUrl`, `attribution`, `licenseRef?`, `rawRef?`, `derivedFrom[]`, `transformVersion?` |
-| Layer | `id`, `kind`, `sourceIds`, `geometryTypes`, `filterSchema`, `styleRef`, `capabilities`, `coverage`, `freshnessPolicy` |
+| Layer definition | `id`, `kind`, default category/tags, `geometryTypes`, `filterSchema`, presentation contributor, `capabilities`, `freshnessPolicy` |
+| Layer instance | `id`, `definitionId`, `datasetId`, name/category, `filters`, `appearance`, `visible`, `participating`, drawing order and `schemaVersion`; belongs to an app pane |
 | Media resource | `id`, `entityId`, `sourceId`, `sourcePage`, `playbackMode`, `url?`, `mimeType?`, `capturedAt?`, `usageStatus` |
-| Workspace | `id`, `name`, `revision`, `schemaVersion`, `panes[]`, `linkGroups[]`, `appStates`, `createdAt`, `updatedAt` |
+| User / ownership | Stable internal `userId` mapped to OIDC `issuer` + `subject`; user-created work includes `ownerId`. Email and workspace names are not authorization keys |
+| Workspace | `id`, `ownerId`, `name`, `revision`, `schemaVersion`, `panes[]`, `linkGroups[]`, `appStates`, `createdAt`, `updatedAt` |
 | Collection / area | `id`, `name`, `revision`, `references[]` or `geometry`, optional `note`, `createdAt`, `updatedAt`, `schemaVersion` |
 | Identity association | `id`, `entityId`, `sourceId`, `sourceRecordId?`, `ruleId`, `ruleVersion`, `supportingReferences[]`, `status`, `createdAt`, `schemaVersion` |
 | Evidence reference | `id`, `targetKind`, `targetId`, `targetRevision?`, `provenance[]`, `createdAt`, `schemaVersion`; resolution returns retention and availability separately |
 | Saved snapshot | `id`, `referenceIds[]`, `createdAt`, `permissionBasis`, versioned `manifest`, `schemaVersion`; manifest identifies preserved observation versions and any assets with size, media type and content hash/algorithm |
-| Saved query | `id`, `name`, `revision`, `querySchemaVersion`, `sourceIds[]`, `executionScope`, `text?`, `kinds[]`, `filters`, `spatialFilter?`, `timeSpec`, `createdAt`, `updatedAt`, `schemaVersion` |
+| Saved query | `id`, `name`, `revision`, `querySchemaVersion`, explicit connection/dataset scope with `sourceIds[]` for origin filtering, `executionScope`, `text?`, `kinds[]`, `filters`, `spatialFilter?`, `timeSpec`, `createdAt`, `updatedAt`, `schemaVersion` |
+| Image-region annotation | `id`, `ownerId`, exact acquisition/asset version reference, image-coordinate region/reference system and dimensions, optional georeferencing, note, revision/history, timestamps and `schemaVersion` |
+| Evidence clip | `id`, `ownerId`, title/note, exact evidence references, layer/view/area/time context, optional snapshot/preview references, revision, timestamps and `schemaVersion` |
 
 Rules:
 
@@ -189,15 +234,27 @@ Rules:
 10. Publish versioned domain property schemas for DS-26 imagery discovery, DS-27 hazard catalogs and DS-28 internet outages. Optional §13 adapters also inherit these contracts. Imagery discovery preserves collection/item identity, asset/band metadata, footprint, acquisition precision and processing lineage. Hazard reports preserve original publisher/document references and event-time/location precision; catalog closure does not prove physical termination. Outage/indicator records preserve geographic or ASN scope, interval, method and attributed cause/confidence. Shared upstream reports remain shared lineage, not independent corroboration; aggregate records do not acquire invented point locations.
 11. Combined inspection resolves each displayed source-derived fact to observation IDs and property paths, including its evidence class. Explain any preferred value through a named display rule; alternatives remain inspectable. History distinguishes source updates, corrections, operator annotation revisions and derived assessments, with origin, time and supporting references. Store annotation history separately from provider facts. This is inspectable lineage; enterprise auditing and reconstructing everything known at a past date remain outside scope. Source reliability, identity uncertainty, location precision and assessment confidence remain distinct.
 12. Evidence resolution reports `retention: reference_only | snapshot` and `availability: available | expired | unavailable | unsupported`, with a reason when unresolved. External-only content is not labelled retained. Snapshots include the actual permitted version, original source/retrieval times, precision and transformation lineage; assets resolve through the storage interface. A hash detects content change, not truth. Retention rules still apply; retain permitted reference metadata when underlying evidence must be removed.
-13. Saved queries store criteria, not a result collection or snapshot. `executionScope` is `local | provider`; source IDs and supported capabilities remain explicit. `timeSpec` is `unbounded`, `fixed` with UTC bounds, or `relative` with a positive duration ending at run start. Unbounded time still obeys query/resource limits. Resolve relative bounds once per run; pagination uses those same bounds. Return a run descriptor containing query ID/revision when saved, start time, effective time bounds, actual source scope and completeness. Unsupported historical operations or unavailable sources remain visible, never silently converted to current lookups. Saving, restoring or importing criteria does not grant new source access.
+13. Saved queries store criteria, not a result collection or snapshot. `executionScope` is `local | provider`; connection/dataset scope, source origins and supported capabilities remain explicit. `timeSpec` is `unbounded`, `fixed` with UTC bounds, or `relative` with a positive duration ending at run start. Unbounded time still obeys query/resource limits. Resolve relative bounds once per run; pagination uses those same bounds. Return a run descriptor containing query ID/revision when saved, start time, effective time bounds, actual connection/dataset/source scope and completeness. Unsupported historical operations or unavailable sources remain visible, never silently converted to current lookups. Saving, restoring or importing criteria does not grant new source access.
+14. Platform services own records/current projections, observation history and evidence. Preserve aircraft position-time and earthquake source-revision policies, domain schemas and source-isolated retention. Connection/dataset/configuration-revision metadata records how data was obtained without replacing original source identity. Reconfiguring a connection never retags old records. Layer-instance IDs are not entity, observation or ingestion identities.
+15. Relational fields hold common connection identity/scope/revision and queryable observation fields; validated JSONB holds connector/domain-specific settings/properties. Credentials are backend references, never normal configuration values. Personal preferences, system settings and workspace/app state have separate ownership and persistence boundaries.
+16. Image annotations reference an exact acquisition/version and image-coordinate region, with optional separately described geographic transform. Revisions remain separate from original media and provider facts. Missing/expired images leave inspectable references; new imagery never receives old annotations automatically. Clips preserve the selected reference versions and view context. A thumbnail or saved view is not a retained source asset; snapshot availability is resolved separately.
+17. Owner access applies to queries, areas, collections/notes, snapshots, clips, imports and workspaces. Import/export preserves reference semantics but cannot grant permissions or assign ownership from untrusted input. Record the responsible user separately from source provenance. Authorize all reference resolution and operations at the platform boundary.
 
-## 7. App, context and API contracts v1
+## 7. App, context and API contracts
 
 ### App registration
 
-An app manifest MUST declare `id`, `name`, `version`, `platformApiVersion`, `entryView`, `stateSchemaVersion`, `acceptedEntityKinds`, `actions` and `searchProviders`.
+An app manifest MUST declare `id`, `name`, `version`, `platformApiVersion`, `kind` (`app` or `system-tool`), branding/navigation metadata, `entryView`, `stateSchemaVersion`, `acceptedEntityKinds`, `actions` and `searchProviders`. System tools declare whether a workspace is required; NEXUS and Settings do not require one. Supply the shell's identity/branding through registration rather than ATLAS-specific branches.
 
-The host provides lifecycle hooks equivalent to `mount`, `activate`, `deactivate`, `serializeState`, `restoreState`, `dispose`. Host services expose navigation, query/subscription, context, persistence, commands and notifications. Apps receive credential handles only; server-side adapters own secrets. Unsupported major versions disable that module with a readable explanation.
+The host provides lifecycle hooks equivalent to `mount`, `activate`, `deactivate`, `serializeState`, `restoreState`, `dispose`. Host services expose navigation, query/subscription, context, persistence, commands and notifications under the current authorized identity. Apps use configured connection/dataset handles; server-side adapters resolve credentials. Unsupported major versions disable that module with a readable explanation while preserving recoverable state.
+
+### ATLAS pane state and migration
+
+ATLAS state version 2 contains one camera, area/time context, layer instances, result scope/presentation, focused layer, stable selected-record references, panel/dock state and tools. Domain contributors supply rendering, controls, columns/facts/actions and explicit revision policies. Do not persist high-frequency observations in workspace state.
+
+Migrate v1 exclusive-domain state using the active domain's camera and visible/participating selection. Preserve other domain settings and recoverable prior camera/selection state without enabling additional collection. Keep original state on migration failure with a useful recovery message; unsupported app state is not discarded. Use explicit database migrations to move current aircraft/earthquake tables to platform ownership without changing source/record/observation IDs. Assign legacy user work to the configured initial owner, never the first visitor. Migrate initial provider settings once; later starts/upgrades preserve connection edits and deletions.
+
+Version and validate changes to stored state, DTOs and SignalR contracts during implementation; regenerate the REST client and test old-to-new restoration. Version 2 above names ATLAS state, not an automatic major-version change to every API or observation schema.
 
 ### Shared context
 
@@ -219,6 +276,7 @@ The host provides lifecycle hooks equivalent to `mount`, `activate`, `deactivate
 - `context.changed.v1` contains `eventId`, `originPaneId`, `linkGroupId`, `revision`, `changedFields`, `context`, `causationId?`. Only subscribed fields propagate; track monotonic revisions per originating pane and ignore previously applied events to prevent feedback loops.
 - Actions declare `id`, `label`, accepted kinds and required capabilities; invocation supplies references plus context. Unsupported actions are hidden or explain why unavailable.
 - Closing one pane cannot stop another pane’s data or mutate its unlinked context.
+- `layerIds` refer to layer instances. The shared-context envelope remains version 1 while compatible; new incompatible fields require a declared new version. Layer focus, result scope and private layer filters stay in pane state unless explicitly included in a supported link operation. Selection carries stable data references; the originating layer/rendering key is presentation context, not record identity.
 
 ### Application boundary
 
@@ -226,16 +284,19 @@ Expose equivalent versioned operations through the approved REST/OpenAPI and Sig
 
 | Operation | Contract |
 | --- | --- |
-| Discover apps/layers/actions/sources | Return registered capabilities, versions, configuration requirements and health |
-| Search/query | Input text, kinds, source IDs, execution scope, spatial/time criteria and typed filters; output records, cursor, returned/total-known counts, completeness and run descriptor |
+| Discover apps/layers/actions/connections/datasets | Return accessible registered capabilities, versions, configuration requirements, scope and health |
+| Manage connections | Validate connector schema, endpoint/access constraints and revision; test/preview explicitly; save/duplicate/disable/remove/import/export without secret disclosure or implied collection |
+| Search/query | Input text, kinds, connection/dataset scope, source-origin filters, execution scope, spatial/time criteria and typed filters; output records, cursor, returned/total-known counts with counting unit, completeness and run descriptor |
 | Inspect / resolve evidence | Resolve entity plus requested observations, fact support, identity basis, history and provenance; distinguish current entity details from fixed evidence versions and return retention/availability |
-| Subscribe | Input layer/area/filter demand; output initial snapshot followed by ordered batches of upserts/removals and health |
+| Subscribe | Input authorized connection/dataset/area/filter demand; output initial snapshot followed by ordered batches of upserts/removals and health; coordinate equivalent demand across layer appearances |
 | Read history | Return observations plus available intervals, gaps, sampling policy and truncation |
-| Save workspace/collection/area/query | Validate schema; use revision checks and conflict responses, not silent last-write overwrite; preserve references during export/reimport and do not execute restored queries |
+| Save workspace/collection/area/query/annotation/clip | Check owner/access and validate schema; use revision checks and conflict responses, not silent last-write overwrite; preserve references during export/reimport and do not execute restored queries |
 | Save permitted snapshot | Validate operation rights/budget; preserve exact observation versions and permitted assets through a cancellable job; return manifest and evidence references |
 | Import/export/record | Start cancellable job; return progress, validation results, artifact references and policy limits |
 
 Every query is bounded and cancellable. Subscription batches include `subscriptionId`, `sequence`, `generatedAt` and completeness; reconnect uses a resume token if supported, otherwise a fresh snapshot with a reset marker. Removal from a viewport is not evidence that an object stopped existing. Errors use `code`, readable `message`, `retryable`, optional `retryAfter` and `sourceId`.
+
+Authenticate and authorize REST requests, SignalR connection/subscription/resume, evidence resolution and background work. Bind demand to server-validated session/access context rather than client-supplied owner IDs. State-changing cookie-authenticated requests require CSRF protection. Session termination must close affected live demand even when a transport stays connected.
 
 **Spatial queries:** `spatialFilter` is either an area with WGS84 Polygon/MultiPolygon geometry or `withinRadius` with centre `[longitude, latitude]` and positive finite `radiusMetres`, subject to documented size/result limits. Radius membership uses geodesic distance on WGS84, including the boundary. A displayed circle approximation must not replace the authoritative centre/radius calculation. Use documented geometry predicates for lines/areas. Location uncertainty must not yield an exact proximity claim: distinguish definite matches from possible matches where supplied uncertainty overlaps the search, and unknown where it cannot be evaluated. Preserve that distinction in table/export results. Provider bounding-box lookups may supply candidates followed by local filtering; expose truncation or incomplete upstream coverage.
 
@@ -243,12 +304,25 @@ Radius parameters belong to query/pane state and saved queries; the shared `area
 
 ## 8. Connector execution and storage
 
+### Connection management
+
+NEXUS is the single connection manager. Operators choose a bundled template or installed connector type, configure validated fields, explicitly Test/preview, Save, then select datasets in ATLAS Sources. Support Add, Edit, Duplicate, Disable, Remove and versioned JSON Import/Export. HTTP success alone does not validate interpretation; show previewed fields, coverage, capabilities and setup/permission problems.
+
+Use relational identity/scope/revision fields and validated JSONB settings in PostgreSQL, with schema-driven Blueprint forms and specialized controls when needed. Versioned JSON files are templates/interchange; the database is the active configuration authority. Keep multiple instances of a connector type usable concurrently. Global availability is the default; workspace-only instances reference a specific workspace. Neither scope starts collection or bypasses authorization. Show affected consumers when editing shared configuration; use distinct instances for different endpoint/account settings rather than hidden per-workspace overrides.
+
+Seed aircraft/earthquake connections once from their current configuration. Preserve edits/deletions on restart and template upgrades; restoring defaults or applying updated templates is deliberate. Validate before activating a changed revision and retain the working revision when validation fails. Disable cancels that connection's live/recording demand; Remove leaves dependent layers unavailable and retains permitted evidence/reference metadata. Renaming or reconfiguring never rewrites prior provenance. Imported credential-dependent settings remain setup-required until backend credentials are resolved. See [decision 0007](docs/decisions/0007-configurable-connections.md).
+
+DS-29 accepts bounded GeoJSON FeatureCollections with Point/MultiPoint, LineString/MultiLineString, Polygon/MultiPolygon and null geometry; GeometryCollection may be unsupported with an explanation. Configure stable feature identity, label and optional event/validity-time mappings declaratively. Reject missing/duplicate configured IDs; preserve missing source time and null geometry as unknown. Validate WGS84 geometry, source URLs/redirects, payload/feature limits and supported backend authentication. Snapshot removals do not imply physical disappearance or event termination. No arbitrary scripts/transformation language or inferred specialized domain semantics are required. Use provider-appropriate bounded polling defaults, explicit test/preview and a last-valid-result fallback.
+
+### Execution, retention and recording
+
 - Each adapter declares supported modes (`catalog`, `poll`, `stream`, `history`, `tiles`, `lookup`), spatial/time coverage, credentials, quotas and attribution. Record query/display/embed/cache/record/export/redistribution permissions per dataset/product; unsupported or unverified operations remain unavailable. Website access and client-software licensing do not establish data permissions.
-- Coordinator validates configuration, caches equivalent demand, applies per-source budgets, cancels obsolete work and uses exponential backoff with jitter. Honour `Retry-After`; authentication/permission errors require correction rather than endless retry.
+- Coordinator validates configuration, shares equivalent authorized connection/dataset/query demand, applies provider/connection budgets, cancels obsolete work and uses exponential backoff with jitter. Different endpoints/accounts are not assumed equivalent. Honour `Retry-After`; authentication/permission errors require correction rather than endless retry.
 - Preserve a last successful result separately from connection health. `healthy`, `degraded`, `offline`, `rate_limited`, `setup_required`, `disabled` and `error` are distinct states.
-- Source timestamps drive freshness. Poll cadence and stale thresholds are connector-specific and visible in settings. A successful HTTP response does not make old data fresh.
-- Persist user-created workspaces, areas, notes and their revisions, collections and saved queries until deletion. Bookmarks and identity support remain resolvable as expired/unavailable references after underlying observations expire, retaining only metadata allowed by source policy. Deleting a collection or query does not delete shared observations or independently saved snapshots.
-- Recording is explicit per source/AOI and limited to permitted data. Proposed defaults: retain up to 24 hours or 2 GiB, whichever is reached first; evict oldest unpinned observations and expose the retained interval.
+- Source timestamps drive freshness. Poll cadence and stale thresholds use bounded provider-appropriate defaults and are visible as metadata in NEXUS and affected layers. Operator-wide/per-connection polling controls are deferred. A successful HTTP response does not make old data fresh; connection health, active demand and cached-data age are distinct.
+- Persist user-created workspaces, areas, notes and their revisions, collections, queries and clips until deletion, subject to source restrictions on included content. Bookmarks and identity support remain resolvable as expired/unavailable references after underlying observations expire, retaining only metadata allowed by source policy. Deleting a collection, query, layer or app does not delete shared observations or independently saved snapshots.
+- Recording is explicit per connection/dataset/AOI, limited to permitted data and tied to the initiating authenticated session. Prototype defaults: retain up to 24 hours or 2 GiB, whichever is reached first; evict oldest unpinned observations and expose the retained interval.
+- Stop affected recording and ordinary live-view subscriptions on sign-out, session expiry or revoked access. Retained data keeps its normal retention policy. Signing back in does not restart recording. Closing a pane/NEXUS releases only its own demand; separately started recording can continue while its initiating session/access remains valid. Enforce bounded session/access checks on the backend, including open SignalR connections; browser closure/network loss cannot grant indefinite recording. After a backend restart mark incomplete recordings stopped/interrupted and require an explicit restart. Unattended recording is deferred.
 - Explicit saved snapshots use a separate 500 MiB default budget; warn before the limit and stop saving rather than silently deleting them. These are configurable prototype defaults, not provider promises.
 - No continuous camera/audio/video recording is required. A media URL is a reference, not archived evidence. Store binary content only through an explicit permitted snapshot operation.
 - Import preview reports row/field errors and coordinate order; reject invalid files without partial workspace corruption. Files and exports carry source/licence metadata and schema version.
@@ -256,7 +330,7 @@ Radius parameters belong to query/pane state and saved queries; the shared `area
 
 **Backup and restore:** document a coordinated procedure for database state, persistent binary assets and their linking metadata, including user work, saved evidence, imports and non-secret configuration. Stopping writers during backup is acceptable for the single-operator prototype. Record application/schema versions, backup time, included assets and integrity hashes in a manifest; identify rebuildable caches and deliberate exclusions. Restore to a clean installation of a documented compatible version, validate references/assets and then apply supported migrations. Report missing/corrupt assets or incompatible versions explicitly instead of claiming complete recovery. Recovery verification must not depend on optional providers being available.
 
-Exclude credential values from backup artifacts as well as exports; document separate operator-managed secret recovery/reprovisioning and show setup-required for unresolved credential references. Specify how source retention restrictions apply to backups. Deletion removes active data according to its documented scope; copies may remain in older operator-held backups until those backups expire or are deleted, and restoration may reintroduce them. Document that behaviour without promising forensic erasure. Backup retention/storage is separate from recording, snapshot and cache budgets.
+Exclude credential values and session tokens from ordinary VANTAGE backups as well as exports; document separate operator-managed secret recovery/reprovisioning and show setup-required for unresolved credential references. The Keycloak credential database needs its own protected recovery procedure and is not part of secret-free data backups. Preserve internal user IDs/ownership and verify issuer/subject mappings on recovery; use an explicit verified remapping procedure when identity recovery requires it. Specify how source retention restrictions apply to backups. Deletion removes active data according to its documented scope; copies may remain in older operator-held backups until those backups expire or are deleted, and restoration may reintroduce them. Document that behaviour without promising forensic erasure. Backup retention/storage is separate from recording, snapshot and cache budgets.
 
 ## 9. Optional AI integration boundary
 
@@ -264,10 +338,18 @@ The prototype MUST expose capabilities such as `summarizeSelection`, `classifyRe
 
 - A future OpenAI adapter can summarise selected records with citations. The user previews scope and explicitly starts any paid request; no background billable calls.
 - [TypeSafe Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is a candidate for typed classification/scoring, not free-text summaries. Typed output still requires factual validation.
-- Request contract: capability, selected references, supplied content, requested output schema, provider/model selection and budget. Response: output, citations, provider/model, generation time, usage if available and errors.
+- Request contract: capability, selected references/versions, supplied content, requested output schema, provider/model selection, effective settings and budget. Response/run record: output, citations, provider/model, resolved model version or explicit unavailable value, generation time, usage if available, review state and errors. Inspect these details for the deterministic mock as well as any live adapter. Scores retain their defined method/meaning, never a universal truth confidence.
 - Derived results remain separate from observations; store input references and provenance. Source content is data, not instructions. AI output never silently changes an entity, executes a command or becomes verified evidence.
 
 ## 10. Reliability, security and performance
+
+### Authentication and authorization
+
+Use Keycloak in the reference Compose deployment, with its own database/user (the PostgreSQL server may be shared). Use standard ASP.NET Core confidential OIDC authorization-code flow with PKCE, a backend-managed session cookie and backend-held tokens. VANTAGE does not query identity-provider tables or store passwords, TOTP secrets or recovery credentials. Pin/configure the provider during implementation and document actual setup/recovery commands.
+
+Verify **password + authenticator-app TOTP**, including enrollment and recovery through Keycloak. Passkeys and corporate directory integration follow the prototype; the standard OIDC boundary supports later federation. Provision one authorized operator explicitly, mapping a stable internal user ID to issuer + subject, not email. Do not enable public signup or assume successful login grants access. Enforce resource ownership and system/connection/dataset permissions in platform services, including jobs and subscription/resume paths. Global availability and workspace grouping are separate from authorization.
+
+Home, NEXUS, Settings and apps share one session. Sign-out, expiry and revocation enforce the demand/recording termination in §8 with a documented bounded server-side check. Protect state-changing requests from CSRF, validate redirects and apply appropriate HttpOnly, SameSite and HTTPS/Secure-cookie settings; any loopback development exceptions are explicit. Never place identity-provider tokens in browser storage or exports. An unavailable provider or expired session never enables anonymous access. Validate a small real sign-in/protected operation/sign-out slice early; full account, recovery, expiry and failure verification is mandatory before completion. See [decision 0008](docs/decisions/0008-authentication-and-session-lifecycle.md).
 
 | Area | Required outcome |
 | --- | --- |
@@ -275,7 +357,7 @@ The prototype MUST expose capabilities such as `summarizeSelection`, `classifyRe
 | External content | Validate/sanitise imported text; sandbox approved embeds; validate outbound destinations and redirects to prevent arbitrary proxying into private networks |
 | Data boundaries | Consume intended public sources and user-authorised files. Device, Wi-Fi and cellular metadata does not grant permission to access a device, network or private camera; ATLAS performs no RF scanning, packet capture or connection attempts |
 | Provider failure | One failed/slow connector cannot block shell, saved data or other layers; show actionable health and retry state |
-| Offline | Open saved configuration and available cached/demo data; never label cached content live |
+| Offline | Open saved configuration and available cached/demo data under a valid authorized session or locally available reference identity provider; never label cached content live or bypass authentication on provider failure |
 | Recovery | A documented coordinated database/file backup restores user work and permitted evidence on a clean installation; validate versions and integrity, identify missing assets, and recover optional-source configuration without requiring provider access |
 | Observability | Per-source request/error/quota/lag counters and redacted logs; no third-party telemetry by default |
 | Accessibility | Meet [DESIGN.md](DESIGN.md), including keyboard/list alternatives, focus, contrast, zoom and reduced motion |
@@ -283,36 +365,47 @@ The prototype MUST expose capabilities such as `summarizeSelection`, `classifyRe
 
 **Performance acceptance targets** on a documented four-core/16 GiB development machine, current Chromium, 1920×1080: interactive shell within 3 seconds from a warm local start; cached search p95 under 500 ms; selection-to-cached-inspector p95 under 200 ms; at least 30 fps panning with 10,000 clustered test features and 100 observation updates/second. Benchmark recorded fixtures, not upstream latency; report hardware and achieved values. These are targets to validate, not measured results.
 
+Measure the shell target with a valid session and record sign-in latency separately. Include representative mixed-layer fixtures; the composition changes do not reduce the existing targets.
+
 ## 11. Acceptance scenarios
 
 | ID | Scenario and pass condition |
 | --- | --- |
-| AC-01 Start | Fresh install opens VANTAGE/ATLAS with no paid credentials. Demo mode and keyless real sources work; missing free keys show setup instructions. |
-| AC-02 App framework | A test-only registered app/action receives selection, area and time without changing shell/ATLAS code. Unregister/dispose leaves no dangling listeners. |
+| AC-01 Start | Fresh install supports reference-provider password/TOTP sign-in → VANTAGE Home → create/open workspace → ATLAS with no paid credentials. Home separates Workspaces, Apps, System and Account; NEXUS/Settings open without a workspace. Demo mode and keyless real sources work; missing free keys show setup instructions. |
+| AC-02 App framework | A test-only registered app/action receives selection, area and time without changing shell/ATLAS code. Unregister/dispose leaves no dangling listeners. Unregister ATLAS and verify Home, NEXUS, authorized platform data/evidence access and the independent test consumer still work; unavailable destination actions and saved app state remain recoverable. Closing NEXUS does not stop another authorized consumer. |
 | AC-03 Air/sea | Configure sources, inspect moving records and source times, follow a track, interrupt the feed and reconnect without invented movement or duplicate records. Validate AIS live with a free test key. |
 | AC-04 Space | Validate propagation against independent reference vectors; show element epoch, predictions, pass times and invalid/stale-element behaviour. |
 | AC-05 Media | Locate and play permitted radio/video/image examples; exercise two players, stop/mute and unavailable-stream fallback. City/country-only origins remain visibly approximate. |
-| AC-06 Time | Record a bounded area, pause, replay and return live. Timeline gaps, expired intervals and live-only layers are explicit; no present-day data masquerades as historical. |
+| AC-06 Time | Record a bounded area, pause, replay and return live. Timeline gaps, expired intervals and live-only layers are explicit; no present-day data masquerades as historical. Exercise acquisition/observation stepping, validity intervals, predictions and older pinned imagery with its true date/age. Closing a pane preserves separately started authorized recording; sign-out, expiry or access revocation stops affected recording/live subscriptions within the documented bound. Retained data remains under policy; login/backend restart does not automatically resume recording. |
 | AC-07 Compare | Link two panes, then unlink time; changes propagate only for still-linked fields without event loops or duplicate upstream demand. |
 | AC-08 Save/restore | Save a workspace, collection and area; restart and restore. Export/reimport configuration without secrets; missing sources degrade gracefully. |
 | AC-09 Context layers | Query imagery dates, weather, earthquakes, active-fire detections, launch events and transit/bikeshare. Exercise all four DS-12 presets in documented AOIs, inspect provenance and deduplicate shared OSM features. Compare two real dated DS-22 acquisitions for one AOI; verify footprint, date precision, resolution and unavailable-period handling. Validate solar outputs against independent reference values with documented tolerances, including polar day/night, below-horizon and near-horizon cases, offline operation, workspace restoration and linked/unlinked pane time. Import an RSS item with unknown location without fabricating a map pin. For DS-23, verify update/cancellation references, expiry, late revisions, zone resolution failure and unavailable historical state. For DS-24, verify pollutant/unit/averaging distinctions, quality flags, missing/stale readings and quota/setup handling without fabricated AQI. For DS-25, verify pagination, scheduled closures, revisions and disappearance from current results without falsely ending events. For DS-26, perform bounded spatial/temporal catalog search, inspect footprint/acquisition metadata, render one permitted real asset, verify unsupported-asset and cancellation/storage-bound states, and deduplicate shared DS-22 assets. For DS-27, verify category/time filtering, original source lineage, imprecise timestamps, catalog closure and overlapping reports without false corroboration. Exercise map/list selection, filters, pane time and workspace restoration for DS-23–27. |
 | AC-10 Devices / connectivity | Look up/import a known public IP and enrich it with DS-21. Verify IPv4/IPv6, missing/stale database, failed refresh retaining the last valid release, unknown location, approximate city location, provider conflict and historical-time handling. Query online public-Wi-Fi, RF, cellular-site and mobile-coverage sources; distinguish historical Wi-Fi observations, antenna points and reported/modelled coverage, with technology, source date and precision. For DS-28, query annotated outages and traffic anomalies, preserve scope/time/supporting references and distinguish the two record types from provider status. Verify unknown cause, missing history, token/quota failure and map/table selection without fabricated device locations; restore filters and pane time. No scan, connection attempt, exact IP-derived device marker or invented coverage occurs. |
 | AC-11 Failure/bounds | Exercise quota, malformed input, late/out-of-order updates, connection loss, cancellation, history eviction and stale workspace revision. Preserve user data and report the outcome. |
-| AC-12 Quality | Pass visual/accessibility review, contract tests, performance targets and outbound-URL/secret-handling checks. AI-off operation produces no provider calls. |
+| AC-12 Quality | Pass visual/accessibility review, contract tests, performance targets and outbound-URL/secret-handling checks. AI-off operation produces no provider calls. Use the labelled mock to verify input/version references, provider/model/settings, unavailable version/usage metadata, review state, cancellation and separation of derived output from source facts. |
 | AC-13 Evidence | Two sources disagree about an attribute: both assertions, the preferred display rule and identity rule/version/support are inspectable. An ambiguous identity remains a candidate. Save a reference and permitted snapshot, then apply a correction and expire the original recording: the saved reference never changes target, retained evidence remains available where permitted, and unavailable support is explicit. Distinguish annotation history and derived assessments from source revisions; verify asset hashes without presenting them as truth verification. |
 | AC-14 Saved queries | Save fixed and relative queries, restart and export/reimport them with collections/notes. Criteria and references survive without executing a lookup. Explicit runs preserve fixed bounds or resolve relative bounds once, including pagination, and expose effective scope/completeness. Exercise query revision conflicts, cancellation, missing sources and unsupported history. No monitor/recording starts, a rerun does not replace collection contents, and unlinked pane state is preserved. |
 | AC-15 Radius | Verify inside/on/outside-boundary cases against independent geodesic reference values, including antimeridian and high-latitude cases. Test invalid/oversized radii, points/lines/areas, supplied uncertainty, unknown locations and truncated provider candidates without claiming exact proximity or full coverage. Numeric/list-only input, saved-query restoration and pane linking retain the documented semantics. |
 | AC-16 Recovery | Back up deterministic user work, observation versions, identity support, notes, queries, workspaces, areas, imports and permitted snapshot assets; restore onto a clean compatible installation and compare records, references and hashes. Exercise missing optional sources/credentials, incompatible schema and missing/corrupt assets with explicit outcomes. Check secret exclusion and documented deletion/older-backup behaviour. Record the actual backup/restore commands and result. |
+| AC-17 Identity/access | Verify real Keycloak password/TOTP enrollment, sign-in, sign-out, session expiry, revocation, recovery and provider failure. Reject unauthenticated/unauthorized REST, SignalR subscribe/resume, evidence and background operations when bypassing UI controls. Check owner enforcement, credential/token exclusion, cookie/CSRF behaviour and access-context cache cleanup. Validate clean-install identity recovery separately from secret-free data restore; no first-visitor ownership assignment or anonymous fallback. |
+| AC-18 NEXUS/connections | Add, duplicate, test/preview and independently configure two connections of one type. Exercise global/workspace-only availability and access checks, two layers sharing equivalent demand, affected-consumer notices, invalid revisions retaining the working configuration, disable/remove and preserved evidence. Edits/deletions survive restart/template upgrades; Add from template is explicit. JSON import/export excludes credentials and reports setup-required. Add a compatible DS-29 feed through NEXUS without code changes; verify mapped identity/time, geometry/null geometry, incompatible input, bounds and last-valid-result behaviour. Availability alone starts no collection. |
+| AC-19 Composed ATLAS | Show aircraft and earthquakes together with independent filters and shared camera/time; extend the same interaction to implemented movement, raster and polygon layers. Verify layer focus versus record selection/result scope, grouped/mixed/domain results, unknown locations, overlap picking, combined legends, category versus drawing order and map-only visibility. Show one record through two layers without duplicate ingestion, rendering collisions or misleading totals. Exercise hidden-but-participating layers, independent failure, linked/unlinked panes, keyboard focus under updates and full-area list mode. |
+| AC-20 Notes/clips/library | Create/revise a region note against an exact image version using draw and numeric/list controls. Replace/expire the source image without moving the annotation or altering original pixels. Save reference-only and snapshot-backed clips, reopen/export/reimport/restore them and distinguish retained from unavailable content. Search/preview saved work and Open alongside without executing saved queries or changing unlinked context. |
+| AC-21 Migration/state | Migrate existing provider configuration, domain tables and v1 workspaces; preserve IDs, source/revision/retention rules, filters, explicitly saved work and the active domain's camera. Assign legacy work to the configured owner; retain invalid originals for recovery and do not activate extra collection. Verify separate personal theme, system/connection settings and workspace Save, including multiple workspaces without copied observations or duplicate connection settings. |
 
 Each reference connector needs a small live smoke check with recorded date, configuration and result, plus deterministic fixtures for repeatable tests. Tests must not depend on public feeds staying online. A blocked provider is recorded as a release limitation or replaced by an equivalent verified free source; a mocked success is not a live integration pass.
 
 ## 12. Implementation sequence and completion
 
-1. **Contracts and shell:** apply the approved stack decisions; implement schemas including evidence references, identity associations, snapshots and saved queries, registry, workspace persistence, layout and test app/action harness. Validate the themed Blueprint sidebar, inspector, results table and overlays in both themes as defined in DESIGN.md and decision 0002.
-2. **Vertical slice:** keyless aircraft + inspectable provenance/identity basis + inspector + table + shared subscriptions. Prove the complete UI/backend/storage path.
-3. **Observatory breadth:** implement remaining reference connectors and all domain views, with setup/health/failure states.
-4. **Working environment:** areas/radius search, saved queries, comparison including dated aerial imagery, local solar context, bounded recording/replay, collections/snapshots, imports/exports, coordinated backup/restore and optional-AI boundary.
-5. **Verification:** run AC-01–16, document source limitations, setup and recovery steps, resource budgets and measured results.
+The existing aircraft/earthquake slices remain the starting point. Preserve their shared components and source-specific revision/retention checks while changing ownership and composition; do not rebuild them as separate full-screen domain apps.
+
+1. **Platform ownership and identity foundation:** establish internal user/session/resource-access contracts, app/system-tool registration and shared data ownership. Plan/version table and saved-state migrations, including explicit initial-owner assignment. Keep provider wiring at composition roots and prove app independence in the test harness.
+2. **Early real authentication slice:** integrate the reference Keycloak service, password/TOTP sign-in, backend OIDC session, protected REST/live access and sign-out. Prove termination and ownership boundaries before extending shared services; development fixtures alone are insufficient.
+3. **Home and workspaces:** implement Home navigation, app launch destination, system tools without an open workspace and separate personal/system/workspace settings. Preserve explicit Save and recoverable app state. Verify the themed Blueprint patterns in both themes before repeating them.
+4. **NEXUS and connection migration:** implement typed connector registry, database connection instances, templates, schema-driven forms, credential references, revision-safe test/edit/import/export and dataset discovery. Migrate existing aircraft/earthquake configuration once and prove multiple instances/shared demand.
+5. **Composed ATLAS and GeoJSON:** migrate to pane-state v2, combined layers, domain contributors, Layers / Sources / Tools, grouped/mixed/domain results and shared inspector/dock/time. Demonstrate DS-29 through NEXUS without code changes; preserve record identity and per-domain rules.
+6. **Complete ATLAS scope:** implement remaining DS-01–29 connectors and domain capabilities; areas/radius search, saved queries, comparison and imagery time, solar context, bounded session-bound recording/replay, media playback, collections/snapshots, image-region notes, clips/library, import/export, backup/restore and the optional-AI boundary.
+7. **Full identity/recovery and acceptance:** complete account enrollment/recovery, expiry/revocation, provider failure and clean-install checks; run AC-01–21. Document actual setup/recovery commands, live connector limitations, resource bounds, visual/accessibility results and measured performance.
 
 These are build stages, not separate scope reductions. Completion requires the entire included boundary, reproducible setup, schema/API documentation, passing acceptance evidence and a portfolio demonstration that clearly separates real integrations, historical data, predictions and fixtures.
 

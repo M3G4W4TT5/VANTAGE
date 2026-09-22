@@ -29,6 +29,16 @@ ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from 
 
 The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
+## Approved next stage — implementation pending
+
+The 2026-09-22 documentation update establishes VANTAGE Home, **NEXUS — Data Manager**, system Settings, shared platform data ownership and composed ATLAS layers. NEXUS will manage multiple configurable connections and templates; ATLAS will choose datasets and control their presentation. A bounded configurable GeoJSON feed, grouped/mixed results, image-region notes, evidence clips and saved-work discovery are included.
+
+Keycloak/OIDC authentication is mandatory for prototype completion: password plus authenticator-app TOTP, backend-managed sessions, ownership and access enforcement. A small real sign-in slice comes early; complete recovery/session verification comes before final acceptance. Recording will stop on sign-out, expiry or lost access and will require an explicit restart. Passkeys, unattended recording and operator polling controls remain deferred.
+
+These are approved requirements, **not current runtime capabilities**. The commands and configuration below still describe the existing separate aircraft/earthquake views and unauthenticated loopback development application. Keycloak services, NEXUS, ownership/state migrations and the combined-layer UI have not been implemented by this documentation update. Update operational commands alongside their implementation.
+
+The [change record](docs/atlas-workspace-change-record-2026-09-22.md) preserves decisions and scope; decisions [0006 — shell/composed ATLAS](docs/decisions/0006-vantage-shell-and-composed-atlas.md), [0007 — connections](docs/decisions/0007-configurable-connections.md) and [0008 — authentication](docs/decisions/0008-authentication-and-session-lifecycle.md) define the implementation boundaries. The [specification](PROTOTYPE_SPEC.md) contains the revised sequence and AC-01–21 completion gate.
+
 ## Prerequisites and pins
 
 Run commands from the repository root. This Fedora laptop already has the prerequisites; no system installation is needed.
@@ -143,7 +153,7 @@ Use a fresh container name on subsequent runs, or remove the old **test containe
 
 ## Layout and configuration
 
-- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, map/marker and results/inspector components, shell and theme. It contains no ATLAS-specific branches.
+- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, map/marker and results/inspector components, shell and theme. Decision 0006 requires the remaining ATLAS-specific shell branding to move into registration metadata.
 - `frontend/src/apps/atlas`: the registered app, aircraft/earthquake domain presentation.
 - `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and replaceable `Connectors/AdsbLol` / `Connectors/Usgs` in a modular monolith.
 - `contracts`: versioned schemas, OpenAPI and NSwag configuration. `tests/` and `frontend/tests/` hold the small verification harnesses.

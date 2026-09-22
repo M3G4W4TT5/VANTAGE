@@ -1,6 +1,6 @@
 # Stage 1: contracts and shell
 
-This is the historical foundation checkpoint; [Stage 2](stage-2.md) adds live aircraft and the map.
+This is the historical foundation checkpoint; [Stage 2](stage-2.md) adds live aircraft and the map. The sequence and AC-01–16 references below describe the specification at that time. The approved 2026-09-22 [implementation sequence](../PROTOTYPE_SPEC.md#12-implementation-sequence-and-completion) and AC-01–21 now govern remaining work, starting with platform/identity foundations.
 
 Implemented on 2026-09-21, following the first step of [the specification](../PROTOTYPE_SPEC.md#12-implementation-sequence-and-completion). This is a foundation for the complete prototype, not a claim that AC-01–16 are complete.
 

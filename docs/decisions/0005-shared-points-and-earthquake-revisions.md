@@ -1,6 +1,6 @@
 # 0005 — Shared point presentation and earthquake revisions
 
-Status: implementation of the four approved shared-component/earthquake stages. NASA imagery and combined-layer controls remain later review steps.
+Status: historical record of the four implemented shared-component/earthquake stages. On 2026-09-22, [decision 0006](0006-vantage-shell-and-composed-atlas.md) superseded the exclusive domain views/separate cameras below with composed layers; implementation of that change is pending. Shared component ownership, domain revision rules and source isolation remain in force. NASA imagery remains part of the complete prototype scope.
 
 `PointMap` owns Cesium/camera/basemap lifecycle; `PointMarkers` batches normalized point definitions, picking and selection brackets. Both domain presenters use it. Aircraft owns ellipsoid height, heading, follow and its collection circle. Earthquakes supply surface epicentres and magnitude styles. The Web Mercator 2D projection and Northern Europe default remain unchanged. Shared Tabler SVGs come from exact-pinned `@tabler/icons` 3.47.0; no source content enters their markup.
 
@@ -10,4 +10,4 @@ Both domains reuse bounded HTTP transport, validation, batch diffing, sequenced 
 
 Earthquake collection is a single source-defined catalog demand, distinct from aircraft area queries. A generic collector hierarchy is unnecessary. The additive migration introduces current earthquake/feed tables and indexes plus `DataType` on shared observation rows, backfilling existing aircraft records without changing their JSON. Retention requires both data type and source ID; typed observation endpoints cannot deserialize the other domain. Exact observation references still resolve across provider replacement.
 
-The live domain selector shows one view at a time. Camera and filters for earthquakes are separate from aircraft; selections are kept when switching. Existing optional pane-state fields remain compatible, and explicit Save remains the only workspace persistence action. No automatic world zoom or collection request follows place search.
+At this increment, the live domain selector showed one view at a time, with separate domain cameras/filters and retained selections. Decision 0006 requires a versioned migration to one camera/area/time context with independent layer filters, preserving the previously active camera and recoverable other settings without starting extra collection. Explicit Save remains the workspace persistence action. Domain position/revision semantics and the absence of implicit collection from place search remain unchanged.

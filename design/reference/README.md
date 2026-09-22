@@ -1,6 +1,6 @@
 # VANTAGE design references
 
-The approved direction in [DESIGN.md](../../DESIGN.md) is based on the 16 user-supplied software screenshots below. The user identifies the software as Palantir Gotham. These are visual references, not verified evidence of interaction behaviour or a requirement to reproduce the depicted workflows. Keep captures as documentation; ship original VANTAGE assets.
+The approved direction in [DESIGN.md](../../DESIGN.md) is based on the 16 initial software screenshots and the additional Gotham Europa material below. The user identifies the software as Palantir Gotham. These are visual references, not verified evidence of interaction behaviour or a requirement to reproduce every depicted workflow. Keep captures as documentation; ship original VANTAGE assets.
 
 ## Primary: software screenshots
 
@@ -26,6 +26,14 @@ Supplied on 2026-09-21. Files are unchanged copies of the originals in the user'
 | 16 | [Simulation panels](software/16-simulation-panels.png) | `160735` |
 
 Visible product branding and demonstration notices belong to the source material. Exact fonts, token values, keyboard behaviour, animation and responsive layouts cannot be established from these stills. DESIGN.md defines VANTAGE's own implementation choices.
+
+## Additional: Gotham Europa screenshots and feature text
+
+Supplied on 2026-09-22: 14 PNGs and [gotham_europa_notes.txt](<Gotham Europa Info/gotham_europa_notes.txt>) in [Gotham Europa Info](<Gotham Europa Info/>). The supplied text was compared with [Palantir's Europa page](https://www.palantir.com/platforms/gotham/europa/) during the review. Files remain unchanged.
+
+The [consolidated change record](../../docs/atlas-workspace-change-record-2026-09-22.md) maps individual screenshot times to the observed patterns and records the approved VANTAGE adaptations: category/layer controls, separate grouped record results, source/history inspection, acquisition-aware timelines, image-region notes, evidence clips, a saved-work library and inspectable AI run details. Home/NEXUS and the platform architecture are VANTAGE decisions informed by the discussion, not claims about Gotham internals.
+
+Chat/team editing, advanced video intelligence, full reporting/slides and visual ML pipelines remain deferred. Ordinary map-linked audio/video/still-image discovery and playback remain in the prototype. Capture dates do not establish product release dates; stills do not verify synchronization, accessibility, model quality, security or processing scale. The original VANTAGE palette and branding remain authoritative.
 
 ## Historical: website and case-study captures
 

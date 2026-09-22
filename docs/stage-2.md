@@ -1,5 +1,7 @@
 # Stage 2: aircraft vertical slice
 
+Historical implementation/verification record. The 2026-09-22 [specification](../PROTOTYPE_SPEC.md#12-implementation-sequence-and-completion) supersedes this increment's next-step ordering with platform/identity foundations, Home, NEXUS and composed layers before further connector breadth. The delivered results below are unchanged.
+
 The user's decisions are preserved: **explicit Save** for workspace changes and **Northern Europe** as the initial map view. Existing saved demo workspaces retain their state; choose **Live aircraft** to enter the new view. New workspaces open the live view at longitude 12 / latitude 58 with a 250 NM query.
 
 ## Delivered
@@ -24,4 +26,4 @@ The approved follow-up adds replaceable capability adapters, detailed/free raste
 
 ## Remaining scope
 
-Continue the specification's observatory-breadth stage with the remaining DS-01–DS-28 integrations and domain views. Then implement the working environment: saved areas/radius workflows and queries, pane comparison, dated imagery, solar context, bounded recording/replay, preserved evidence/collections, imports/exports, backup/recovery and the required AI interface/mock/unconfigured states. Full AC-01–16 acceptance and documented performance measurements remain the final gate.
+The original DS-01–28 and working-environment requirements remain included. Follow the current specification's sequence for the approved ownership/authentication, connection and composition changes, then complete all DS-01–29, ATLAS workflows and AC-01–21. The [change record](atlas-workspace-change-record-2026-09-22.md) explains the additions; existing verification above does not certify them or the full performance targets.
