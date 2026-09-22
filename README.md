@@ -1,4 +1,18 @@
-# VANTAGE / ATLAS
+![VANTAGE logo](logo/vantage%20logos/final/01-vantage-full-white-transparent.png)
+
+VANTAGE is a free and open-source civilian intelligence environment for finding, inspecting, connecting and explaining publicly available information. It aims to make capabilities associated with platforms such as [Palantir Gotham](https://www.palantir.com/platforms/gotham/) accessible for open-source intelligence.
+
+ATLAS is the first application in the ecosystem, providing shared map, globe, table, search and inspection workflows for exploring observations across place, time and source. 
+
+The wider framework is designed to grow into connected tools for relationships, timelines, investigations, monitoring, media analysis and cited reporting. 
+
+---
+
+<p align="center">
+  <img src="logo/atlas%20logos/final/atlas-text-white-transparent.png"
+       alt="atlas logo text"
+       width="200">
+</p>
 
 ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from the USGS past-day M2.5+ feed** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Choose **Aircraft** or **Earthquakes** to use one domain view at a time. Both share the map, markers, results table and inspector structure. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
 
