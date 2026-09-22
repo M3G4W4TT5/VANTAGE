@@ -25,6 +25,8 @@ The wider framework is designed to grow into connected tools for relationships, 
 
 ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from the USGS past-day M2.5+ feed** on a Cesium 2D map or globe, starting over Northern Europe. Map, table and inspector share observations stored in PostgreSQL/PostGIS. All live sources use capability adapters. The detailed basemap has an offline fallback, and **Find a place** searches a bundled city/town index. Choose **Aircraft** or **Earthquakes** to use one domain view at a time. Both share the map, markers, results table and inspector structure. Workspace changes require **Save**; live feed updates do not mark the workspace unsaved.
 
+![VANTAGE ATLAS displaying earthquake observations on the map, results table and inspector](artifacts/figures/vantage_atlas_earthquakes_example.png)
+
 The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
 ## Prerequisites and pins
