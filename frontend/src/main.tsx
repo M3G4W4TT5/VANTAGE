@@ -12,8 +12,7 @@ import '@blueprintjs/table/lib/css/table.css';
 import './platform/ui/tokens.css';
 import './platform/ui/blueprint.css';
 import { AppRegistry } from './platform/registry/AppRegistry';
-import { WorkspaceService } from './platform/workspaces/WorkspaceService';
-import { VantageShell } from './platform/shell/VantageShell';
+import { SessionGate } from './platform/session/SessionGate';
 import { atlasModule } from './apps/atlas/atlasModule';
 
 import { SourceServicesContext } from './platform/sources/SourceServices';
@@ -21,5 +20,4 @@ import * as sources from './connectors/sourceRegistration';
 
 const registry = new AppRegistry();
 registry.register(atlasModule);
-const workspaces = new WorkspaceService();
-createRoot(document.getElementById('root')!).render(<StrictMode><HotkeysProvider><SourceServicesContext value={sources}><VantageShell registry={registry} workspaces={workspaces} /></SourceServicesContext></HotkeysProvider></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><HotkeysProvider><SourceServicesContext value={sources}><SessionGate registry={registry} /></SourceServicesContext></HotkeysProvider></StrictMode>);

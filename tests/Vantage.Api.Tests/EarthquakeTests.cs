@@ -14,6 +14,7 @@ using Npgsql;
 using Vantage.Api.Connectors.Usgs;
 using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
+using Vantage.Api.Platform.Identity;
 using Vantage.Api.Platform.Observations;
 using Xunit;
 namespace Vantage.Api.Tests;
@@ -81,10 +82,10 @@ public sealed class EarthquakeTests
             // Upgrade from the actual handoff schema with existing aircraft evidence and workspace state.
             var json = "{\"entity\":{\"kind\":\"aircraft\"},\"preserve\":true}";
             await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO platform.observations (\"Id\",\"EntityId\",\"SourceId\",\"RetrievedAt\",\"RecordJson\",\"RawJson\") VALUES ('old-flight','old-aircraft','old-provider',{now},{json}::jsonb,'{{}}'::jsonb)");
-            using var client = app.CreateClient();
-            var workspaceResponse = await client.PostAsJsonAsync("/api/v1/workspaces", new { name = "Preserve during migration" });
-            Assert.Equal(HttpStatusCode.Created, workspaceResponse.StatusCode);
-            await db.Database.MigrateAsync();
+            // The current API/model must never run against the old schema.
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO platform.workspaces (\"Id\",\"Name\",\"Revision\",\"SchemaVersion\",\"StateJson\",\"CreatedAt\",\"UpdatedAt\") VALUES ('legacy-workspace','Preserve during migration',1,1,'{{}}'::jsonb,{now},{now})");
+            await OwnershipMigration.MigrateAsync(db, TestIdentity.Owner);
+            using var client = await app.CreateAuthorizedClientAsync();
             Assert.Equal("aircraft", (await db.Observations.SingleAsync(x => x.Id == "old-flight")).DataType);
             Assert.Single(await db.Workspaces.ToListAsync());
             var store = scope.ServiceProvider.GetRequiredService<EarthquakeStore>();
@@ -142,7 +143,7 @@ public sealed class EarthquakeTests
                 Assert.Equal("alternate-quakes", Assert.Single(one.Current.Upserts).Observation.SourceId);
                 var schema = await JsonSchema.FromFileAsync(Path.Combine(AppContext.BaseDirectory, "Schemas", "records.schema.json"));
                 Assert.Empty(schema.Definitions["EarthquakeBatch"].Validate(JsonSerializer.Serialize(one.Current, ContractJson.Options)));
-                using var replacementClient = replacement.CreateClient();
+                using var replacementClient = await replacement.CreateAuthorizedClientAsync();
                 var snapshot = await replacementClient.GetFromJsonAsync<EarthquakeSnapshotDto>("/api/v1/earthquakes");
                 Assert.Equal("alternate-quakes", Assert.Single(snapshot!.Records).Observation.SourceId);
             }
@@ -202,6 +203,7 @@ public sealed class EarthquakeTests
         protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
             services.RemoveAll<DbContextOptions<VantageDbContext>>(); services.RemoveAll<IDbContextOptionsConfiguration<VantageDbContext>>();
             services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(connection, pg => pg.UseNetTopologySuite()));
+            services.AddTestIdentity();
             services.RemoveAll<IEarthquakeSource>(); services.AddSingleton(source);
         });
     }

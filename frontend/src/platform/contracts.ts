@@ -16,7 +16,7 @@ export type ContextEvent = {
 };
 export type Pane = { id: string; appId: string; stateSchemaVersion: number; state: Record<string, unknown>; context: Context };
 export type Workspace = {
-  id: string; name: string; revision: number; schemaVersion: 1;
+  id: string; ownerId: string; name: string; revision: number; schemaVersion: 1;
   panes: Pane[]; linkGroups: { id: string; paneIds: string[]; fields: ('selection' | 'area' | 'time')[] }[];
   appStates: { shell: { theme: 'dark' | 'light'; activePaneId: string } };
   createdAt: string; updatedAt: string;

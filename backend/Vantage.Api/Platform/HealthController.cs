@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vantage.Api.Contracts;
@@ -5,6 +6,7 @@ using Vantage.Api.Persistence;
 
 namespace Vantage.Api.Platform;
 
+[AllowAnonymous]
 [ApiController]
 [Route("api/v1/health")]
 public sealed class HealthController(VantageDbContext db) : ControllerBase

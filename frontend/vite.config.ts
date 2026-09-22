@@ -10,6 +10,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:5080',
       '/hubs': { target: 'http://127.0.0.1:5080', ws: true },
+      '/auth': 'http://127.0.0.1:5080',
+      '/signin-oidc': 'http://127.0.0.1:5080',
+      '/signout-callback-oidc': 'http://127.0.0.1:5080',
     },
   },
   test: { include: ['tests/**/*.test.ts'] },

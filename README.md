@@ -29,13 +29,13 @@ ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from 
 
 The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
-## Approved next stage — implementation pending
+## Current milestone — platform ownership and authentication
 
-The 2026-09-22 documentation update establishes VANTAGE Home, **NEXUS — Data Manager**, system Settings, shared platform data ownership and composed ATLAS layers. NEXUS will manage multiple configurable connections and templates; ATLAS will choose datasets and control their presentation. A bounded configurable GeoJSON feed, grouped/mixed results, image-region notes, evidence clips and saved-work discovery are included.
+Implementation-plan steps 1–3 add platform-owned aircraft/earthquake data, explicitly assigned workspace ownership and Keycloak authentication to the existing separate domain views. App branding/navigation comes from registration metadata; shared services remain usable without ATLAS. The initial operator is mapped by a stable internal ID plus provider issuer/subject before migration, never by the first account to sign in.
 
-Keycloak/OIDC authentication is mandatory for prototype completion: password plus authenticator-app TOTP, backend-managed sessions, ownership and access enforcement. A small real sign-in slice comes early; complete recovery/session verification comes before final acceptance. Recording will stop on sign-out, expiry or lost access and will require an explicit restart. Passkeys, unattended recording and operator polling controls remain deferred.
+The application now requires a backend-managed OIDC session. Keycloak owns password and authenticator-app TOTP enrollment; VANTAGE enforces REST/live access, workspace ownership and CSRF protection. Sign-out, expiry and revoked access cancel affected live/background demand. The cancellation contract supports later recording; no recording interface is implemented here. See [identity operations](docs/identity-operations.md) for private operator enrollment, the loopback HTTP exception, session bounds and separate identity recovery.
 
-These are approved requirements, **not current runtime capabilities**. The commands and configuration below still describe the existing separate aircraft/earthquake views and unauthenticated loopback development application. Keycloak services, NEXUS, ownership/state migrations and the combined-layer UI have not been implemented by this documentation update. Update operational commands alongside their implementation.
+Home is implementation-plan step 4 and remains pending. **NEXUS — Data Manager**, system Settings, multiple configurable connections, composed ATLAS layers and GeoJSON follow later. Broader connector, notes/clips and recovery acceptance also remain outstanding. [Implementation progress](docs/implementation-progress-2026-09-22.md) records actual checks, runtime state and remaining blockers; these foundations do not establish full prototype acceptance.
 
 The [change record](docs/atlas-workspace-change-record-2026-09-22.md) preserves decisions and scope; decisions [0006 — shell/composed ATLAS](docs/decisions/0006-vantage-shell-and-composed-atlas.md), [0007 — connections](docs/decisions/0007-configurable-connections.md) and [0008 — authentication](docs/decisions/0008-authentication-and-session-lifecycle.md) define the implementation boundaries. The [specification](PROTOTYPE_SPEC.md) contains the revised sequence and AC-01–21 completion gate.
 
@@ -50,6 +50,8 @@ Run commands from the repository root. This Fedora laptop already has the prereq
 | EF CLI / NSwag | 10.0.11 / 14.7.1; `.config/dotnet-tools.json` |
 | JavaScript / NuGet packages | Exact direct versions and committed lockfiles |
 | PostgreSQL / PostGIS | 18 / 3.6 image pinned by digest in `infra/compose.yaml` |
+| Keycloak | 26.7.4, pinned by digest in `infra/compose.yaml` |
+| Python | Python 3 for local backup and isolated verification scripts |
 | Browser tests | Playwright 1.63.0 and matching Ubuntu Noble container, pinned by digest |
 | Container .NET SDK / runtime | 10.0.401 / 10.0.11, pinned by digest; `infra/global.json` |
 
@@ -65,45 +67,53 @@ sudo docker compose version
 
 ## Start locally
 
-Generate local configuration, restore the locked dependencies and start the database:
+Activate the pinned Node/npm environment with mise if it is not already active. Generate protected local configuration, restore dependencies, and start PostgreSQL plus Keycloak:
 
 ```sh
 node scripts/init-local.mjs
 npm --prefix frontend ci
 dotnet tool restore
 dotnet restore Vantage.slnx --locked-mode
-sudo docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait db
+sudo docker compose --env-file infra/.env -f infra/compose.yaml up -d --wait keycloak
+```
+
+For an existing installation, follow the backup and isolated migration checks below before changing its database. Stop any native API during backup/migration. Apply migrations with the administrator connection, then provision the restricted application role:
+
+```sh
 ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --migrate
+sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile container run --rm --no-deps app-db-init
 ```
 
 In separate terminals:
 
 ```sh
-ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --urls http://127.0.0.1:5080
+ASPNETCORE_ENVIRONMENT=Development Identity__PublicOrigin=http://127.0.0.1:5173 dotnet run --project backend/Vantage.Api --no-launch-profile -- --urls http://127.0.0.1:5080
 ```
 
 ```sh
 npm --prefix frontend run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Vite proxies `/api` and `/hubs` to the API on port 5080. PostgreSQL is bound to loopback port 54329. The first browser visit creates a workspace if none exists. New workspaces open live aircraft; legacy demo workspaces open Aircraft and keep their stored state unchanged until Save. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and sign in. Complete the [private operator enrollment](docs/identity-operations.md#initial-operator-enrollment) on first use. Vite proxies `/api`, `/hubs`, `/auth`, `/signin-oidc` and `/signout-callback-oidc` to port 5080. Keycloak uses `localhost:8180`; PostgreSQL uses loopback port 54329. Use the documented application hostname and port: the provider permits exact callbacks.
+
+After authentication, the app opens an owned workspace or creates one when none exists. Workspace selection is scoped to the internal user. New workspaces open live aircraft; legacy demo workspaces retain their saved state until Save. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved. **Sign out** ends the session and clears the current client state; previously saved work remains stored.
 
 ## Run the built application in containers
 
-Stop the native API first if it occupies port 5080. This builds the frontend into ASP.NET's `wwwroot`, runs migrations, then starts one origin for UI and API:
+Stop the native API first if it occupies port 5080. Complete the backup/isolated migration checks before upgrading an existing database. This builds the frontend into ASP.NET's `wwwroot`, runs a separate migration job and runtime-role provisioning, waits for Keycloak, then starts one origin for UI and API:
 
 ```sh
 node scripts/init-local.mjs
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile container up -d --build app
 ```
 
-Open [http://127.0.0.1:5080](http://127.0.0.1:5080). [Health](http://127.0.0.1:5080/api/v1/health) reports `ready` after storage is available. The application runs as the image's non-root user; only the host's Docker command needs sudo.
+Open [http://127.0.0.1:5080](http://127.0.0.1:5080) and sign in. [Health](http://127.0.0.1:5080/api/v1/health) reports `ready` after storage is available. The application runs as the image's non-root user and the restricted `vantage_app` database role. Only migration/provisioning jobs receive the database administrator connection. An app restart invalidates existing backend sessions and requires sign-in again.
 
 ```sh
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile container stop app
 ```
 
-The named `vantage_database` volume retains workspaces across stops and container recreation. Do not remove that volume to fix an ordinary startup problem.
+The named `vantage_database` volume retains both application data and the separate Keycloak database across stops and container recreation. Do not remove it or recreate either database to fix startup problems.
 
 ## Contracts and migrations
 
@@ -117,14 +127,27 @@ npm --prefix frontend run api:generate
 
 Commit the generated `contracts/openapi/v1.json` and `frontend/src/api/generated/client.ts` together. Do not hand-edit the client. The running API also serves `/api/openapi/v1.json`.
 
-For a database change, create and review an EF migration, then apply it explicitly:
+Before applying a database change to existing work, stop any native API and create a protected application backup. The script stops the Compose application and leaves it stopped:
 
 ```sh
-dotnet ef migrations add YourChangeName --project backend/Vantage.Api --output-dir Persistence/Migrations
-ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --migrate
+python3 scripts/backup-local.py
 ```
 
-Normal API startup does not migrate the database. Compose uses a separate migration job. The `/hubs/observations` SignalR hub streams separate versioned `AircraftBatch` and `EarthquakeBatch` contracts. Earthquake revisions are ordered by source-update time, independently of occurrence and retrieval. The additive `EarthquakeObservations` migration preserves aircraft records/workspaces and scopes shared observation retention by data type/source. Reconnect uses a reset snapshot because the source has no durable resume history. Schema validation and sequence checks run before frontend cache mutation.
+Set `migration_backup` to the protected directory printed by that command. Create/review the EF migration, then restore that backup into an isolated PostgreSQL/PostGIS database and verify preservation before applying it to the operator's database:
+
+```sh
+migration_backup='artifacts/private-backups/<printed-timestamp>'
+dotnet ef migrations add YourChangeName --project backend/Vantage.Api --output-dir Persistence/Migrations
+python3 scripts/verify-backup-migration.py "$migration_backup"
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project backend/Vantage.Api --no-launch-profile -- --migrate
+sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile container run --rm --no-deps app-db-init
+```
+
+The isolated drill restores with `pg_restore`, applies migrations, compares original table contents and drops only its randomly named verification database. The protected backup contains `vantage.dump`, schema and content/hash checks; it excludes Keycloak credentials and local secret configuration. See [implementation progress](docs/implementation-progress-2026-09-22.md) for the baseline preservation evidence and [identity operations](docs/identity-operations.md#protected-identity-backup) for the separate credential recovery set. Keep backups private and preserve stable owner/issuer/subject mappings when restoring.
+
+Normal API startup uses `ConnectionStrings:VantageRuntime` and does not migrate. Explicit `--migrate` uses the administrator `ConnectionStrings:Vantage`; Compose orders its separate migration/provisioning jobs automatically. The ownership migration moves current aircraft, earthquake and feed tables into `platform`, preserving IDs/provenance and assigning legacy work to the configured initial operator. It does not migrate ATLAS state to v2 or add configurable connections.
+
+The authenticated `/hubs/observations` hub streams separate versioned `AircraftBatch` and `EarthquakeBatch` contracts. Earthquake revisions remain ordered by source-update time, independently of occurrence and retrieval; retention remains isolated by data type/source. Reconnect uses a reset snapshot because the source has no durable resume history. Schema validation and sequence checks run before frontend cache mutation.
 
 ## Checks
 
@@ -132,36 +155,52 @@ Normal API startup does not migrate the database. Compose uses a separate migrat
 dotnet build Vantage.slnx --no-restore
 node scripts/test-backend.mjs
 npm --prefix frontend run lint
+npm --prefix frontend run typecheck
 npm --prefix frontend run test
 npm --prefix frontend run build
 ```
 
-The backend check creates and drops its own randomly named database on the local PostgreSQL server, applies real PostGIS migrations, and checks workspace persistence/revision handling, aircraft spatial queries, earthquake normalization/revisions, source substitution, cancellation and retention isolation. It uses the ignored local configuration, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips the database scenarios without that environment variable. The frontend checks exercise linked context/lifecycle cleanup, separate domain ordering, schema validation/reset recovery, earthquake filters and surface markers. Browser checks mock observation WebSockets and public map tiles, covering selection, explicit Save/restoration and source-health states. Live smoke checks are recorded separately.
+The backend check creates and drops its own randomly named database on the local PostgreSQL server and applies real PostGIS migrations. It covers ownership, platform access without ATLAS, workspace revisions, spatial queries, domain revisions, source substitution, cancellation and retention isolation. It uses the ignored administrator connection, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips database scenarios without that environment variable. Frontend tests cover registration/import boundaries, session/CSRF handling, cancelled or late responses, cache cleanup, workspace ownership, domain ordering and marker behaviour. Check results belong in [implementation progress](docs/implementation-progress-2026-09-22.md); fixture checks alone do not verify Keycloak.
 
-On Fedora, run browser checks in the matching Playwright container against the built app; no host browser dependencies are installed. The container explicitly uses software WebGL; trace filmstrips are disabled to avoid continuous GPU readback, while DOM/network traces and selected screenshots remain available:
+On Fedora, use the matching Playwright container against the built app. The separate real-provider script creates enrollment/sign-in/sign-out/revocation evidence using a temporary account; the operator's account and authenticator remain untouched. Authentication runs capture no screenshots, videos or traces. A protected, short-lived cookie state is then reused for domain regression tests, which mock observation WebSockets and public tiles. Authenticated network traces are disabled because they can contain cookies.
+
+Run the preparation/cleanup scripts as the normal operator, with Docker sudo access available; they invoke sudo for database operations internally. These commands keep credential/state files in ignored private directories and never print their contents:
 
 ```sh
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test up -d --build app
+python3 scripts/prepare-auth-verification.py
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test build browser
-sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test run --no-deps --name vantage-browser-review browser
+sudo docker run --rm --network host --ipc=host \
+  -v "$(pwd)/artifacts/private-auth:/verification:Z" \
+  -v "$(pwd)/infra/keycloak/.local/credentials.json:/run/admin-credentials.json:ro,Z" \
+  -e PLAYWRIGHT_BASE_URL=http://127.0.0.1:5080 \
+  vantage-browser node scripts/test-auth-live.mjs
+sudo docker run --network host --ipc=host --name vantage-browser-review \
+  -v "$(pwd)/artifacts/private-auth:/verification:ro,Z" \
+  -e PLAYWRIGHT_BASE_URL=http://127.0.0.1:5080 \
+  -e PLAYWRIGHT_STORAGE_STATE=/verification/state.json \
+  vantage-browser npm run test:browser
 mkdir -p artifacts
 sudo docker cp vantage-browser-review:/tests/frontend/test-results ./artifacts/browser-results
 sudo docker cp vantage-browser-review:/tests/frontend/playwright-report ./artifacts/browser-report
+python3 scripts/prepare-auth-verification.py --cleanup
 ```
 
-Use a fresh container name on subsequent runs, or remove the old **test container** with `sudo docker rm vantage-browser-review`. Screenshots and traces stay outside Git. Tests create and delete their own workspaces. To check the native Vite path instead, use the built browser image with `--network host -e PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173`.
+Run cleanup even if a test fails; it removes only the temporary identity, its workspaces and ephemeral authentication files. The authenticated state expires with its session and must be regenerated if the application restarts. Keep `artifacts/private-auth` private and do not copy its contents into reports or task attachments. Domain screenshots/reports remain outside Git. Use a fresh container name on later runs, or remove the old test container with `sudo docker rm vantage-browser-review`.
+
+To check native Vite, start the backend with the public origin shown above and use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173` for both browser invocations. Full physical-authenticator enrollment, account recovery and clean-install acceptance are distinct from the temporary-account protocol checks.
 
 ## Layout and configuration
 
-- `frontend/src/platform`: registry, context bus, workspace service, shared observation channels/cache, map/marker and results/inspector components, shell and theme. Decision 0006 requires the remaining ATLAS-specific shell branding to move into registration metadata.
+- `frontend/src/platform`: app/system-tool registration, session gate and guarded transport, context bus, owned workspace service, shared observation channels/cache, maps, results/inspectors, shell and theme.
 - `frontend/src/apps/atlas`: the registered app, aircraft/earthquake domain presentation.
-- `backend/Vantage.Api`: platform workspace/observation services, ATLAS endpoints, EF persistence and replaceable `Connectors/AdsbLol` / `Connectors/Usgs` in a modular monolith.
+- `backend/Vantage.Api`: platform identity/access, workspace and observation services/endpoints, ATLAS workspace template, EF persistence and replaceable `Connectors/AdsbLol` / `Connectors/Usgs` in a modular monolith.
 - `contracts`: versioned schemas, OpenAPI and NSwag configuration. `tests/` and `frontend/tests/` hold the small verification harnesses.
-- `infra`: Compose and image definitions. `scripts`: local configuration, client generation and the backend check.
+- `infra`: Compose, image definitions and the Keycloak realm template. `scripts`: protected local provisioning, backup/migration verification, client generation and test setup.
 
-`init-local.mjs` generates a random database password in `infra/.env` and the API's `appsettings.Development.local.json`, both ignored by Git and created with mode 0600. It preserves existing files. Environment variables override application settings. Keep credentials out of `VITE_*` variables: those enter the browser bundle. If changing the database port, update both local files; changing the password file alone does not rotate an existing database password.
+`init-local.mjs` preserves existing values and adds missing database/identity configuration to ignored mode-0600 local files. It also creates protected one-time Keycloak bootstrap/import files and explicit initial-owner IDs. [Identity operations](docs/identity-operations.md) lists the files, permissions and recovery boundaries. Environment variables override application settings. Keep credentials out of `VITE_*` variables: those enter the browser bundle. Changing a password file alone does not rotate an existing database/provider credential. Changing a host or port also requires matching provider callbacks and identity configuration.
 
-There is no authentication yet. Host ports stay on loopback as required. Do not expose this stage publicly.
+Host ports remain on loopback. The reference HTTP exception is limited to that local deployment; remote exposure requires a separately configured HTTPS issuer/origin, Secure cookies and exact callback URLs. OIDC access/refresh tokens stay in backend memory, while the browser uses an HttpOnly session cookie. The fixed session lasts up to 30 minutes; backend validation has a documented 25-second cleanup bound. Provider failure never enables anonymous access.
 
 Blueprint uses `PopoverNext` and the supported overlay path, with one theme adapter applied to the body so portals inherit the active theme. Normal `npm ci` succeeds without force/legacy-peer flags. An upstream, unused legacy `react-popper@2.3.0` dependency still reports React 19 as outside its peer range in `npm ls`; keep the restriction on deprecated `Popover`/`Overlay` components. The date control receives a bundled locale explicitly to avoid Blueprint's Webpack-specific dynamic locale loader.
 

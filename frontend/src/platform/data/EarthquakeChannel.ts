@@ -3,6 +3,7 @@ import type { ObservationSnapshot } from './ObservationChannel';
 import type { EntityRecord, ObservationEnvelope, SourceHealth } from './observationTypes';
 import type { EarthquakeSourceDto } from '../../api/generated/client';
 import { validateContract } from '../contracts';
+import { sessionService } from '../session/SessionService';
 
 // SignalR has its own v1 schema and validation, independent of the generated REST client.
 export type EarthquakeRecord = {
@@ -33,4 +34,9 @@ export class EarthquakeChannel extends ObservationChannel<EarthquakeRecord, Eart
   }
 }
 let current: EarthquakeChannel | undefined;
-export function earthquakeChannel() { return current ??= new EarthquakeChannel(() => { current = undefined; }); }
+export function earthquakeChannel() {
+  if (!current) { const channel = new EarthquakeChannel(() => { if (current === channel) current = undefined; }); current = channel; }
+  return current;
+}
+export function clearEarthquakeChannel() { current?.dispose(); current = undefined; }
+sessionService.onInvalidate(clearEarthquakeChannel);

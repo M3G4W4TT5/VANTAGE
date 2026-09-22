@@ -15,6 +15,42 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+  keycloak-db-init:
+    image: postgis/postgis:18-3.6@sha256:60f6ad1d21ea86a67d47780b9a0d1e1d200500f62b19293fa834d0dea80b8677
+    entrypoint: ["/bin/sh", "/scripts/provision-keycloak-db.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Run node scripts/init-local.mjs first}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?Run node scripts/init-local.mjs first}
+    volumes:
+      - ../scripts/provision-keycloak-db.sh:/scripts/provision-keycloak-db.sh:ro,Z
+    depends_on:
+      db: { condition: service_healthy }
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    command: ["start", "--import-realm"]
+    env_file: [./keycloak/.local/bootstrap.env]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_MANAGEMENT_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8180:8080"
+    volumes:
+      - ./keycloak/.local/import:/opt/keycloak/data/import:ro,Z
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000; printf \"GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; cat <&3 | grep -q \"200 OK\"'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    depends_on:
+      keycloak-db-init: { condition: service_completed_successfully }
   migrate:
     profiles: [container, test]
     build: { context: .., dockerfile: infra/Dockerfile }
@@ -22,6 +58,10 @@ services:
     command: ["--migrate"]
     environment:
       ConnectionStrings__Vantage: "Host=db;Database=vantage;Username=vantage;Password=${POSTGRES_PASSWORD}"
+      Identity__InitialOperator__Id: ${VANTAGE_OWNER_ID:?Run node scripts/init-local.mjs first}
+      Identity__InitialOperator__Issuer: ${VANTAGE_IDENTITY_ISSUER:?Run node scripts/init-local.mjs first}
+      Identity__InitialOperator__Subject: ${VANTAGE_OWNER_SUBJECT:?Run node scripts/init-local.mjs first}
+      Identity__InitialOperator__DisplayName: Operator
     depends_on:
       db: { condition: service_healthy }
   app:
@@ -38,12 +78,41 @@ services:
       Sources__Aircraft__Provider: ${VANTAGE_AIRCRAFT_PROVIDER:-adsb-lol}
       Sources__AdsbLol__Enabled: ${VANTAGE_ADSB_ENABLED:-true}
       Sources__AdsbLol__PollSeconds: ${VANTAGE_ADSB_POLL_SECONDS:-30}
-      ConnectionStrings__Vantage: "Host=db;Database=vantage;Username=vantage;Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__VantageRuntime: "Host=db;Database=vantage;Username=vantage_app;Password=${VANTAGE_APP_DB_PASSWORD:?Run node scripts/init-local.mjs first}"
+      Identity__Authority: ${VANTAGE_IDENTITY_ISSUER}
+      Identity__MetadataAddress: http://keycloak:8080/realms/vantage/.well-known/openid-configuration
+      Identity__IntrospectionEndpoint: http://keycloak:8080/realms/vantage/protocol/openid-connect/token/introspect
+      Identity__RevocationEndpoint: http://keycloak:8080/realms/vantage/protocol/openid-connect/revoke
+      Identity__ClientId: vantage
+      Identity__ClientSecret: ${VANTAGE_OIDC_CLIENT_SECRET:?Run node scripts/init-local.mjs first}
+      Identity__PublicOrigin: http://127.0.0.1:${VANTAGE_HTTP_PORT:-5080}
+      Identity__AllowLoopbackHttp: "true"
+      Identity__SessionMinutes: "30"
+      Identity__CheckIntervalSeconds: "15"
+      Identity__ProviderTimeoutSeconds: "3"
+      Identity__InitialOperator__Id: ${VANTAGE_OWNER_ID}
+      Identity__InitialOperator__Issuer: ${VANTAGE_IDENTITY_ISSUER}
+      Identity__InitialOperator__Subject: ${VANTAGE_OWNER_SUBJECT}
+      Identity__InitialOperator__DisplayName: Operator
     networks:
       default:
         aliases: [vantage.test]
     depends_on:
       migrate: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+      app-db-init: { condition: service_completed_successfully }
+  app-db-init:
+    profiles: [container, test]
+    image: postgis/postgis:18-3.6@sha256:60f6ad1d21ea86a67d47780b9a0d1e1d200500f62b19293fa834d0dea80b8677
+    entrypoint: ["/bin/sh", "/scripts/provision-vantage-runtime-db.sh"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Run node scripts/init-local.mjs first}
+      VANTAGE_APP_DB_PASSWORD: ${VANTAGE_APP_DB_PASSWORD:?Run node scripts/init-local.mjs first}
+    volumes:
+      - ../scripts/provision-vantage-runtime-db.sh:/scripts/provision-vantage-runtime-db.sh:ro,Z
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      keycloak-db-init: { condition: service_completed_successfully }
   browser:
     profiles: [test]
     build: { context: .., dockerfile: infra/playwright.Dockerfile }

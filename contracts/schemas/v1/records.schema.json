@@ -1163,6 +1163,11 @@
           "type": "string",
           "format": "date-time",
           "pattern": "Z$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
         }
       },
       "required": [
@@ -1174,7 +1179,8 @@
         "linkGroups",
         "appStates",
         "createdAt",
-        "updatedAt"
+        "updatedAt",
+        "ownerId"
       ],
       "additionalProperties": false
     },
@@ -2149,6 +2155,57 @@
             "maxLength": 160
           },
           "maxItems": 1000
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "app",
+            "system-tool"
+          ]
+        },
+        "workspaceRequired": {
+          "type": "boolean"
+        },
+        "branding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dark",
+            "light",
+            "alt"
+          ],
+          "properties": {
+            "dark": {
+              "type": "string",
+              "minLength": 1
+            },
+            "light": {
+              "type": "string",
+              "minLength": 1
+            },
+            "alt": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "navigation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "order"
+          ],
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "order": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       },
       "required": [
@@ -2160,7 +2217,11 @@
         "stateSchemaVersion",
         "acceptedEntityKinds",
         "actions",
-        "searchProviders"
+        "searchProviders",
+        "kind",
+        "workspaceRequired",
+        "branding",
+        "navigation"
       ],
       "additionalProperties": false
     },
@@ -3243,6 +3304,73 @@
         "source"
       ],
       "additionalProperties": false
+    },
+    "Session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "authenticated",
+        "user",
+        "expiresAt",
+        "csrfToken",
+        "sessionKey"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "authenticated": {
+          "type": "boolean"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "displayName",
+                "canUseData"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "canUseData": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
+        "expiresAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "csrfToken": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sessionKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     }
   }
 }

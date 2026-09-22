@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './authenticated';
 import type { WebSocketRoute } from '@playwright/test';
 import type { AircraftBatch } from '../../src/platform/data/AircraftChannel';
 import { aircraftFixture } from '../fixtures/aircraft';

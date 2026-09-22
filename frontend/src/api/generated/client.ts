@@ -632,6 +632,40 @@ export class VantageClient {
         }
         return Promise.resolve<EarthquakeRecordDto[]>(null as any);
     }
+
+    session_Get(signal?: AbortSignal): Promise<SessionDto> {
+        let url_ = this.baseUrl + "/api/v1/session";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSession_Get(_response);
+        });
+    }
+
+    protected processSession_Get(response: Response): Promise<SessionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as SessionDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SessionDto>(null as any);
+    }
 }
 
 export interface HealthDto {
@@ -642,6 +676,7 @@ export interface HealthDto {
 
 export interface WorkspaceSummaryDto {
     id?: string;
+    ownerId?: string;
     name?: string;
     revision?: number;
     updatedAt?: string;
@@ -649,6 +684,7 @@ export interface WorkspaceSummaryDto {
 
 export interface WorkspaceDto {
     id?: string;
+    ownerId?: string;
     name?: string;
     revision?: number;
     schemaVersion?: number;
@@ -853,6 +889,21 @@ export interface EarthquakeCompletenessDto {
     feedRetrievedAt?: string | undefined;
     providerCount?: number | undefined;
     rejectedCount?: number;
+}
+
+export interface SessionDto {
+    schemaVersion?: number;
+    authenticated?: boolean;
+    user?: SessionUserDto | undefined;
+    expiresAt?: string | undefined;
+    csrfToken?: string | undefined;
+    sessionKey?: string | undefined;
+}
+
+export interface SessionUserDto {
+    id?: string;
+    displayName?: string;
+    canUseData?: boolean;
 }
 
 export class ApiException extends Error {

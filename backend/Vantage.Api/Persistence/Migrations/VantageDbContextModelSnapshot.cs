@@ -38,6 +38,11 @@ namespace Vantage.Api.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<long>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("bigint");
@@ -54,9 +59,47 @@ namespace Vantage.Api.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UpdatedAt");
+                    b.HasIndex("OwnerId", "UpdatedAt");
 
                     b.ToTable("workspaces", "platform");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Identity.PlatformUserRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<long>("AccessRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("CanUseData")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Issuer", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("users", "platform");
                 });
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentAircraftRow", b =>
@@ -91,7 +134,7 @@ namespace Vantage.Api.Persistence.Migrations
 
                     b.HasIndex("SourceId", "RetrievedAt");
 
-                    b.ToTable("current_aircraft", "atlas");
+                    b.ToTable("current_aircraft", "platform");
                 });
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentEarthquakeRow", b =>
@@ -130,7 +173,7 @@ namespace Vantage.Api.Persistence.Migrations
 
                     b.HasIndex("SourceId", "InLatestFeed", "OccurredAt");
 
-                    b.ToTable("current_earthquakes", "atlas");
+                    b.ToTable("current_earthquakes", "platform");
                 });
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.EarthquakeFeedRow", b =>
@@ -155,7 +198,7 @@ namespace Vantage.Api.Persistence.Migrations
 
                     b.HasKey("SourceId");
 
-                    b.ToTable("earthquake_feeds", "atlas");
+                    b.ToTable("earthquake_feeds", "platform");
                 });
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.ObservationRow", b =>
@@ -205,6 +248,15 @@ namespace Vantage.Api.Persistence.Migrations
                     b.HasIndex("DataType", "SourceId", "RetrievedAt");
 
                     b.ToTable("observations", "platform");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Persistence.WorkspaceRow", b =>
+                {
+                    b.HasOne("Vantage.Api.Platform.Identity.PlatformUserRow", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

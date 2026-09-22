@@ -21,6 +21,9 @@ TestResults/
 *.suo
 
 # IDE and OS files
+.agents/
+.codex/
+.zed/
 .vs/
 .vscode/
 .idea/

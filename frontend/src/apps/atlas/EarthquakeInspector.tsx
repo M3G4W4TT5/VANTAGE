@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@blueprintjs/core';
-import { VantageClient } from '../../api/generated/client';
+import { client } from '../../platform/workspaces/WorkspaceService';
 import type { EarthquakeRecord } from '../../platform/data/EarthquakeChannel';
 import { validateContract } from '../../platform/contracts';
 import { FieldRows, InspectorFrame, SourceEvidence } from '../../platform/ui/Inspector';
@@ -41,7 +41,7 @@ function EarthquakeVersions({ record }: { record: EarthquakeRecord }) {
   const [versions, setVersions] = useState<EarthquakeRecord[]>([]); const [status, setStatus] = useState('Loading retained versions…');
   useEffect(() => {
     const controller = new AbortController();
-    void new VantageClient().earthquakes_Versions(record.entity.id, record.observation.sourceId, controller.signal).then(values => {
+    void client.earthquakes_Versions(record.entity.id, record.observation.sourceId, controller.signal).then(values => {
       for (const value of values) validateContract<EarthquakeRecord>('EarthquakeRecord', value);
       if (!controller.signal.aborted) { setVersions(values as EarthquakeRecord[]); setStatus(values.length ? 'Up to 20 recently retrieved versions. Earlier versions may have expired.' : 'No versions are available in the bounded cache.'); }
     }).catch(() => { if (!controller.signal.aborted) setStatus('Retained versions are unavailable. Current facts remain visible.'); });

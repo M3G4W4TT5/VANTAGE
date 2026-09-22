@@ -1,5 +1,7 @@
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import type { HubConnection, ISubscription } from '@microsoft/signalr';
+import { sessionBoundary, sessionService } from '../session/SessionService';
+import { SessionHttpClient } from '../session/SessionHttpClient';
 
 // No observation is sent through ContextBus or written into workspace state.
 export type ObservationRecord = { entity: { id: string }; observation: { id: string; entityId: string; sourceId: string; provenance: { sourceId: string } } };
@@ -19,6 +21,9 @@ export class ObservationChannel<R extends ObservationRecord, C extends { limit: 
   private references = 0;
   private retry?: ReturnType<typeof setTimeout>;
   private stopTimer?: ReturnType<typeof setTimeout>;
+  private disposed = false;
+  private boundary: string | null = null;
+  private releaseSession?: () => void;
   constructor(private options: {
     method: string; args: unknown[]; initial: ObservationSnapshot<R, C, S, H>;
     validate(value: unknown): B; order(record: R): string | null; replaceEqual: boolean; released(): void;
@@ -27,20 +32,34 @@ export class ObservationChannel<R extends ObservationRecord, C extends { limit: 
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private publish(next: ObservationSnapshot<R, C, S, H>) { this.snapshot = next; this.listeners.forEach(listener => listener()); }
   acquire = () => {
+    if (this.disposed) throw new Error('This observation cache has been released.');
+    this.boundary = sessionBoundary(sessionService.getSnapshot().session);
+    sessionService.assertCurrent(this.boundary);
+    if (!sessionService.getSnapshot().session?.user.canUseData) throw new Error('Data access is unavailable for this account.');
+    this.releaseSession ??= sessionService.onInvalidate(() => this.dispose());
     clearTimeout(this.stopTimer); this.references++;
     if (!this.connection) void this.connect();
-    return () => { this.references--; if (this.references === 0) this.stopTimer = setTimeout(() => this.stop(), 200); };
+    let released = false;
+    return () => { if (released || this.disposed) return; released = true; this.references--; if (this.references === 0) this.stopTimer = setTimeout(() => this.dispose(), 200); };
   };
-  private stop() {
-    clearTimeout(this.retry); this.stream?.dispose(); this.stream = undefined;
+  dispose() {
+    if (this.disposed) return;
+    this.disposed = true; this.references = 0;
+    clearTimeout(this.retry); clearTimeout(this.stopTimer);
+    this.releaseSession?.(); this.releaseSession = undefined;
+    this.stream?.dispose(); this.stream = undefined;
     const old = this.connection; this.connection = undefined; void old?.stop();
+    this.sequence = -1; this.subscriptionId = null;
+    this.publish({ ...this.options.initial, records: [], transport: 'offline', health: { ...this.options.initial.health, message: 'Session or subscription ended.' } });
+    this.listeners.clear();
     this.options.released();
   }
   private async connect() {
-    const connection = new HubConnectionBuilder().withUrl('/hubs/observations')
+    if (this.disposed) return;
+    const connection = new HubConnectionBuilder().withUrl('/hubs/observations', { httpClient: new SessionHttpClient() })
       .withAutomaticReconnect([0, 2000, 5000, 15000, 30000]).configureLogging(LogLevel.None).build();
     this.connection = connection;
-    connection.onreconnecting(() => this.disconnected('Connection lost. Keeping cached observations while reconnecting.'));
+    connection.onreconnecting(() => { if (!this.disposed) this.disconnected('Connection lost. Keeping cached observations while reconnecting.'); });
     connection.onreconnected(() => { if (this.connection === connection && this.references) this.openStream(); });
     connection.onclose(() => {
       if (this.connection !== connection) return;
@@ -60,9 +79,13 @@ export class ObservationChannel<R extends ObservationRecord, C extends { limit: 
     this.publish({ ...this.snapshot, transport: 'offline', health: { ...this.snapshot.health, message } });
   }
   private openStream() {
+    if (this.disposed) return;
+    try { sessionService.assertCurrent(this.boundary); } catch { this.dispose(); return; }
     this.stream?.dispose(); this.sequence = -1; this.subscriptionId = null;
     this.stream = this.connection!.stream<unknown>(this.options.method, ...this.options.args).subscribe({
       next: value => {
+        if (this.disposed) return;
+        try { sessionService.assertCurrent(this.boundary); } catch { this.dispose(); return; }
         try { if (this.accept(value) === 'gap') this.recover('A subscription gap was detected. Requesting a fresh snapshot.'); }
         catch { this.recover('An invalid data batch was rejected. Requesting a fresh snapshot.'); }
       },
@@ -71,12 +94,14 @@ export class ObservationChannel<R extends ObservationRecord, C extends { limit: 
     });
   }
   private recover(message: string) {
+    if (this.disposed) return;
     this.disconnected(message); clearTimeout(this.retry);
     this.stream?.dispose(); this.stream = undefined;
     this.retry = setTimeout(() => { if (this.references && this.connection?.state === 'Connected') this.openStream(); }, 2000);
   }
   // Public for the deterministic sequence/recovery test; all wire data is validated before mutation.
   accept(value: unknown): 'accepted' | 'duplicate' | 'gap' {
+    if (this.disposed) throw new Error('This observation cache has been released.');
     const batch = this.options.validate(value);
     if (!batch.reset && (batch.subscriptionId !== this.subscriptionId || this.sequence < 0)) return 'gap';
     if (batch.subscriptionId === this.subscriptionId && batch.sequence <= this.sequence) return 'duplicate';

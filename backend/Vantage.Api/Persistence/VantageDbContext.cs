@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vantage.Api.Platform.Observations;
+using Vantage.Api.Platform.Identity;
 
 namespace Vantage.Api.Persistence;
 
@@ -7,6 +8,7 @@ public sealed class WorkspaceRow
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
+    public string OwnerId { get; set; } = "";
     public long Revision { get; set; }
     public int SchemaVersion { get; set; } = 1;
     public string StateJson { get; set; } = "{}";
@@ -16,6 +18,7 @@ public sealed class WorkspaceRow
 
 public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options) : DbContext(options)
 {
+    public DbSet<PlatformUserRow> Users => Set<PlatformUserRow>();
     public DbSet<WorkspaceRow> Workspaces => Set<WorkspaceRow>();
     public DbSet<ObservationRow> Observations => Set<ObservationRow>();
     public DbSet<CurrentAircraftRow> CurrentAircraft => Set<CurrentAircraftRow>();
@@ -26,6 +29,14 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.HasPostgresExtension("postgis");
+        model.Entity<PlatformUserRow>(e =>
+        {
+            e.ToTable("users", "platform"); e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasMaxLength(160);
+            e.Property(x => x.Issuer).HasMaxLength(512); e.Property(x => x.Subject).HasMaxLength(255);
+            e.Property(x => x.DisplayName).HasMaxLength(120);
+            e.HasIndex(x => new { x.Issuer, x.Subject }).IsUnique();
+        });
         model.Entity<ObservationRow>(e =>
         {
             e.ToTable("observations", "platform"); e.HasKey(x => x.Id);
@@ -37,7 +48,7 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
         });
         model.Entity<CurrentAircraftRow>(e =>
         {
-            e.ToTable("current_aircraft", "atlas"); e.HasKey(x => x.Id);
+            e.ToTable("current_aircraft", "platform"); e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.SourceId, x.RetrievedAt });
             e.Property(x => x.Position).HasColumnType("geography (point,4326)");
             e.Property(x => x.RecordJson).HasColumnType("jsonb");
@@ -45,13 +56,13 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
         });
         model.Entity<CurrentEarthquakeRow>(e =>
         {
-            e.ToTable("current_earthquakes", "atlas"); e.HasKey(x => x.Id);
+            e.ToTable("current_earthquakes", "platform"); e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.SourceId, x.InLatestFeed, x.OccurredAt });
             e.Property(x => x.Position).HasColumnType("geography (point,4326)");
             e.Property(x => x.RecordJson).HasColumnType("jsonb");
             e.HasIndex(x => x.Position).HasMethod("gist");
         });
-        model.Entity<EarthquakeFeedRow>(e => { e.ToTable("earthquake_feeds", "atlas"); e.HasKey(x => x.SourceId); });
+        model.Entity<EarthquakeFeedRow>(e => { e.ToTable("earthquake_feeds", "platform"); e.HasKey(x => x.SourceId); });
         model.Entity<WorkspaceRow>(entity =>
         {
             entity.ToTable("workspaces", "platform");
@@ -60,7 +71,9 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
             entity.Property(x => x.Name).HasMaxLength(120);
             entity.Property(x => x.Revision).IsConcurrencyToken();
             entity.Property(x => x.StateJson).HasColumnType("jsonb");
-            entity.HasIndex(x => x.UpdatedAt);
+            entity.HasIndex(x => new { x.OwnerId, x.UpdatedAt });
+            entity.Property(x => x.OwnerId).HasMaxLength(160);
+            entity.HasOne<PlatformUserRow>().WithMany().HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

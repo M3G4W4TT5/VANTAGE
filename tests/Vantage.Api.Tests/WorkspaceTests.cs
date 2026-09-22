@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
+using Vantage.Api.Platform.Identity;
 using Xunit;
 
 namespace Vantage.Api.Tests;
@@ -41,9 +42,9 @@ public sealed class WorkspaceTests
                 using var scope = app.Services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<VantageDbContext>();
                 Assert.Equal(database, db.Database.GetDbConnection().Database);
-                await db.Database.MigrateAsync();
+                await OwnershipMigration.MigrateAsync(db, TestIdentity.Owner);
                 await db.Database.ExecuteSqlRawAsync("SELECT PostGIS_Full_Version()");
-                using var client = app.CreateClient();
+                using var client = await app.CreateAuthorizedClientAsync();
                 var created = await client.PostAsJsonAsync("/api/v1/workspaces", new CreateWorkspaceRequest("Initial workspace"));
                 Assert.Equal(HttpStatusCode.Created, created.StatusCode);
                 var original = (await created.Content.ReadFromJsonAsync<WorkspaceDto>())!;
@@ -57,7 +58,7 @@ public sealed class WorkspaceTests
             }
             await using (var restarted = new TestApp(connection))
             {
-                using var client = restarted.CreateClient();
+                using var client = await restarted.CreateAuthorizedClientAsync();
                 var restored = (await client.GetFromJsonAsync<WorkspaceDto>($"/api/v1/workspaces/{saved.Id}"))!;
                 Assert.Equal("Renamed workspace", restored.Name); Assert.Equal(saved.Revision, restored.Revision);
                 var duplicated = await client.PostAsJsonAsync($"/api/v1/workspaces/{saved.Id}/duplicate", new DuplicateWorkspaceRequest("Independent copy", saved.Revision));
@@ -79,6 +80,7 @@ public sealed class WorkspaceTests
             services.RemoveAll<DbContextOptions<VantageDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<VantageDbContext>>();
             services.AddDbContext<VantageDbContext>(options => options.UseNpgsql(connection, postgres => postgres.UseNetTopologySuite()));
+            services.AddTestIdentity();
         });
     }
 }

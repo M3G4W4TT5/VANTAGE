@@ -8,6 +8,7 @@ using Vantage.Api.Platform.Workspaces;
 using Vantage.Api.Platform.Observations;
 using Vantage.Api.Connectors.AdsbLol;
 using Vantage.Api.Connectors.Usgs;
+using Vantage.Api.Platform.Identity;
 
 var exportIndex = Array.IndexOf(args, "--export-openapi");
 var builder = WebApplication.CreateBuilder(args);
@@ -19,11 +20,16 @@ builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Co
     new BadRequestObjectResult(new ApiError("invalid_request", "The request is malformed or missing required fields.")));
 builder.Services.AddOpenApiDocument(o => { o.DocumentName = "v1"; o.Title = "VANTAGE API"; o.Version = "1"; });
 builder.Services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(
-    builder.Configuration.GetConnectionString("Vantage") ?? "Host=127.0.0.1;Port=54329;Database=vantage;Username=vantage;Timeout=2",
+    builder.Configuration.GetConnectionString(args.Contains("--migrate") ? "Vantage" : "VantageRuntime") ?? "Host=127.0.0.1;Port=54329;Database=vantage;Username=vantage_app;Timeout=2",
     pg => pg.UseNetTopologySuite()));
-builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(new Dictionary<string, (int, string)> { ["atlas"] = (1, "AtlasState") }));
+var atlasEnabled = builder.Configuration.GetValue("Applications:AtlasEnabled", true);
+builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(atlasEnabled ? new Dictionary<string, (int, string)> { ["atlas"] = (1, "AtlasState") } : new Dictionary<string, (int, string)>()));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentSession, HttpCurrentSession>();
+builder.Services.AddScoped<PlatformAccess>();
+builder.Services.AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddSingleton(await ObservationValidation.LoadAsync());
-builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
+if (atlasEnabled) builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
 builder.Services.AddHttpClient<AdsbLolClient>(http =>
 {
     http.Timeout = TimeSpan.FromSeconds(15);
@@ -49,16 +55,29 @@ builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 16384; o.Maximu
 var app = builder.Build();
 app.Use(async (context, next) =>
 {
+    RequestSecurity.ApplyResponseHeaders(context);
     try { await next(); }
     catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested) { }
+    catch (PlatformAccessException denied)
+    {
+        context.Response.StatusCode = denied.Status;
+        await context.Response.WriteAsJsonAsync(new ApiError("access_denied", "An authorized VANTAGE session is required."));
+    }
     catch (Npgsql.NpgsqlException)
     {
         context.Response.StatusCode = 503;
         await context.Response.WriteAsJsonAsync(new ApiError("storage_unavailable", "Local storage is unavailable. Check the database and migrations, then retry.", true));
     }
 });
+// The public sign-in shell must load before an authenticated session exists.
+// Only built, public frontend assets are served from wwwroot.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.UseAuthentication();
+app.Use(RequestSecurity.Enforce);
+app.UseAuthorization();
 app.MapControllers();
-app.MapHub<ObservationsHub>("/hubs/observations");
+app.MapHub<ObservationsHub>("/hubs/observations").RequireAuthorization();
 if (exportIndex >= 0)
 {
     var document = await app.Services.GetRequiredService<IOpenApiDocumentGenerator>().GenerateAsync("v1");
@@ -68,11 +87,9 @@ if (exportIndex >= 0)
 if (args.Contains("--migrate"))
 {
     await using var scope = app.Services.CreateAsyncScope();
-    await scope.ServiceProvider.GetRequiredService<VantageDbContext>().Database.MigrateAsync();
+    await OwnershipMigration.MigrateAsync(scope.ServiceProvider.GetRequiredService<VantageDbContext>(), InitialOperator.FromConfiguration(builder.Configuration));
     return;
 }
-app.UseDefaultFiles();
-app.UseStaticFiles();
 app.UseOpenApi(o => o.Path = "/api/openapi/{documentName}.json");
 app.MapFallback(async context =>
 {
@@ -80,7 +97,7 @@ app.MapFallback(async context =>
     if (context.Request.Path.StartsWithSegments("/api") || !File.Exists(index)) { context.Response.StatusCode = 404; return; }
     context.Response.ContentType = "text/html";
     await context.Response.SendFileAsync(index);
-});
+}).AllowAnonymous();
 app.Run();
 
 public partial class Program;

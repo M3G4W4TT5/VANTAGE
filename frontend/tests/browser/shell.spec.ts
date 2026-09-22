@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect } from '@playwright/test';
+import { test, expect } from './authenticated';
 import { aircraftFixture } from '../fixtures/aircraft';
 const tile = readFileSync('node_modules/cesium/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg');
 let workspaceId: string;

@@ -13,3 +13,5 @@ design/reference
 artifacts
 frontend/public/cesium
 **/*.tsbuildinfo
+
+infra/keycloak/.local

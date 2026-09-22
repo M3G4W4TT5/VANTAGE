@@ -5,10 +5,12 @@ import { ContextBus } from '../context/ContextBus';
 import { WorkspaceService } from '../workspaces/WorkspaceService';
 import { PaneHost } from './PaneHost';
 import { PaneBoundary } from '../ui/PaneBoundary';
+import type { AuthenticatedSession } from '../session/SessionService';
+import { SignOutForm } from '../session/SignOutForm';
 import styles from './VantageShell.module.css';
 
 type DialogKind = 'new' | 'rename' | 'duplicate' | 'delete' | 'switch' | 'search' | 'settings' | null;
-export function VantageShell({ registry, workspaces }: { registry: AppRegistry; workspaces: WorkspaceService }) {
+export function VantageShell({ registry, workspaces, session }: { registry: AppRegistry; workspaces: WorkspaceService; session: AuthenticatedSession }) {
   const { document: doc, list, busy, dirty, error } = useSyncExternalStore(workspaces.subscribe, workspaces.getSnapshot);
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [name, setName] = useState('');
@@ -56,9 +58,9 @@ export function VantageShell({ registry, workspaces }: { registry: AppRegistry; 
         <img className={styles.vantageWordmark} src={`/brand/vantage-wordmark-${wordmarkColour}.svg`} alt="VANTAGE" />
       </div>
       <span className={styles.slash}>/</span>
-      {activeApp?.manifest.id === 'atlas'
-        ? <img className={styles.atlasWordmark} src={`/brand/atlas-wordmark-${wordmarkColour}.svg`} alt="ATLAS" />
-        : <strong className={styles.appName}>{activeApp?.manifest.name ?? 'Workspace'}</strong>}
+      {activeApp
+        ? <img className={styles.appWordmark} src={activeApp.manifest.branding[theme]} alt={activeApp.manifest.branding.alt} />
+        : <strong className={styles.appName}>Workspace</strong>}
       <Button minimal icon="search" className={styles.searchButton} onClick={() => setDialog('search')}>Search <kbd>⌘ / Ctrl K</kbd></Button>
       <div className={styles.workspaceControls}>
         <HTMLSelect aria-label="Workspace" value={doc?.id ?? ''} disabled={busy || !list.length} options={[...(!doc ? [{ value: '', label: 'Choose workspace' }] : []), ...list.map(w => ({ value: w.id ?? '', label: w.name ?? 'Unnamed' }))]}
@@ -75,6 +77,8 @@ export function VantageShell({ registry, workspaces }: { registry: AppRegistry; 
         <Button minimal icon={theme === 'dark' ? 'flash' : 'moon'} aria-label={`Use ${theme === 'dark' ? 'light' : 'dark'} theme`} disabled={!doc}
           onClick={() => workspaces.update(document => ({ ...document, appStates: { ...document.appStates, shell: { ...document.appStates.shell, theme: theme === 'dark' ? 'light' : 'dark' } } }))} />
         <Button minimal icon="cog" aria-label="Settings" onClick={() => setDialog('settings')} />
+        <span className={styles.account} title={session.user.displayName}>{session.user.displayName}</span>
+        <SignOutForm csrfToken={session.csrfToken} />
       </div>
     </header>
     {error && <div className={styles.error} role="alert"><span>{error}</span><Button minimal onClick={() => {

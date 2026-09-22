@@ -15,6 +15,8 @@ export type AppAction = { id: string; label: string; acceptedKinds: string[]; re
   run(selection: Selection, context: Context, host: HostServices): void };
 export type AppModule = {
   manifest: { id: string; name: string; version: string; platformApiVersion: number; entryView: string;
+    kind: 'app' | 'system-tool'; workspaceRequired: boolean;
+    branding: { dark: string; light: string; alt: string }; navigation: { label: string; order: number };
     stateSchemaVersion: number; acceptedEntityKinds: string[]; actions: Omit<AppAction, 'run'>[]; searchProviders: string[] };
   View: ComponentType<AppViewProps>;
   actions: AppAction[];
@@ -46,7 +48,8 @@ export class AppRegistry {
     return dispose;
   }
   get(id: string) { return this.modules.get(id); }
-  list() { return [...this.modules.values()]; }
+  list() { return [...this.modules.values()].sort((left, right) => left.manifest.navigation.order - right.manifest.navigation.order ||
+    left.manifest.navigation.label.localeCompare(right.manifest.navigation.label)); }
   search(text: string) { return this.list().flatMap(app => app.searchProviders.flatMap(provider =>
     provider.search(text).map(result => ({ ...result, appId: app.manifest.id })))); }
 }

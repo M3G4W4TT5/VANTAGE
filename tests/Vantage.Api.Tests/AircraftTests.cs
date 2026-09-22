@@ -13,6 +13,7 @@ using Npgsql;
 using Vantage.Api.Connectors.AdsbLol;
 using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
+using Vantage.Api.Platform.Identity;
 using Vantage.Api.Platform.Observations;
 using Xunit;
 
@@ -40,7 +41,7 @@ public sealed class AircraftTests
         {
             await using var app = new TestApp(connection, handler);
             using var scope = app.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<VantageDbContext>();
-            Assert.Equal(database, db.Database.GetDbConnection().Database); await db.Database.MigrateAsync();
+            Assert.Equal(database, db.Database.GetDbConnection().Database); await OwnershipMigration.MigrateAsync(db, TestIdentity.Owner);
             var coordinator = app.Services.GetRequiredService<AircraftCoordinator>();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             var first = coordinator.Subscribe(new(), timeout.Token).GetAsyncEnumerator();
@@ -57,7 +58,7 @@ public sealed class AircraftTests
                 Assert.Equal(100 * 1852d / 3600, observation.Properties.SpeedMetresPerSecond!.Value, 9); Assert.Null(observation.Properties.TrueHeadingDegrees);
                 var schema = await JsonSchema.FromFileAsync(Path.Combine(AppContext.BaseDirectory, "Schemas", "records.schema.json"));
                 Assert.Empty(schema.Definitions["AircraftBatch"].Validate(JsonSerializer.Serialize(batch, ContractJson.Options)));
-                using var client = app.CreateClient();
+                using var client = await app.CreateAuthorizedClientAsync();
                 var saved = await client.GetFromJsonAsync<AircraftRecordDto>($"/api/v1/aircraft/observations/{observation.Id}");
                 Assert.Equal(observation.Id, saved!.Observation.Id);
                 var store = scope.ServiceProvider.GetRequiredService<AircraftStore>();
@@ -89,7 +90,7 @@ public sealed class AircraftTests
                 var record = Assert.Single(stream.Current.Upserts);
                 Assert.Equal("fixture-provider", record.Observation.SourceId);
                 Assert.Equal("fixture-provider:flight-1", record.Entity.Id);
-                using var client = replacement.CreateClient();
+                using var client = await replacement.CreateAuthorizedClientAsync();
                 var results = await client.GetFromJsonAsync<AircraftRecordDto[]>("/api/v1/aircraft");
                 Assert.Equal("fixture-provider", Assert.Single(results!).Observation.SourceId);
                 // Original provider evidence remains available by its immutable observation ID.
@@ -146,6 +147,7 @@ public sealed class AircraftTests
         {
             services.RemoveAll<DbContextOptions<VantageDbContext>>(); services.RemoveAll<IDbContextOptionsConfiguration<VantageDbContext>>();
             services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(connection, pg => pg.UseNetTopologySuite()));
+            services.AddTestIdentity();
             services.AddHttpClient<AdsbLolClient>().ConfigurePrimaryHttpMessageHandler(() => handler);
             if (alternate is not null)
             {

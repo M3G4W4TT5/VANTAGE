@@ -15,6 +15,9 @@ export type AtlasState = {
 };
 export const atlasModule: AppModule = {
   manifest: { id: 'atlas', name: 'ATLAS', version: '0.1.0', platformApiVersion: 1, entryView: 'AtlasView', stateSchemaVersion: 1,
+    kind: 'app', workspaceRequired: true,
+    branding: { dark: '/brand/atlas-wordmark-white.svg', light: '/brand/atlas-wordmark-black.svg', alt: 'ATLAS' },
+    navigation: { label: 'ATLAS', order: 10 },
     acceptedEntityKinds: ['aircraft', 'earthquake'], actions: [], searchProviders: [] },
   View: AtlasView,
   actions: [], searchProviders: [],

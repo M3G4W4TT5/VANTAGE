@@ -593,6 +593,26 @@
           }
         }
       }
+    },
+    "/api/v1/session": {
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "operationId": "Session_Get",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -620,6 +640,9 @@
           "id": {
             "type": "string"
           },
+          "ownerId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -638,6 +661,9 @@
         "additionalProperties": false,
         "properties": {
           "id": {
+            "type": "string"
+          },
+          "ownerId": {
             "type": "string"
           },
           "name": {
@@ -1314,6 +1340,55 @@
           "rejectedCount": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "SessionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "authenticated": {
+            "type": "boolean"
+          },
+          "user": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SessionUserDto"
+              }
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "csrfToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionKey": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SessionUserDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "canUseData": {
+            "type": "boolean"
           }
         }
       }

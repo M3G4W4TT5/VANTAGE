@@ -2,6 +2,7 @@ import type { EntityRecord, ObservationEnvelope, SourceHealth } from './observat
 import { ObservationChannel } from './ObservationChannel';
 import type { AircraftSourceDto } from '../../api/generated/client';
 import { validateContract } from '../contracts';
+import { sessionService } from '../session/SessionService';
 
 export type AircraftQuery = { longitude: number; latitude: number; radiusNm: number };
 export type AircraftRecord = {
@@ -34,7 +35,7 @@ export class AircraftChannel extends ObservationChannel<AircraftRecord, Aircraft
         validateContract<AircraftBatch>('AircraftBatch', value);
         if (queryKey(value.query) !== queryKey(query)) throw new Error('Batch belongs to another query.');
         return value;
-      }, released: () => { channels.delete(queryKey(query)); },
+      }, released: () => { if (channels.get(queryKey(query)) === this) channels.delete(queryKey(query)); },
     });
   }
 }
@@ -45,3 +46,5 @@ export function aircraftChannel(query: AircraftQuery) {
   if (!channel) { channel = new AircraftChannel(query); channels.set(key, channel); }
   return channel;
 }
+export function clearAircraftChannels() { for (const channel of [...channels.values()]) channel.dispose(); channels.clear(); }
+sessionService.onInvalidate(clearAircraftChannels);
