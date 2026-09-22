@@ -33,6 +33,13 @@ public sealed class SessionController(BackendSessions sessions, PlatformAccess a
         // The return destination is fixed, never copied from untrusted query parameters.
         return Challenge(new AuthenticationProperties { RedirectUri = "/" }, OpenIdConnectDefaults.AuthenticationScheme);
     }
+    [Authorize, HttpGet("auth/account")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<IActionResult> Account(CancellationToken ct)
+    {
+        await access.RequireUserAsync(ct);
+        return Redirect(configured.Value.Authority.TrimEnd('/') + "/account/");
+    }
     [HttpPost("auth/logout")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> Logout()

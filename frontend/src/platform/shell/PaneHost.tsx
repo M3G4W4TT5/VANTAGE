@@ -20,7 +20,7 @@ export function PaneHost({ pane, module, registry, bus, workspaces, notify }: {
     const dispose = registry.mount(module.manifest.id, host);
     return () => { dispose(); bus.disposePane(pane.id); };
   }, [module, registry, host, bus, pane.id]);
-  if (!module || module.manifest.stateSchemaVersion !== pane.stateSchemaVersion)
+  if (!module || !module.View || module.manifest.stateSchemaVersion !== pane.stateSchemaVersion)
     return <NonIdealState title="App unavailable" description="This pane needs an app or state version that is not installed. Its saved state is preserved." />;
   const state = module.restoreState(pane.state);
   const View = module.View;

@@ -16,9 +16,18 @@ public sealed class WorkspaceRow
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+public sealed class PersonalPreferencesRow
+{
+    public string UserId { get; set; } = "";
+    public string Theme { get; set; } = "dark";
+    public long Revision { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options) : DbContext(options)
 {
     public DbSet<PlatformUserRow> Users => Set<PlatformUserRow>();
+    public DbSet<PersonalPreferencesRow> PersonalPreferences => Set<PersonalPreferencesRow>();
     public DbSet<WorkspaceRow> Workspaces => Set<WorkspaceRow>();
     public DbSet<ObservationRow> Observations => Set<ObservationRow>();
     public DbSet<CurrentAircraftRow> CurrentAircraft => Set<CurrentAircraftRow>();
@@ -36,6 +45,15 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
             e.Property(x => x.Issuer).HasMaxLength(512); e.Property(x => x.Subject).HasMaxLength(255);
             e.Property(x => x.DisplayName).HasMaxLength(120);
             e.HasIndex(x => new { x.Issuer, x.Subject }).IsUnique();
+        });
+        model.Entity<PersonalPreferencesRow>(e =>
+        {
+            e.ToTable("personal_preferences", "platform"); e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).HasMaxLength(160);
+            e.Property(x => x.Theme).HasMaxLength(5);
+            e.Property(x => x.Revision).IsConcurrencyToken();
+            e.HasOne<PlatformUserRow>().WithOne().HasForeignKey<PersonalPreferencesRow>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.ToTable(t => t.HasCheckConstraint("CK_personal_preferences_theme", "\"Theme\" IN ('dark', 'light')"));
         });
         model.Entity<ObservationRow>(e =>
         {

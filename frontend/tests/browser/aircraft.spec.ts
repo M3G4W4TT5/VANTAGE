@@ -3,6 +3,7 @@ import { test, expect } from './authenticated';
 import type { WebSocketRoute } from '@playwright/test';
 import type { AircraftBatch } from '../../src/platform/data/AircraftChannel';
 import { aircraftFixture } from '../fixtures/aircraft';
+import { openWorkspaceFromHome, setPersonalTheme } from './navigation';
 // Reuse one bundled 256px tile to exercise the tile pipeline without hitting a public server.
 const tileFixture = readFileSync('node_modules/cesium/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg');
 
@@ -27,9 +28,9 @@ test('aircraft map, list, evidence, manual save and snapshot recovery', async ({
       }
     });
   });
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
+  const originalTheme = await setPersonalTheme(request, 'dark');
   try {
-    await page.goto('/');
+    await openWorkspaceFromHome(page, 'Aircraft browser verification');
     const map = page.getByRole('region', { name: 'Aircraft map' });
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await expect(page.getByLabel('Aircraft legend')).not.toContainText('Selected');
@@ -59,6 +60,8 @@ test('aircraft map, list, evidence, manual save and snapshot recovery', async ({
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
     await page.reload();
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Aircraft browser verification', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'TEST01', exact: true })).toBeVisible();
     await expect(page.getByRole('table', { name: 'Aircraft results' })).toBeVisible();
     expect(errors).toEqual([]); expect(external.every(url => url.startsWith('https://tile.openstreetmap.org/'))).toBe(true);
@@ -66,6 +69,7 @@ test('aircraft map, list, evidence, manual save and snapshot recovery', async ({
     if (!page.isClosed()) await page.goto('about:blank').catch(() => {});
     const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();
     await request.delete(`/api/v1/workspaces/${workspace.id}?revision=${saved.revision}`);
+    await setPersonalTheme(request, originalTheme);
   }
 });
 
@@ -85,10 +89,10 @@ test('offline place search, detailed basemap fallback and saved camera', async (
   }));
   const response = await request.post('/api/v1/workspaces', { data: { name: 'Place and basemap verification' } });
   expect(response.status()).toBe(201); const workspace = await response.json();
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
+  const originalTheme = await setPersonalTheme(request, 'dark');
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   try {
-    await page.goto('/');
+    await openWorkspaceFromHome(page, 'Place and basemap verification');
     const map = page.getByRole('region', { name: 'Aircraft map' });
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await page.getByLabel('Find a place').fill('Copenhagen');
@@ -104,6 +108,8 @@ test('offline place search, detailed basemap fallback and saved camera', async (
     expect(saved.panes[0].state.camera.latitude).toBeCloseTo(55.68051, 3);
     expect(saved.panes[0].state.aircraftQuery.longitude).toBe(12);
     await page.reload();
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Place and basemap verification', exact: true }).click();
     await expect(page.getByLabel('Basemap', { exact: true })).toHaveValue('natural-earth');
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     unavailable = true;
@@ -121,5 +127,6 @@ test('offline place search, detailed basemap fallback and saved camera', async (
     if (!page.isClosed()) await page.goto('about:blank').catch(() => {});
     const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();
     await request.delete(`/api/v1/workspaces/${workspace.id}?revision=${saved.revision}`);
+    await setPersonalTheme(request, originalTheme);
   }
 });

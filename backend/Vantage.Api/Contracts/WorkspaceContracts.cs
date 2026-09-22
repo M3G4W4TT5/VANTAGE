@@ -14,3 +14,5 @@ public sealed record UpdateWorkspaceRequest(string Name, long Revision, int Sche
 public sealed record DuplicateWorkspaceRequest(string Name, long Revision);
 public sealed record ApiError(string Code, string Message, bool Retryable = false);
 public sealed record HealthDto(string Status, string Storage, int ContractVersion);
+public sealed record PersonalPreferencesDto(int SchemaVersion, string Theme, long Revision, DateTimeOffset? UpdatedAt);
+public sealed record UpdatePersonalPreferencesRequest(string Theme, long Revision);

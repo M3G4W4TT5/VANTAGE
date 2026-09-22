@@ -1,6 +1,8 @@
 .shell { height: 100dvh; min-height: 440px; display: flex; flex-direction: column; }
 .header { display: flex; align-items: center; min-height: 40px; padding: 4px 12px; gap: 12px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 6px; }
+.brandButton { display: inline-flex; align-items: center; padding: 2px; margin: -2px; border: 0; background: transparent; cursor: pointer; }
+.brandButton:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .vantageMark, .vantageWordmark, .appWordmark { display: block; object-fit: contain; object-position: left center; }
 .vantageMark { width: 38px; height: 20px; }
 .vantageWordmark { width: 72px; height: 20px; }

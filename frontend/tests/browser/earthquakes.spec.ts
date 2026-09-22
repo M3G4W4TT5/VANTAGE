@@ -4,6 +4,7 @@ import type { WebSocketRoute } from '@playwright/test';
 import type { EarthquakeBatch } from '../../src/platform/data/EarthquakeChannel';
 import { earthquakeFixture } from '../fixtures/earthquakes';
 import { aircraftFixture } from '../fixtures/aircraft';
+import { openWorkspaceFromHome, setPersonalTheme } from './navigation';
 const tile = readFileSync('node_modules/cesium/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg');
 
 test('earthquake surface picking, shared grid/list/inspector, revisions and explicit Save restoration', async ({ page, request }, info) => {
@@ -23,11 +24,11 @@ test('earthquake surface picking, shared grid/list/inspector, revisions and expl
   const workspace = await (await request.post('/api/v1/workspaces', { data: { name: 'Earthquake browser verification' } })).json();
   workspace.panes[0].state.liveView = 'earthquakes'; workspace.panes[0].state.basemapId = 'natural-earth';
   expect((await request.put(`/api/v1/workspaces/${workspace.id}`, { data: workspace })).status()).toBe(200);
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
+  const originalTheme = await setPersonalTheme(request, 'dark');
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   const external: string[] = []; page.on('request', r => { if (r.url().startsWith('https://')) external.push(r.url()); });
   try {
-    await page.goto('/');
+    await openWorkspaceFromHome(page, 'Earthquake browser verification');
     const map = page.getByRole('region', { name: 'Earthquake map' });
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     await expect(page.getByLabel('Magnitude legend')).toBeVisible();
@@ -71,7 +72,10 @@ test('earthquake surface picking, shared grid/list/inspector, revisions and expl
     const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();
     expect(saved.panes[0].state.earthquakeCamera).toEqual({ longitude: 12, latitude: 58, height: 750000 });
     expect(saved.panes[0].context.selection.observationIds).toEqual(['obs:quake-0']);
-    await page.reload(); await expect(table).toContainText('5.2'); await expect(inspector).toContainText('TEST EPICENTRE');
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Earthquake browser verification', exact: true }).click();
+    await expect(table).toContainText('5.2'); await expect(inspector).toContainText('TEST EPICENTRE');
     await expect(page.getByLabel('Minimum magnitude')).toHaveValue('4'); await expect(page.getByLabel('Sort events')).toHaveValue('magnitude');
     await page.getByRole('button', { name: 'Aircraft', exact: true }).click();
     await expect(page.getByRole('table', { name: 'Aircraft results' })).toContainText('TEST01');
@@ -82,6 +86,7 @@ test('earthquake surface picking, shared grid/list/inspector, revisions and expl
     await page.goto('about:blank').catch(() => {});
     const saved = await (await request.get(`/api/v1/workspaces/${workspace.id}`)).json();
     await request.delete(`/api/v1/workspaces/${workspace.id}?revision=${saved.revision}`);
+    await setPersonalTheme(request, originalTheme);
   }
 });
 
@@ -90,7 +95,6 @@ test('earthquake loading, partial, stale, unavailable and empty feed states rema
   const workspace = await (await request.post('/api/v1/workspaces', { data: { name: 'Earthquake states verification' } })).json();
   workspace.panes[0].state.liveView = 'earthquakes'; workspace.panes[0].state.viewMode = 'list';
   expect((await request.put(`/api/v1/workspaces/${workspace.id}`, { data: workspace })).status()).toBe(200);
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
   let socket: WebSocketRoute; let invocation = '';
   const initial = earthquakeFixture(); initial.upserts = []; initial.health.state = 'loading'; initial.completeness.feedGeneratedAt = null; initial.completeness.feedRetrievedAt = null;
   const send = (value: EarthquakeBatch) => socket.send(JSON.stringify({ type: 2, invocationId: invocation, item: value }) + '\x1e');
@@ -101,7 +105,8 @@ test('earthquake loading, partial, stale, unavailable and empty feed states rema
     }
   }); });
   try {
-    await page.goto('/'); await expect(page.getByRole('status').filter({ hasText: 'Waiting for the first earthquake snapshot' })).toBeVisible();
+    await openWorkspaceFromHome(page, 'Earthquake states verification');
+    await expect(page.getByRole('status').filter({ hasText: 'Waiting for the first earthquake snapshot' })).toBeVisible();
     await expect.poll(() => invocation).not.toBe('');
     const partial = earthquakeFixture(1, false); partial.health.state = 'degraded'; partial.completeness.rejectedCount = 1;
     send(partial); await expect(page.getByRole('status').filter({ hasText: 'partial · Past day' })).toBeVisible();
@@ -133,9 +138,8 @@ test('globe hides far-side markers and badges while map results remain available
   Object.assign(workspace.panes[0].state, { liveView: 'earthquakes', mapMode: '3d', basemapId: 'natural-earth',
     earthquakeCamera: { longitude: -168, latitude: -58, height: 2400000 }, resultsOpen: false });
   await request.put(`/api/v1/workspaces/${workspace.id}`, { data: workspace });
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspace.id);
   try {
-    await page.goto('/'); const map = page.getByRole('region', { name: 'Earthquake map' });
+    await openWorkspaceFromHome(page, 'Globe occlusion verification'); const map = page.getByRole('region', { name: 'Earthquake map' });
     await expect(map).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     const canvas = map.locator('canvas').first(); const bounds = (await canvas.boundingBox())!;
     await canvas.click({ position: { x: bounds.width / 2, y: bounds.height / 2 } });

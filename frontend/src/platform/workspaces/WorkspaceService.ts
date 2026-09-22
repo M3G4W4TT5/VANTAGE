@@ -50,17 +50,14 @@ export class WorkspaceService {
     return this.boot ??= this.perform(async () => {
       await this.refresh();
       const key = `vantage.workspace.${this.ownerId}`;
-      let savedId = this.storage.getItem(key);
       const legacy = this.storage.getItem('vantage.workspace');
       if (legacy && this.state.list.some(workspace => workspace.id === legacy)) {
-        if (!savedId) { savedId = legacy; this.storage.setItem(key, legacy); }
+        if (!this.storage.getItem(key)) this.storage.setItem(key, legacy);
         this.storage.removeItem('vantage.workspace');
       }
-      const id = this.state.list.find(w => w.id === savedId)?.id ?? this.state.list[0]?.id;
-      this.accept(id ? await this.api.workspaces_Get(id, this.cancellation.signal) : await this.api.workspaces_Create({ name: 'My observatory' }, this.cancellation.signal));
-      await this.refresh();
     });
   }
+  preferredId() { const id = this.storage.getItem(`vantage.workspace.${this.ownerId}`); return this.state.list.find(w => w.id === id)?.id ?? null; }
   async retry() { this.boot = undefined; await this.start(); }
   update(edit: (document: Workspace) => Workspace) {
     this.assertActive();
@@ -97,19 +94,36 @@ export class WorkspaceService {
   }
   async open(id: string) { await this.perform(async () => this.accept(await this.api.workspaces_Get(id, this.cancellation.signal))); }
   async create(name: string) { await this.perform(async () => { this.accept(await this.api.workspaces_Create({ name }, this.cancellation.signal)); await this.refresh(); }); }
-  async duplicate(name: string) {
+  async duplicate(name: string, id = this.state.document?.id) {
     await this.perform(async () => {
-      const doc = this.state.document; if (!doc) return;
-      this.accept(await this.api.workspaces_Duplicate(doc.id, { name, revision: doc.revision }, this.cancellation.signal)); await this.refresh();
+      const source = this.state.document?.id === id ? this.state.document : this.state.list.find(w => w.id === id);
+      if (!source?.id) return;
+      this.accept(await this.api.workspaces_Duplicate(source.id, { name, revision: source.revision }, this.cancellation.signal)); await this.refresh();
     });
   }
-  async delete() {
+  async rename(id: string, name: string) {
     await this.perform(async () => {
-      const doc = this.state.document; if (!doc) return;
-      await this.api.workspaces_Delete(doc.id, doc.revision, this.cancellation.signal);
+      const current = this.state.document?.id === id ? this.state.document : null;
+      const doc = current ?? readWorkspace(await this.api.workspaces_Get(id, this.cancellation.signal));
+      const renamed = readWorkspace(await this.api.workspaces_Update(id, {
+        name: name.trim(), revision: doc.revision, schemaVersion: doc.schemaVersion,
+        panes: doc.panes, linkGroups: doc.linkGroups, appStates: doc.appStates,
+      } as unknown as UpdateWorkspaceRequest, this.cancellation.signal));
+      this.assertActive();
+      if (renamed.ownerId !== this.ownerId) { this.sessions.clear('Workspace access changed. Sign in again to continue.'); throw new SessionAccessError(); }
+      if (current) this.accept(renamed);
       await this.refresh();
-      this.accept(this.state.list[0]?.id ? await this.api.workspaces_Get(this.state.list[0].id, this.cancellation.signal) : await this.api.workspaces_Create({ name: 'My observatory' }, this.cancellation.signal));
+    });
+  }
+  async delete(id = this.state.document?.id) {
+    await this.perform(async () => {
+      const source = this.state.document?.id === id ? this.state.document : this.state.list.find(w => w.id === id);
+      if (!source?.id) return;
+      await this.api.workspaces_Delete(source.id, source.revision, this.cancellation.signal);
+      this.assertActive();
       await this.refresh();
+      if (this.state.document?.id === source.id) { this.editVersion++; this.set({ document: null, dirty: false }); }
+      if (this.storage.getItem(`vantage.workspace.${this.ownerId}`) === source.id) this.storage.removeItem(`vantage.workspace.${this.ownerId}`);
     });
   }
 }

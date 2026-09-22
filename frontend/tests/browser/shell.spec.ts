@@ -1,16 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from './authenticated';
 import { aircraftFixture } from '../fixtures/aircraft';
+import { openWorkspaceFromHome, setPersonalTheme } from './navigation';
 const tile = readFileSync('node_modules/cesium/Build/Cesium/Assets/Textures/NaturalEarthII/0/0/0.jpg');
 let workspaceId: string;
+let originalTheme: 'dark' | 'light' | null = null;
 test.beforeEach(async ({ page, request }) => {
+  originalTheme = null;
   const result = await request.post('/api/v1/workspaces', { data: { name: 'Browser review' } });
   expect(result.status()).toBe(201); const workspace = await result.json(); workspaceId = workspace.id;
   // Legacy demo settings still load, but only live domain presentation is available.
   workspace.panes[0].state.dataMode = 'demo'; workspace.panes[0].state.viewMode = 'list';
   workspace.panes[0].context.filters.query = 'obsolete demo filter';
   await request.put(`/api/v1/workspaces/${workspaceId}`, { data: workspace });
-  await page.addInitScript(id => { if (location.protocol.startsWith('http')) localStorage.setItem('vantage.workspace', id); }, workspaceId);
+  originalTheme = await setPersonalTheme(request, 'dark');
   await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({ contentType: 'image/jpeg', body: tile }));
   await page.routeWebSocket('**/hubs/observations*', ws => ws.onMessage(message => {
     for (const part of message.toString().split('\x1e').filter(Boolean)) {
@@ -23,9 +26,10 @@ test.afterEach(async ({ page, request }) => {
   await page.goto('about:blank').catch(() => {});
   const saved = await request.get(`/api/v1/workspaces/${workspaceId}`);
   if (saved.ok()) await request.delete(`/api/v1/workspaces/${workspaceId}?revision=${(await saved.json()).revision}`);
+  if (originalTheme) await setPersonalTheme(request, originalTheme);
 });
 test('live shell, drag/keyboard resizing, themed overlays and Save restoration', async ({ page, request }, info) => {
-  await page.goto('/');
+  await openWorkspaceFromHome(page, 'Browser review');
   const vantageWordmark = page.getByRole('img', { name: 'VANTAGE' });
   const atlasWordmark = page.getByRole('img', { name: 'ATLAS' });
   await expect(vantageWordmark).toHaveAttribute('src', '/brand/vantage-wordmark-white.svg');
@@ -55,12 +59,47 @@ test('live shell, drag/keyboard resizing, themed overlays and Save restoration',
   await expect(page.getByRole('menuitem', { name: 'New workspace' })).toBeVisible();
   await page.screenshot({ path: info.outputPath('live-list-light-portal.png'), animations: 'disabled' });
   await page.keyboard.press('Escape'); await expect(page.getByRole('button', { name: 'Workspace actions' })).toBeFocused();
-  await page.reload(); await expect(page.getByRole('heading', { name: 'TEST01', exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(vantageWordmark).toHaveAttribute('src', '/brand/vantage-wordmark-black.svg');
+  await page.getByRole('button', { name: 'Open Browser review', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'TEST01', exact: true })).toBeVisible();
   await expect(handle).toHaveAttribute('aria-valuenow', '340'); await expect(inspector).toHaveAttribute('aria-valuenow', '370');
+});
+test('Home separates destinations; Settings and personal theme work without opening a workspace', async ({ page, request }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  for (const area of ['Workspaces', 'Apps', 'System', 'Account'])
+    await expect(page.getByRole('region', { name: area })).toBeVisible();
+  await expect(page.getByRole('button', { name: /NEXUS/i })).toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Aircraft results' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Choose workspace for ATLAS' }).click();
+  await expect(page.getByRole('dialog', { name: 'Choose a workspace' })).toContainText('Browser review');
+  await page.getByRole('dialog').getByRole('button', { name: 'Browser review', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'ATLAS' })).toBeVisible();
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  const savedBefore = await (await request.get(`/api/v1/workspaces/${workspaceId}`)).json();
+  await page.getByRole('region', { name: 'System' }).getByRole('button', { name: 'Open Settings' }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Aircraft results' })).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Theme' }).selectOption('light');
+  await expect(page.getByRole('img', { name: 'VANTAGE' })).toHaveAttribute('src', '/brand/vantage-wordmark-black.svg');
+  const savedAfter = await (await request.get(`/api/v1/workspaces/${workspaceId}`)).json();
+  expect(savedAfter.revision).toBe(savedBefore.revision);
+  expect(savedAfter.appStates).toEqual(savedBefore.appStates);
+  expect((await (await request.get('/api/v1/preferences')).json()).theme).toBe('light');
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Theme' })).toHaveValue('light');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Theme' })).toHaveValue('light');
+  await page.getByRole('button', { name: 'Open Browser review', exact: true }).click();
+  await expect(page.getByRole('img', { name: 'ATLAS' })).toHaveAttribute('src', '/brand/atlas-wordmark-black.svg');
 });
 test('narrow live views, reduced motion and keyboard workspace search', async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/'); await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  await openWorkspaceFromHome(page, 'Browser review'); await page.getByRole('button', { name: 'Filters', exact: true }).click();
   await page.getByRole('button', { name: 'TEST01', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'TEST01', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -72,7 +111,7 @@ test('narrow live views, reduced motion and keyboard workspace search', async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 test('failed saves preserve the current draft and show a recoverable error', async ({ page }) => {
-  await page.goto('/'); await expect(page.getByRole('table', { name: 'Aircraft results' })).toContainText('TEST01');
+  await openWorkspaceFromHome(page, 'Browser review'); await expect(page.getByRole('table', { name: 'Aircraft results' })).toContainText('TEST01');
   await page.getByRole('textbox', { name: 'Filter aircraft' }).fill('TEST');
   await page.route('**/api/v1/workspaces/*', async route => route.request().method() === 'PUT' ?
     route.fulfill({ status: 503, json: { code: 'storage_unavailable', message: 'Workspace storage is unavailable.', retryable: true } }) : route.continue());

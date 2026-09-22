@@ -1,0 +1,13 @@
+.settings { flex: 1; width: 100%; max-width: 960px; margin: 0 auto; padding: 32px; overflow: auto; }
+.eyebrow { margin: 0; color: var(--text-muted); font-size: 11px; letter-spacing: .12em; }
+.settings h1 { margin: 4px 0 8px; font-size: 24px; }
+.intro { color: var(--text-muted); margin: 0 0 32px; }
+.settings section { border-top: 1px solid var(--divider); padding: 20px 0 24px; }
+.settings h2 { margin: 0 0 16px; font-size: 18px; }
+.settingRow { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.settingRow p, .note { color: var(--text-muted); font-size: 12px; margin: 4px 0 0; }
+.status { display: grid; grid-template-columns: minmax(100px, 1fr) 2fr; gap: 8px; margin: 0 0 12px; }
+.status dt { color: var(--text-muted); }.status dd { margin: 0; font-weight: 500; }
+.loading { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+.statusError { color: var(--danger); display: flex; align-items: center; gap: 8px; }
+@media (max-width: 640px) { .settings { padding: 20px 16px 32px; } .settingRow { align-items: flex-start; flex-direction: column; gap: 8px; } }

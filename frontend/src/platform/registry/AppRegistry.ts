@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { Context, ContextEvent, Pane, Selection } from '../contracts';
 import { validateContract } from '../contracts';
+import type { AuthenticatedSession } from '../session/SessionService';
 
 export type HostServices = {
   getState(): Record<string, unknown>;
@@ -11,6 +12,7 @@ export type HostServices = {
   notify(message: string): void;
 };
 export type AppViewProps = { pane: Pane; host: HostServices; updateState(state: Record<string, unknown>): void };
+export type SystemViewProps = { session: AuthenticatedSession; theme: 'dark' | 'light'; themeDisabled: boolean; onThemeChange(theme: 'dark' | 'light'): void };
 export type AppAction = { id: string; label: string; acceptedKinds: string[]; requiredCapabilities: string[];
   run(selection: Selection, context: Context, host: HostServices): void };
 export type AppModule = {
@@ -18,7 +20,8 @@ export type AppModule = {
     kind: 'app' | 'system-tool'; workspaceRequired: boolean;
     branding: { dark: string; light: string; alt: string }; navigation: { label: string; order: number };
     stateSchemaVersion: number; acceptedEntityKinds: string[]; actions: Omit<AppAction, 'run'>[]; searchProviders: string[] };
-  View: ComponentType<AppViewProps>;
+  View?: ComponentType<AppViewProps>;
+  SystemView?: ComponentType<SystemViewProps>;
   actions: AppAction[];
   searchProviders: { id: string; search(text: string): { id: string; label: string; kind: string }[] }[];
   mount?(host: HostServices): () => void;
@@ -33,6 +36,8 @@ export class AppRegistry {
   register(module: AppModule) {
     validateContract('AppManifest', module.manifest);
     if (module.manifest.platformApiVersion !== 1) throw new Error(`${module.manifest.name} needs an unsupported platform version.`);
+    if (module.manifest.kind === 'app' && !module.View || module.manifest.kind === 'system-tool' && !module.SystemView && !module.View)
+      throw new Error(`${module.manifest.name} has no usable view for its registered kind.`);
     if (this.modules.has(module.manifest.id)) throw new Error('App is already registered.');
     this.modules.set(module.manifest.id, module);
     return () => { this.mounts.get(module.manifest.id)?.forEach(dispose => dispose()); this.mounts.delete(module.manifest.id); this.modules.delete(module.manifest.id); };

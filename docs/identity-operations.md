@@ -1,6 +1,6 @@
 # Local identity operations
 
-This is the step-3 reference deployment. Current verification and remaining acceptance work are recorded in [implementation progress](implementation-progress-2026-09-22.md). Home, NEXUS, recording and general account administration are later work.
+This is the local reference deployment. Current verification and remaining acceptance work are recorded in [implementation progress](implementation-progress-2026-09-22.md). Home and basic account navigation are available; NEXUS and recording are later work.
 
 ## Deployment and configuration
 
@@ -50,6 +50,8 @@ Email is optional for this local operator; no address is invented and email logi
 For an existing realm created before this template change, an authorized Keycloak administrator can use **Realm settings → User profile → email** to make the attribute optional. The equivalent [Admin REST operation](https://www.keycloak.org/docs-api/latest/rest-api/index.html#_users) is to GET `/admin/realms/vantage/users/profile`, remove only `attributes[name=email].required`, then PUT the complete otherwise unchanged profile to that endpoint. Read it back to verify. Keep the admin bearer token in memory/private tooling, preserve other profile rules and the password/TOTP flow, and do not recreate the realm or operator. Restart/import does not update an existing realm.
 
 ## Initial operator enrollment
+
+The owner reported completing the password change and TOTP enrollment, verifying fresh sign-in/sign-out and invalid-password/OTP errors, establishing a permanent recovery administrator, retiring the bootstrap administrator and making protected identity backups on 2026-09-22. The steps below remain for a new installation. The old bootstrap credentials and scripts that depend on them must not be used to verify the current realm.
 
 1. Open the protected credentials file in a trusted local editor to obtain the temporary password for username `operator`. Do not paste credentials into this task, terminal history or documentation.
 2. Open VANTAGE at [http://127.0.0.1:5080](http://127.0.0.1:5080), choose sign in, and complete Keycloak's password change and authenticator-app TOTP enrollment. Keep the QR code, seed and one-time codes private; do not capture the enrollment page in test screenshots or traces.

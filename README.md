@@ -29,13 +29,13 @@ ATLAS now displays **live aircraft from ADSB.lol** and **earthquake events from 
 
 The complete prototype remains governed by [PROTOTYPE_SPEC.md](PROTOTYPE_SPEC.md), [DESIGN.md](DESIGN.md) and the [approved decisions](docs/decisions/0002-blueprint-ui.md). [Stage 1](docs/stage-1.md), [Stage 2](docs/stage-2.md), the [adapter/map follow-up](docs/adapters-map-places.md) and the [aircraft source record](docs/sources/adsb-lol.md) document results and limitations. The [shared components / earthquake increment](docs/shared-components-earthquakes.md) and [USGS source record](docs/sources/usgs-earthquakes.md) cover the latest work.
 
-## Current milestone — platform ownership and authentication
+## Current checkpoint — Home and workspaces
 
-Implementation-plan steps 1–3 add platform-owned aircraft/earthquake data, explicitly assigned workspace ownership and Keycloak authentication to the existing separate domain views. App branding/navigation comes from registration metadata; shared services remain usable without ATLAS. The initial operator is mapped by a stable internal ID plus provider issuer/subject before migration, never by the first account to sign in.
+Implementation-plan steps 1–3 added platform-owned aircraft/earthquake data, explicitly assigned workspace ownership and Keycloak authentication to the existing separate domain views. Step 4 adds authenticated Home, deliberate workspace launch, registered ATLAS and Settings navigation, and a persisted personal theme preference. The initial operator is mapped by a stable internal ID plus provider issuer/subject before migration, never by the first account to sign in.
 
 The application now requires a backend-managed OIDC session. Keycloak owns password and authenticator-app TOTP enrollment; VANTAGE enforces REST/live access, workspace ownership and CSRF protection. Sign-out, expiry and revoked access cancel affected live/background demand. The cancellation contract supports later recording; no recording interface is implemented here. See [identity operations](docs/identity-operations.md) for private operator enrollment, the loopback HTTP exception, session bounds and separate identity recovery.
 
-Home is implementation-plan step 4 and remains pending. **NEXUS — Data Manager**, system Settings, multiple configurable connections, composed ATLAS layers and GeoJSON follow later. Broader connector, notes/clips and recovery acceptance also remain outstanding. [Implementation progress](docs/implementation-progress-2026-09-22.md) records actual checks, runtime state and remaining blockers; these foundations do not establish full prototype acceptance.
+**NEXUS — Data Manager**, multiple configurable connections, composed ATLAS layers and GeoJSON follow later. Broader connector, notes/clips and recovery acceptance also remain outstanding. [Implementation progress](docs/implementation-progress-2026-09-22.md) records actual checks, runtime state and remaining limitations; these checkpoints do not establish full prototype acceptance.
 
 The [change record](docs/atlas-workspace-change-record-2026-09-22.md) preserves decisions and scope; decisions [0006 — shell/composed ATLAS](docs/decisions/0006-vantage-shell-and-composed-atlas.md), [0007 — connections](docs/decisions/0007-configurable-connections.md) and [0008 — authentication](docs/decisions/0008-authentication-and-session-lifecycle.md) define the implementation boundaries. The [specification](PROTOTYPE_SPEC.md) contains the revised sequence and AC-01–21 completion gate.
 
@@ -94,9 +94,9 @@ ASPNETCORE_ENVIRONMENT=Development Identity__PublicOrigin=http://127.0.0.1:5173 
 npm --prefix frontend run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and sign in. Complete the [private operator enrollment](docs/identity-operations.md#initial-operator-enrollment) on first use. Vite proxies `/api`, `/hubs`, `/auth`, `/signin-oidc` and `/signout-callback-oidc` to port 5080. Keycloak uses `localhost:8180`; PostgreSQL uses loopback port 54329. Use the documented application hostname and port: the provider permits exact callbacks.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and sign in. Follow [private operator enrollment](docs/identity-operations.md#initial-operator-enrollment) on a new installation. Vite proxies `/api`, `/hubs`, `/auth`, `/signin-oidc` and `/signout-callback-oidc` to port 5080. Keycloak uses `localhost:8180`; PostgreSQL uses loopback port 54329. Use the documented application hostname and port: the provider permits exact callbacks.
 
-After authentication, the app opens an owned workspace or creates one when none exists. Workspace selection is scoped to the internal user. New workspaces open live aircraft; legacy demo workspaces retain their saved state until Save. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists changes; Ctrl/Cmd+K opens search. Changing a filter, panel, selection, camera, time or theme marks the workspace unsaved. **Sign out** ends the session and clears the current client state; previously saved work remains stored.
+After authentication, VANTAGE opens Home. Choose an existing workspace or create one before opening ATLAS; the app launcher also asks for a workspace. Home and Settings work without an open ATLAS pane. New workspaces open live aircraft; legacy demo workspaces retain their saved state until Save. **Search this area** moves the bounded aircraft query to the map centre. **List** provides a map-free alternative. **Save** or **Ctrl/Cmd+S** persists workspace changes; Ctrl/Cmd+K opens search. Filter, panel, selection, camera and time changes mark the workspace unsaved. Theme saves immediately as a personal preference and does not change the workspace revision. Returning Home retains an unsaved draft until another workspace is opened or the session ends. **Sign out** ends the session and clears the current client state; previously saved work remains stored.
 
 ## Run the built application in containers
 
@@ -160,35 +160,20 @@ npm --prefix frontend run test
 npm --prefix frontend run build
 ```
 
-The backend check creates and drops its own randomly named database on the local PostgreSQL server and applies real PostGIS migrations. It covers ownership, platform access without ATLAS, workspace revisions, spatial queries, domain revisions, source substitution, cancellation and retention isolation. It uses the ignored administrator connection, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips database scenarios without that environment variable. Frontend tests cover registration/import boundaries, session/CSRF handling, cancelled or late responses, cache cleanup, workspace ownership, domain ordering and marker behaviour. Check results belong in [implementation progress](docs/implementation-progress-2026-09-22.md); fixture checks alone do not verify Keycloak.
+The backend check creates and drops its own randomly named database on the local PostgreSQL server and applies real PostGIS migrations. It covers ownership, platform access without ATLAS, workspace revisions, personal preference migration/API behaviour, spatial queries, domain revisions, source substitution, cancellation and retention isolation. It uses the ignored administrator connection, or `VANTAGE_TEST_CONNECTION` when supplied. Plain `dotnet test` skips database scenarios without that environment variable. Frontend tests cover registration/import boundaries, session/CSRF handling, cancelled or late responses, cache cleanup, workspace ownership, preference separation, domain ordering and marker behaviour. Check results belong in [implementation progress](docs/implementation-progress-2026-09-22.md); fixture checks alone do not verify Keycloak.
 
-On Fedora, use the matching Playwright container against the built app. The separate real-provider script creates enrollment/sign-in/sign-out/revocation evidence using a temporary account; the operator's account and authenticator remain untouched. Authentication runs capture no screenshots, videos or traces. A protected, short-lived cookie state is then reused for domain regression tests, which mock observation WebSockets and public tiles. Authenticated network traces are disabled because they can contain cookies.
-
-Run the preparation/cleanup scripts as the normal operator, with Docker sudo access available; they invoke sudo for database operations internally. These commands keep credential/state files in ignored private directories and never print their contents:
+On Fedora, with the built app already running at `http://127.0.0.1:5080`, run the fixture-only Home browser check in the matching Playwright container. It intercepts session, workspace, preference and health requests, and uses no Keycloak administrator, application database or live connector:
 
 ```sh
-sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test up -d --build app
-python3 scripts/prepare-auth-verification.py
 sudo docker compose --env-file infra/.env -f infra/compose.yaml --profile test build browser
 sudo docker run --rm --network host --ipc=host \
-  -v "$(pwd)/artifacts/private-auth:/verification:Z" \
-  -v "$(pwd)/infra/keycloak/.local/credentials.json:/run/admin-credentials.json:ro,Z" \
   -e PLAYWRIGHT_BASE_URL=http://127.0.0.1:5080 \
-  vantage-browser node scripts/test-auth-live.mjs
-sudo docker run --network host --ipc=host --name vantage-browser-review \
-  -v "$(pwd)/artifacts/private-auth:/verification:ro,Z" \
-  -e PLAYWRIGHT_BASE_URL=http://127.0.0.1:5080 \
-  -e PLAYWRIGHT_STORAGE_STATE=/verification/state.json \
-  vantage-browser npm run test:browser
-mkdir -p artifacts
-sudo docker cp vantage-browser-review:/tests/frontend/test-results ./artifacts/browser-results
-sudo docker cp vantage-browser-review:/tests/frontend/playwright-report ./artifacts/browser-report
-python3 scripts/prepare-auth-verification.py --cleanup
+  vantage-browser npm run test:browser -- tests/browser/home-fixture.spec.ts
 ```
 
-Run cleanup even if a test fails; it removes only the temporary identity, its workspaces and ephemeral authentication files. The authenticated state expires with its session and must be regenerated if the application restarts. Keep `artifacts/private-auth` private and do not copy its contents into reports or task attachments. Domain screenshots/reports remain outside Git. Use a fresh container name on later runs, or remove the old test container with `sudo docker rm vantage-browser-review`.
+The browser fixture also covers canceling sign-out with an unsaved draft and completing a delayed logout response.
 
-To check native Vite, start the backend with the public origin shown above and use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173` for both browser invocations. Full physical-authenticator enrollment, account recovery and clean-install acceptance are distinct from the temporary-account protocol checks.
+This browser check does not verify real provider sign-in, persistent API writes or live source data. The older `frontend/scripts/test-auth-live.mjs` and authenticated browser setup still use the retired bootstrap administrator, so the earlier live-authentication command sequence is no longer usable. Do not put recovery-administrator credentials in test files. The owner's real password/TOTP and recovery handoff is recorded separately in [implementation progress](docs/implementation-progress-2026-09-22.md); a complete clean-install recovery exercise remains outstanding. Authenticated browser traces remain disabled because they can contain session cookies.
 
 ## Layout and configuration
 

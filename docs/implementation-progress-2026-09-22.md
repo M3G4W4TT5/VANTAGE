@@ -2,9 +2,13 @@
 
 ## Current checkpoint
 
-**Implementation-plan steps 1–3 are implemented and verified. Stop for owner review before step 4.** The operator's private password change/authenticator enrollment remains outstanding; the real-provider checks used a disposable account. This is not full prototype or AC-01–21 acceptance.
+**Implementation-plan steps 1–4 are implemented. Stop for owner review before step 5.** Step 4 adds Home, deliberate workspace launch, functional Settings and personal theme persistence. This is not full prototype or AC-01–21 acceptance.
 
 Initial checkout: clean `main` at `c37ebb5`. Read AGENTS, implementation plan, specification, design, ecosystem, decisions 0001–0008 and the change record. Existing assets and preparatory work were preserved. No commit or push performed.
+
+## Owner-reported identity handoff
+
+The owner reports completing the operator password change and authenticator-app TOTP enrollment, verifying fresh login/logout and invalid-password/OTP errors, establishing a permanent Keycloak recovery administrator, retiring the bootstrap administrator, and making protected identity backups. These are owner-reported facts, separate from the disposable-account checks recorded below and from step-4 checks. No recovery-administrator credential was read, copied into a test file or used in this step. The existing customized Keycloak sign-in theme and application workspaces were preserved.
 
 ## 1. Baseline and preservation — complete
 
@@ -45,7 +49,33 @@ Validate it before changing any application connection. Identity recovery is sep
 - `ISessionLifetime` leases cancel affected live/background demand on sign-out, expiry, revocation and access loss. Losing data permission ends data leases; regranting does not restart old work. This is a tested lifecycle contract for later recording, not a recording feature.
 - Frontend session boundaries abort old requests, clear observation caches/subscriptions and scope workspace selection to the owner. Late responses cannot restore a prior session's state. Backend cancellation does not depend on browser cleanup.
 
-## Verification results
+## 4. Home, navigation, workspaces and preferences — review checkpoint
+
+- Authentication now lands on VANTAGE Home without opening or creating a workspace. Home has Workspaces, Apps, System and Account areas. ATLAS launch chooses an existing or new workspace; the header returns Home while retaining the current draft. Settings is a registered system tool that opens without an ATLAS workspace. NEXUS is not advertised before its step-6 interface exists.
+- Home exposes create, open, rename, duplicate and delete for owned workspaces. Reload restores the saved revision. Switching away from unsaved work offers Save or Discard; reopening the same workspace from Home resumes its draft. The backend's owner checks and revision conflicts remain in force. Missing or incompatible app panes retain their saved state and show an unavailable explanation.
+- Personal theme has its own owner-scoped `platform.personal_preferences` row, revision-checked API and immediate Save, independently of workspace Save. The additive migration reads the most recently updated v1 workspace's valid theme, defaulting to dark when unavailable, and leaves all v1 workspace JSON intact for later state migration. Settings also shows authenticated application/storage status and links to the provider-managed account page.
+- Fresh protected application backup: ignored `artifacts/private-backups/20260922T215325Z/` (directory 0700/files 0600). Before migration it contained 1 workspace, 1 platform user, 1,862 current aircraft, 77 current earthquakes, 1 earthquake feed and 15,942 observations. The isolated PostgreSQL/PostGIS restore and migration check passed with every original row and field preserved. The migration `20260922215442_PersonalPreferences` was then applied to the operator database. Post-migration user and workspace row fingerprints exactly matched the fresh backup; the workspace count remains 1. The database volume and identity database were not recreated.
+- The restricted runtime role was granted only the new preferences table operations; provisioning verified it can read that table and still cannot access the Keycloak database or mutate platform identity mappings. OpenAPI and the NSwag client were regenerated from the new REST contract. ATLAS state v2 and configurable connections were not started.
+
+## Step 4 verification results
+
+Review follow-up (2026-09-23): fixed sign-out getting stuck on VANTAGE's spinner. The form now uses native POST/navigation without clearing the React session before the browser leaves. This also lets an unsaved-work unload prompt be canceled while retaining the draft. A credential-free browser regression passed against the rebuilt app: canceling the prompt sent no logout POST; accepting it completed a delayed POST and returned to the sign-in screen. This fixture does not replace a fresh real-operator logout check.
+
+| Check | Result |
+| --- | --- |
+| `dotnet build Vantage.slnx --no-restore` | Passed with no warnings or errors |
+| `node scripts/test-backend.mjs` | **23/23 passed, zero skipped** against isolated PostgreSQL/PostGIS databases; includes preference backfill, owner separation, default, update, conflict, invalid theme and restart |
+| `npm --prefix frontend run typecheck` and `lint` | Passed |
+| `npm --prefix frontend run test` | **25/25 passed, zero skipped** on the final integrated rerun |
+| Compose app rebuild (including `npm run build` in the image) | Passed; the built frontend and backend are in the local app for review |
+| `npm --prefix frontend run api:generate` | Regenerated OpenAPI and the NSwag TypeScript client for the preferences API |
+| `python3 scripts/backup-local.py` and `python3 scripts/verify-backup-migration.py artifacts/private-backups/20260922T215325Z` | Fresh protected application backup and isolated restore/migration verification passed; original rows and fields preserved |
+| `vantage-browser ./node_modules/.bin/playwright test tests/browser/home-fixture.spec.ts --reporter=list` | **1/1 passed** against the rebuilt production app at 5080; fixture-only Home/Settings/ATLAS launch, keyboard, 1440×900 desktop and narrow/reduced-motion checks, and both-theme workflow |
+| Built app `/api/v1/health` | `status: ready`, `storage: ready` after rebuild |
+
+Desktop screenshots at 1440×900 were inspected for dark Home, light Settings and the light ATLAS list view; the primary desktop layouts showed no material visual issue or horizontal overflow. The ATLAS screenshot uses an intentionally unavailable fixture live feed, so it verifies layout and empty/error presentation, not live connector data. Dark Home and light Settings were also inspected at 390px with no material issue. The browser check confirmed keyboard focus and no horizontal overflow at both widths. Five fixture screenshots are in ignored `artifacts/step-4-browser-review/`. It used fixture session/data responses, so it did not verify a live Keycloak sign-in or persistent API writes. The prior real Keycloak checks below used a disposable account. Step-4 authenticated browser and live-provider checks were skipped because their setup still requires the now-retired bootstrap administrator; no recovery-administrator credentials were put in tests. Manual operator sign-in/failure checks are owner-reported above, not agent-verified step-4 results.
+
+## Steps 1–3 verification results (prior checkpoint)
 
 | Check | Result |
 | --- | --- |
@@ -67,6 +97,14 @@ Safe evidence is in ignored `artifacts/milestone-auth-review/`: `live-result.jso
 
 ## Changed paths
 
+Step 4:
+
+- Backend/contracts: `Platform/Preferences/`, persistence model and `20260922215442_PersonalPreferences`, workspace/preference DTOs, restricted runtime-role provisioning, OpenAPI and generated TypeScript client.
+- Frontend: Home, Settings, shell navigation, registration and workspace draft handling, personal theme loading/saving, and associated CSS Modules.
+- Tests/docs: preference integration and frontend unit tests, fixture Home browser check, navigation helpers, README, identity-operations notes and this record.
+
+Steps 1–3 (prior checkpoint):
+
 - Backend: `Platform/Identity/`, `Platform/Observations/` controllers/hub, `Platform/Workspaces/WorkspacesController.cs`, health, Program composition, persistence/model/migration, session/workspace DTOs, package/lock files.
 - Contracts: `contracts/schemas/v1/records.schema.json`, generated OpenAPI and `frontend/src/api/generated/client.ts`.
 - Frontend: `platform/session/`, registry/contracts/shell/workspaces/observation channels, main composition, guarded earthquake evidence client, ESLint boundaries and Vite auth proxies.
@@ -75,10 +113,8 @@ Safe evidence is in ignored `artifacts/milestone-auth-review/`: `live-result.jso
 
 ## Runtime and exact next action
 
-Final rebuilt application is running at **http://127.0.0.1:5080**; health reports application/storage ready. PostgreSQL is healthy on loopback 54329; Keycloak is healthy at **http://localhost:8180**. The application was restarted after test cleanup, clearing all test sessions/demand. No recording exists or restarts. Prior unrelated stopped test containers were preserved.
+The rebuilt application is running for review at **http://127.0.0.1:5080**; `/api/v1/health` reports application and storage ready. The local PostgreSQL and Keycloak services retain their existing data and configuration. Rebuilding the app invalidates its in-memory sessions, so review requires a fresh operator sign-in. No recording feature exists or restarts. Node commands need the pinned mise runtime (`/home/megawatts/.local/share/mise/installs/node/24.20.0/bin` on this machine); Docker commands require sudo. Actual setup, migration and regeneration commands remain in README.
 
-Node commands need the pinned mise runtime; on this machine prepend `/home/megawatts/.local/share/mise/installs/node/24.20.0/bin` to PATH. Docker commands require sudo. Actual native/container setup, migration and regeneration commands are in README; credentials are never command-line arguments.
+**Next action: owner review of step 4.** Inspect Home, opening and creating ATLAS workspaces, returning Home with a draft, Settings without a workspace and personal theme in both modes. Stop before step 5. The owner has already completed private operator enrollment and recovery-administrator handoff; no temporary password or new credential enrollment is requested here.
 
-**Next action: owner review.** Follow [private operator enrollment](identity-operations.md#initial-operator-enrollment): obtain the temporary password from the protected local file in a trusted editor, sign in as `operator`, change the password and enroll the owner's authenticator. The provider currently reports `UPDATE_PASSWORD` and `CONFIGURE_TOTP` pending for that configured operator. Do not send the password, QR code, seed or codes into this task.
-
-Physical-device enrollment, full account/identity recovery, a complete clean-install recovery exercise, remote HTTPS deployment and measured full-prototype performance remain unverified. Deterministic expiry/provider-failure checks passed; the live run specifically verified stable sessions, sign-out and administrative revocation. Home is step 4 and requires the next authorization; NEXUS, composed ATLAS, GeoJSON and broader prototype acceptance remain later work.
+Step-4 build, backend/frontend suites and fixture browser/visual checks passed. Authenticated browser and live-provider checks were skipped because the retired bootstrap account is still required by their setup; the owner's fresh sign-in/logout and invalid-credential checks are reported above. Complete clean-install identity recovery, remote HTTPS deployment and measured full-prototype performance remain unverified. The prior live run verified session/sign-out/revocation behaviour with a disposable account. NEXUS, configurable connections, composed ATLAS, GeoJSON and broader AC-01–21 acceptance remain later work.

@@ -352,6 +352,90 @@ export class VantageClient {
         return Promise.resolve<WorkspaceDto>(null as any);
     }
 
+    personalPreferences_Get(signal?: AbortSignal): Promise<PersonalPreferencesDto> {
+        let url_ = this.baseUrl + "/api/v1/preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPersonalPreferences_Get(_response);
+        });
+    }
+
+    protected processPersonalPreferences_Get(response: Response): Promise<PersonalPreferencesDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PersonalPreferencesDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PersonalPreferencesDto>(null as any);
+    }
+
+    personalPreferences_Update(request: UpdatePersonalPreferencesRequest, signal?: AbortSignal): Promise<PersonalPreferencesDto> {
+        let url_ = this.baseUrl + "/api/v1/preferences";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPersonalPreferences_Update(_response);
+        });
+    }
+
+    protected processPersonalPreferences_Update(response: Response): Promise<PersonalPreferencesDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as PersonalPreferencesDto;
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            result400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<PersonalPreferencesDto>(null as any);
+    }
+
     aircraft_Source(signal?: AbortSignal): Promise<AircraftSourceDto> {
         let url_ = this.baseUrl + "/api/v1/aircraft/source";
         url_ = url_.replace(/[?&]$/, "");
@@ -730,6 +814,18 @@ export interface UpdateWorkspaceRequest {
 
 export interface DuplicateWorkspaceRequest {
     name?: string;
+    revision?: number;
+}
+
+export interface PersonalPreferencesDto {
+    schemaVersion?: number;
+    theme?: string;
+    revision?: number;
+    updatedAt?: string | undefined;
+}
+
+export interface UpdatePersonalPreferencesRequest {
+    theme?: string;
     revision?: number;
 }
 
