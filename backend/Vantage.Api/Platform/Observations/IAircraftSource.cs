@@ -20,7 +20,7 @@ public sealed class AircraftSources
     {
         var registered = adapters.ToDictionary(x => x.Metadata.Id, StringComparer.Ordinal);
         var id = configuration["Sources:Aircraft:Provider"];
-        Active = id is null && registered.Count == 1 ? registered.Values.Single() :
+        Active = registered.Count == 1 ? registered.Values.Single() :
             id is not null && registered.TryGetValue(id, out var source) ? source :
             throw new InvalidOperationException("Sources:Aircraft:Provider must identify a registered aircraft adapter.");
         var m = Active.Metadata;

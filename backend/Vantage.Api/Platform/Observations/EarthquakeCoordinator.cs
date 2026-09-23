@@ -1,43 +1,94 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.EntityFrameworkCore;
 using Vantage.Api.Contracts;
+using Vantage.Api.Persistence;
+using Vantage.Api.Platform.Connections;
+
 namespace Vantage.Api.Platform.Observations;
 
-// One global source-defined snapshot shared across all earthquake panes/tabs. No per-filter upstream requests.
-public sealed class EarthquakeCoordinator(IServiceScopeFactory scopes, EarthquakeSources sources,
-    ILogger<EarthquakeCoordinator> logger) : BackgroundService
+// One source-defined catalog operation per authorized connection/revision, shared by its panes.
+public sealed class EarthquakeCoordinator(IServiceScopeFactory scopes, EarthquakeSources sources, ProviderRequestBudget budget,
+    ILogger<EarthquakeCoordinator> logger) : BackgroundService, IConnectionDemandControl
 {
+    private sealed record Key(string ConnectionId, long Revision, string OwnerId);
+    private sealed class Demand(Key key, int pollSeconds)
+    {
+        public Key Key { get; } = key;
+        public int PollSeconds { get; } = pollSeconds;
+        public string SubscriptionId { get; } = Guid.NewGuid().ToString("N");
+        public CancellationTokenSource Cancellation { get; } = new();
+        public HashSet<Channel<EarthquakeBatchDto>> Subscribers { get; } = [];
+        public EarthquakeRecordDto[] Records { get; set; } = [];
+        public SourceHealthDto Health { get; set; } = new("loading", "Loading the local earthquake cache.", null, null, null);
+        public EarthquakeCompletenessDto? Completeness { get; set; }
+        public long Sequence { get; set; }
+        public bool Initialized { get; set; }
+        public int Failures { get; set; }
+        public DateTimeOffset Next { get; set; }
+    }
     private readonly object gate = new();
-    private readonly HashSet<Channel<EarthquakeBatchDto>> subscribers = [];
-    private CancellationTokenSource demandCancellation = new();
-    private readonly string subscriptionId = Guid.NewGuid().ToString("N");
-    private EarthquakeRecordDto[] records = [];
-    private SourceHealthDto health = new("loading", "Loading the local earthquake cache.", null, null, null);
-    private EarthquakeCompletenessDto? completeness;
-    private long sequence;
-    private bool initialized;
-    private int failures;
-    private DateTimeOffset next;
+    private readonly Dictionary<Key, Demand> demands = [];
+    private readonly Dictionary<string, DateTimeOffset> providerNext = [];
     public EarthquakeSourceDto Source => sources.Active.Metadata;
 
-    public async IAsyncEnumerable<EarthquakeBatchDto> Subscribe([EnumeratorCancellation] CancellationToken ct)
+    public ConnectionDemandSnapshot Snapshot(string connectionId)
     {
-        var channel = Channel.CreateBounded<EarthquakeBatchDto>(new BoundedChannelOptions(4) { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
         lock (gate)
         {
-            if (subscribers.Count >= 32) throw new InvalidOperationException("The earthquake subscription limit has been reached.");
-            if (subscribers.Count == 0) { demandCancellation.Dispose(); demandCancellation = new(); }
-            subscribers.Add(channel); channel.Writer.TryWrite(Batch(true, records, []));
+            var active = demands.Values.Where(x => x.Key.ConnectionId == connectionId).ToArray();
+            if (active.Length == 0) return new(0, 0, null, null);
+            var states = active.Select(x => x.Health.State).Distinct().ToArray();
+            return new(active.Length, active.Sum(x => x.Subscribers.Count),
+                states.Length == 1 ? states[0] : "mixed",
+                states.Length == 1 ? active[0].Health.Message : "Active subscriptions have different source states.");
+        }
+    }
+
+    public async IAsyncEnumerable<EarthquakeBatchDto> Subscribe([EnumeratorCancellation] CancellationToken ct,
+        ConnectionRow? connection = null)
+    {
+        connection ??= new ConnectionRow { Id = BuiltinConnections.Earthquakes, OwnerId = "internal", Revision = 1,
+            ConnectorTypeId = "usgs-earthquakes", SettingsJson = "{\"pollSeconds\":60}" };
+        var key = new Key(connection.Id, connection.Revision, connection.OwnerId);
+        var poll = JsonPollSeconds(connection.SettingsJson, Source.PollSeconds);
+        var channel = Channel.CreateBounded<EarthquakeBatchDto>(new BoundedChannelOptions(4) {
+            FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true });
+        Demand demand;
+        lock (gate)
+        {
+            if (!demands.TryGetValue(key, out demand!))
+            {
+                if (demands.Count >= 8) throw new InvalidOperationException("The earthquake connection limit has been reached.");
+                demand = new(key, poll) { Next = providerNext.GetValueOrDefault(connection.Id) };
+                demands.Add(key, demand);
+            }
+            if (demand.Subscribers.Count >= 32) throw new InvalidOperationException("The earthquake subscription limit has been reached.");
+            demand.Subscribers.Add(channel);
+            channel.Writer.TryWrite(Batch(demand, true, demand.Records, []));
         }
         try { await foreach (var batch in channel.Reader.ReadAllAsync(ct)) yield return batch; }
         finally
         {
             lock (gate)
             {
-                subscribers.Remove(channel); channel.Writer.TryComplete();
-                if (subscribers.Count == 0) demandCancellation.Cancel();
+                demand.Subscribers.Remove(channel); channel.Writer.TryComplete();
+                if (demand.Subscribers.Count == 0) { demands.Remove(key); demand.Cancellation.Cancel(); }
             }
         }
+    }
+    public void Cancel(string connectionId)
+    {
+        lock (gate) foreach (var (key, demand) in demands.Where(x => x.Key.ConnectionId == connectionId).ToArray())
+        {
+            demands.Remove(key); demand.Cancellation.Cancel();
+            foreach (var subscriber in demand.Subscribers) subscriber.Writer.TryComplete();
+        }
+    }
+    private static int JsonPollSeconds(string json, int fallback)
+    {
+        try { return Math.Clamp(System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty("pollSeconds").GetInt32(), 60, 3600); }
+        catch (System.Text.Json.JsonException) { return fallback; }
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -45,67 +96,84 @@ public sealed class EarthquakeCoordinator(IServiceScopeFactory scopes, Earthquak
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                CancellationToken? demand;
-                lock (gate) demand = subscribers.Count > 0 && next <= DateTimeOffset.UtcNow ? demandCancellation.Token : null;
-                if (demand is { } token) await Refresh(token, stoppingToken);
+                Demand? demand;
+                lock (gate) demand = demands.Values.Where(x => x.Next <= DateTimeOffset.UtcNow).OrderBy(x => x.Next).FirstOrDefault();
+                if (demand is not null) await Refresh(demand, stoppingToken);
                 await Task.Delay(500, stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
-        finally { lock (gate) { foreach (var channel in subscribers) channel.Writer.TryComplete(); demandCancellation.Cancel(); } }
+        finally { lock (gate) foreach (var demand in demands.Values) { demand.Cancellation.Cancel(); foreach (var channel in demand.Subscribers) channel.Writer.TryComplete(); } }
     }
-    private async Task Refresh(CancellationToken demand, CancellationToken stop)
+    private async Task Refresh(Demand demand, CancellationToken stop)
     {
-        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(demand, stop); var ct = cancellation.Token;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(demand.Cancellation.Token, stop);
+        var ct = cancellation.Token;
         try
         {
-            await using var scope = scopes.CreateAsyncScope(); var store = scope.ServiceProvider.GetRequiredService<EarthquakeStore>();
-            if (!initialized)
+            await using var scope = scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<VantageDbContext>();
+            var store = scope.ServiceProvider.GetRequiredService<EarthquakeStore>();
+            var connection = await db.Connections.AsNoTracking().SingleOrDefaultAsync(x => x.Id == demand.Key.ConnectionId, ct);
+            if (connection is null || connection.RemovedAt is not null || !connection.Enabled ||
+                connection.Revision != demand.Key.Revision) { Cancel(demand.Key.ConnectionId); return; }
+            if (!demand.Initialized)
             {
-                var saved = await store.QueryAsync(Source, ct); initialized = true;
-                Publish(saved.Records, new("loading", "Cached earthquake snapshot loaded; refreshing the source.", saved.Completeness.FeedRetrievedAt, null,
-                    saved.Completeness.ProviderCount, saved.Completeness.RejectedCount), saved.Completeness);
+                var saved = await store.QueryAsync(Source, ct, demand.Key.ConnectionId);
+                demand.Initialized = true;
+                Publish(demand, saved.Records, new("loading", "Cached earthquake snapshot loaded; refreshing the source.",
+                    saved.Completeness.FeedRetrievedAt, null, saved.Completeness.ProviderCount,
+                    saved.Completeness.RejectedCount), saved.Completeness);
             }
-            if (!sources.Active.Enabled)
+            if (!sources.Active.Enabled || connection.CredentialRef is not null)
             {
-                next = DateTimeOffset.MaxValue;
-                Publish(records, health with { State = "disabled", Message = "The earthquake source is disabled in server configuration. Cached events remain available.", NextAttemptAt = null }, completeness!);
+                demand.Next = DateTimeOffset.MaxValue;
+                Publish(demand, demand.Records, demand.Health with { State = connection.CredentialRef is null ? "disabled" : "setup_required",
+                    Message = "This connection cannot collect until its configuration is available.", NextAttemptAt = null },
+                    demand.Completeness ?? EmptyCompleteness());
                 return;
             }
-            // Persist cadence in coordinator memory across subscriber churn; closing/reopening never accelerates polling.
-            next = DateTimeOffset.UtcNow.AddSeconds(Source.PollSeconds);
+            if (budget.Reserve("usgs-earthquakes", TimeSpan.FromSeconds(30)) is { } ready)
+            { demand.Next = ready; return; }
+            demand.Next = DateTimeOffset.UtcNow.AddSeconds(demand.PollSeconds);
+            lock (gate) providerNext[demand.Key.ConnectionId] = demand.Next;
             var fetch = await sources.Active.FetchAsync(ct);
             if (fetch.Records.Length > Source.ResultLimit) throw new SourceException("error", "The earthquake adapter exceeded its declared result limit.");
-            await store.SaveAsync(Source.Id, fetch, ct); await store.PruneAsync(Source.Id, ct);
-            var current = await store.QueryAsync(Source, ct); failures = 0;
+            await store.SaveAsync(Source.Id, fetch, ct, demand.Key.ConnectionId, demand.Key.ConnectionId + ":events", demand.Key.Revision);
+            await store.PruneAsync(Source.Id, ct, demand.Key.ConnectionId);
+            var current = await store.QueryAsync(Source, ct, demand.Key.ConnectionId); demand.Failures = 0;
             var partial = current.Completeness.Truncated || fetch.Rejected > 0;
-            Publish(current.Records, new(partial ? "degraded" : "healthy",
-                partial ? "Partial feed: rejected or limited records; previous members may be retained. See completeness." : "Current source snapshot received. Event age is separate from feed freshness.",
-                fetch.RetrievedAt, next, fetch.Total, fetch.Rejected), current.Completeness);
+            Publish(demand, current.Records, new(partial ? "degraded" : "healthy",
+                partial ? "Partial feed; previous members may be retained." : "Current source snapshot received. Event age is separate from feed freshness.",
+                fetch.RetrievedAt, demand.Next, fetch.Total, fetch.Rejected), current.Completeness);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         catch (Exception ex)
         {
-            failures++;
+            demand.Failures++;
             var known = ex as SourceException;
-            next = known?.State == "setup_required" ? DateTimeOffset.MaxValue : DateTimeOffset.UtcNow + SourceTransport.Backoff(Source.PollSeconds, failures, known?.RetryAfter);
-            Publish(records, health with { State = known?.State ?? "offline", NextAttemptAt = next == DateTimeOffset.MaxValue ? null : next,
-                Message = known?.Message ?? (ex is Npgsql.NpgsqlException ? "Earthquake storage is unavailable. Check the database and migrations." : "The earthquake source is unavailable. Last successful data is retained.") },
-                completeness ?? EmptyCompleteness());
+            demand.Next = known?.State == "setup_required" ? DateTimeOffset.MaxValue : DateTimeOffset.UtcNow +
+                SourceTransport.Backoff(demand.PollSeconds, demand.Failures, known?.RetryAfter);
+            lock (gate) providerNext[demand.Key.ConnectionId] = demand.Next;
+            Publish(demand, demand.Records, demand.Health with { State = known?.State ?? "offline", NextAttemptAt = demand.Next == DateTimeOffset.MaxValue ? null : demand.Next,
+                Message = known?.Message ?? (ex is Npgsql.NpgsqlException ? "Earthquake storage is unavailable." : "The source is unavailable; last successful data is retained.") },
+                demand.Completeness ?? EmptyCompleteness());
             logger.LogWarning("Earthquake refresh failed ({ErrorType}); no provider payload logged.", ex.GetType().Name);
         }
     }
     private EarthquakeCompletenessDto EmptyCompleteness() => new(0, Source.ResultLimit, false, Source.Coverage, null, null, null, 0);
-    private void Publish(EarthquakeRecordDto[] current, SourceHealthDto status, EarthquakeCompletenessDto coverage)
+    private void Publish(Demand demand, EarthquakeRecordDto[] current, SourceHealthDto status, EarthquakeCompletenessDto completeness)
     {
         lock (gate)
         {
-            var (upserts, removals) = BatchChanges.Between(records, current, x => x.Entity.Id, x => x.Observation.Id);
-            records = current; health = status; completeness = coverage; sequence++;
-            var batch = Batch(false, upserts, removals);
-            foreach (var channel in subscribers) channel.Writer.TryWrite(batch);
+            if (demand.Cancellation.IsCancellationRequested) return;
+            var (upserts, removals) = BatchChanges.Between(demand.Records, current, x => x.Entity.Id, x => x.Observation.Id);
+            demand.Records = current; demand.Health = status; demand.Completeness = completeness; demand.Sequence++;
+            var batch = Batch(demand, false, upserts, removals);
+            foreach (var subscriber in demand.Subscribers) subscriber.Writer.TryWrite(batch);
         }
     }
-    private EarthquakeBatchDto Batch(bool reset, EarthquakeRecordDto[] upserts, string[] removals) =>
-        new(1, subscriptionId, sequence, DateTimeOffset.UtcNow, reset, upserts, removals, health, completeness ?? EmptyCompleteness(), Source);
+    private EarthquakeBatchDto Batch(Demand d, bool reset, EarthquakeRecordDto[] upserts, string[] removals) =>
+        new(1, d.SubscriptionId, d.Sequence, DateTimeOffset.UtcNow, reset, upserts, removals, d.Health,
+            d.Completeness ?? EmptyCompleteness(), Source with { PollSeconds = d.PollSeconds });
 }

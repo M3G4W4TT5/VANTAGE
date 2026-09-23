@@ -23,8 +23,9 @@ export type EarthquakeBatch = { schemaVersion: 1; subscriptionId: string; sequen
   completeness: EarthquakeCompleteness; source: Required<EarthquakeSourceDto> };
 export type EarthquakeSnapshot = ObservationSnapshot<EarthquakeRecord, EarthquakeCompleteness, Required<EarthquakeSourceDto>, SourceHealth>;
 export class EarthquakeChannel extends ObservationChannel<EarthquakeRecord, EarthquakeCompleteness, Required<EarthquakeSourceDto>, SourceHealth, EarthquakeBatch> {
-  constructor(released: () => void = () => {}) {
-    super({ method: 'Earthquakes', args: [], replaceEqual: false, released,
+  constructor(readonly connectionId?: string, readonly workspaceId?: string, released: () => void = () => {}) {
+    super({ method: connectionId ? 'EarthquakeConnection' : 'Earthquakes', args: connectionId ? [connectionId, workspaceId ?? null] : [],
+      replaceEqual: false, released,
       order: record => record.observation.properties.sourceUpdatedAt,
       validate: value => { validateContract<EarthquakeBatch>('EarthquakeBatch', value); return value; },
       initial: { records: [], transport: 'connecting', resets: 0,
@@ -33,10 +34,12 @@ export class EarthquakeChannel extends ObservationChannel<EarthquakeRecord, Eart
     });
   }
 }
-let current: EarthquakeChannel | undefined;
-export function earthquakeChannel() {
-  if (!current) { const channel = new EarthquakeChannel(() => { if (current === channel) current = undefined; }); current = channel; }
-  return current;
+const channels = new Map<string, EarthquakeChannel>();
+export function earthquakeChannel(connectionId?: string, workspaceId?: string) {
+  const key = `${connectionId ?? 'default'}:${workspaceId ?? 'global'}`;
+  let channel = channels.get(key);
+  if (!channel) { channel = new EarthquakeChannel(connectionId, workspaceId, () => { if (channels.get(key) === channel) channels.delete(key); }); channels.set(key, channel); }
+  return channel;
 }
-export function clearEarthquakeChannel() { current?.dispose(); current = undefined; }
+export function clearEarthquakeChannel() { for (const channel of [...channels.values()]) channel.dispose(); channels.clear(); }
 sessionService.onInvalidate(clearEarthquakeChannel);

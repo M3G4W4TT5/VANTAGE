@@ -99,6 +99,8 @@ Migrate v1 workspaces using the previously active domain's camera/participation,
 
 ## 8. Unified ATLAS interface
 
+The owner's 2026-09-23 interface revisions supersede the original control placement and group-focus details below. The current implemented controls and verification are recorded in [DESIGN.md](../DESIGN.md) and the [progress record](implementation-progress-2026-09-22.md). This does not authorize step 9.
+
 Implement Layers / Sources / Tools, category/layer navigation, shared control sections and combined legends. Add the grouped record explorer, mixed/domain tables, honest counts, explicit result scope, full-area list mode, overlap picking and shared inspection. Keep layer focus, record selection, visibility, participation and drawing order distinct. ATLAS Sources adds datasets as layers and opens the relevant NEXUS configuration.
 
 Establish the shared dock/time structure for current capabilities and later extensions. Preserve keyboard focus, resizable panels, both themes, original branding and 2D/3D labels. Show supported actions and honest unavailability; full media, recording/replay, imagery acquisition and annotation/clip workflows remain in the following feature stage.

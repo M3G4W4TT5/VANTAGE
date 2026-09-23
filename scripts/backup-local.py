@@ -48,7 +48,8 @@ def main():
         with path.open('wb') as output:
             subprocess.run(docker + args, check=True, stdout=output)
 
-    docker_to_file(['pg_dump', '-U', 'vantage', '-d', 'vantage', '-Fc', '--no-owner', '--no-privileges'], destination/'vantage.dump')
+    docker_to_file(['pg_dump', '-U', 'vantage', '-d', 'vantage', '-Fc', '--no-owner', '--no-privileges',
+                    '--exclude-table-data=private.connection_secrets'], destination/'vantage.dump')
     docker_to_file(['pg_dump', '-U', 'vantage', '-d', 'vantage', '--schema-only', '--no-owner', '--no-privileges'], destination/'schema.sql')
     fingerprints = capture_fingerprints(docker + ['psql', '-U', 'vantage', '-d', 'vantage'])
     manifest = {
@@ -57,7 +58,7 @@ def main():
         'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
         'tables': fingerprints,
         'files': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in destination.iterdir()},
-        'exclusions': ['Keycloak database', 'local secret configuration', 'session tickets/tokens'],
+        'exclusions': ['Keycloak database', 'local secret configuration', 'connection secret values', 'session tickets/tokens'],
         'binaryAssets': 'No persistent user binary assets implemented at this checkpoint.',
     }
     (destination/'manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vantage.local/schemas/v1/connection-export.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "connections"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "connections": { "type": "array", "maxItems": 100, "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "connectorTypeId", "name", "scope", "enabled", "settings", "requiresCredential"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "connectorTypeId": { "type": "string" }, "name": { "type": "string" },
+        "scope": { "enum": ["global", "workspace"] }, "workspaceId": { "type": ["string", "null"] },
+        "enabled": { "type": "boolean" }, "settings": { "type": "object" },
+        "requiresCredential": { "type": "boolean" }
+      }
+    } }
+  }
+}

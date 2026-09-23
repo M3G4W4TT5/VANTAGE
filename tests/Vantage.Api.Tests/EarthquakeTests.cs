@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NJsonSchema;
@@ -55,13 +54,13 @@ public sealed class EarthquakeTests
     public async Task RateLimitPermissionAndCancellationStayExplicit()
     {
         using var http = new HttpClient(new Handler(HttpStatusCode.TooManyRequests));
-        var source = new UsgsEarthquakeSource(http, new ConfigurationBuilder().Build());
+        var source = new UsgsEarthquakeSource(http);
         var error = await Assert.ThrowsAsync<SourceException>(() => source.FetchAsync(CancellationToken.None));
         Assert.Equal("rate_limited", error.State); Assert.Equal(TimeSpan.FromMinutes(5), error.RetryAfter);
         Assert.True(SourceTransport.Backoff(60, 1, error.RetryAfter) >= TimeSpan.FromMinutes(5));
         using var denied = new HttpClient(new Handler(HttpStatusCode.Forbidden));
-        Assert.Equal("setup_required", (await Assert.ThrowsAsync<SourceException>(() => new UsgsEarthquakeSource(denied,
-            new ConfigurationBuilder().Build()).FetchAsync(CancellationToken.None))).State);
+        Assert.Equal("setup_required", (await Assert.ThrowsAsync<SourceException>(() => new UsgsEarthquakeSource(denied)
+            .FetchAsync(CancellationToken.None))).State);
         using var ct = new CancellationTokenSource(); ct.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => source.FetchAsync(ct.Token));
     }

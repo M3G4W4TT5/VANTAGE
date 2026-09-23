@@ -4,13 +4,17 @@ using Microsoft.EntityFrameworkCore;
 using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
 using Vantage.Api.Platform.Identity;
+using Vantage.Api.Platform.Connections;
+using Vantage.Api.Platform.Preferences;
 
 namespace Vantage.Api.Platform.Workspaces;
 
 [ApiController]
 [Route("api/v1/workspaces")]
 [Produces("application/json")]
-public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidation validation, IEnumerable<IWorkspaceTemplate> templates, PlatformAccess access) : ControllerBase
+public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidation validation, IEnumerable<IWorkspaceTemplate> templates,
+    PlatformAccess access, IEnumerable<IConnectionDemandControl> demandControls,
+    IEnumerable<IWorkspaceStateMigrator> stateMigrators) : ControllerBase
 {
     [HttpGet(Name = "ListWorkspaces")]
     public async Task<ActionResult<WorkspaceSummaryDto[]>> List(CancellationToken ct)
@@ -32,7 +36,8 @@ public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidatio
         var id = Guid.NewGuid().ToString("N");
         var template = templates.FirstOrDefault();
         if (template is null) return Conflict(new ApiError("app_unavailable", "No workspace app is registered. Existing work remains available."));
-        var state = template.Create(id);
+        var preferences = await db.PersonalPreferences.AsNoTracking().SingleOrDefaultAsync(x => x.UserId == owner.Id, ct);
+        var state = template.Create(id, preferences?.DefaultRegion ?? DisplayPreferences.DefaultRegion);
         var row = new WorkspaceRow { Id = id, OwnerId = owner.Id, Name = request.Name.Trim(), Revision = 1,
             StateJson = JsonSerializer.Serialize(state, WorkspaceValidation.Json), CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow };
         db.Workspaces.Add(row);
@@ -49,8 +54,8 @@ public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidatio
         var owner = await access.RequireUserAsync(ct);
         var row = await db.Workspaces.AsNoTracking().SingleOrDefaultAsync(w => w.Id == id && w.OwnerId == owner.Id, ct);
         if (row is null) return NotFound(new ApiError("not_found", "Workspace not found."));
-        var state = ReadState(row);
-        if (state is null) return UnprocessableEntity(new ApiError("invalid_workspace", "Stored workspace state is invalid or unsupported. It has been preserved."));
+        var state = ReadState(row, out var recovery);
+        if (state is null) return UnprocessableEntity(new ApiError("invalid_workspace", recovery));
         return ToDto(row, state);
     }
 
@@ -89,8 +94,8 @@ public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidatio
         var source = await db.Workspaces.AsNoTracking().SingleOrDefaultAsync(w => w.Id == id && w.OwnerId == owner.Id, ct);
         if (source is null) return NotFound(new ApiError("not_found", "Workspace not found."));
         if (source.Revision != request.Revision) return Conflict(ConflictError);
-        var state = ReadState(source);
-        if (state is null) return UnprocessableEntity(new ApiError("invalid_workspace", "The original workspace has invalid state and has been preserved."));
+        var state = ReadState(source, out var recovery);
+        if (state is null) return UnprocessableEntity(new ApiError("invalid_workspace", recovery));
         if (await db.Workspaces.CountAsync(w => w.OwnerId == owner.Id, ct) >= 100) return BadRequest(new ApiError("workspace_limit", "The prototype supports up to 100 workspaces."));
         var newId = Guid.NewGuid().ToString("N");
         foreach (var pane in state.Panes) pane.Context["workspaceId"] = newId;
@@ -110,20 +115,37 @@ public sealed class WorkspacesController(VantageDbContext db, WorkspaceValidatio
         var row = await db.Workspaces.SingleOrDefaultAsync(w => w.Id == id && w.OwnerId == owner.Id, ct);
         if (row is null) return NotFound(new ApiError("not_found", "Workspace not found."));
         if (row.Revision != revision) return Conflict(ConflictError);
+        var scopedConnections = await db.Connections.AsNoTracking().Where(x => x.OwnerId == owner.Id &&
+            x.Scope == "workspace" && x.WorkspaceId == id).Select(x => x.Id).ToArrayAsync(ct);
         db.Workspaces.Remove(row);
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException) { return Conflict(ConflictError); }
+        foreach (var connectionId in scopedConnections)
+            foreach (var control in demandControls) control.Cancel(connectionId);
         return NoContent();
     }
 
-    private WorkspaceStateDto? ReadState(WorkspaceRow row)
+    private WorkspaceStateDto? ReadState(WorkspaceRow row, out string recovery)
     {
+        recovery = "Stored workspace state is invalid or unsupported. Its original JSON remains in the database for repair or protected-backup recovery.";
         try
         {
             var state = JsonSerializer.Deserialize<WorkspaceStateDto>(row.StateJson, WorkspaceValidation.Json);
-            return state is not null && validation.Validate(row.Id, row.SchemaVersion, state) is null ? state : null;
+            if (state is null) return null;
+            var migrator = stateMigrators.FirstOrDefault(item => item.AppliesTo(state));
+            var error = validation.Validate(row.Id, row.SchemaVersion, state, allowLegacyAtlas: migrator is not null);
+            if (error is not null) { recovery = $"{error} The original JSON remains in the database for repair or protected-backup recovery."; return null; }
+            if (migrator is null) return state;
+            var migrated = migrator.Migrate(state);
+            error = validation.Validate(row.Id, row.SchemaVersion, migrated);
+            if (error is not null) { recovery = $"ATLAS v1 conversion failed: {error} The original JSON remains in the database for repair or protected-backup recovery."; return null; }
+            return migrated;
         }
-        catch (JsonException) { return null; }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or ArgumentException)
+        {
+            recovery = "Stored workspace JSON could not be read or converted. The original remains in the database for repair or protected-backup recovery.";
+            return null;
+        }
     }
     private static ApiError ConflictError => new("revision_conflict", "This workspace changed elsewhere. Reload it before saving again.");
     private static WorkspaceDto ToDto(WorkspaceRow row, WorkspaceStateDto state) => new(row.Id, row.OwnerId, row.Name, row.Revision,

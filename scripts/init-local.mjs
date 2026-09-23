@@ -9,7 +9,8 @@ let content = readFileSync(env, 'utf8');
 for (const [key, value] of Object.entries({ VANTAGE_OWNER_ID: randomUUID(), VANTAGE_OWNER_SUBJECT: randomUUID(),
   VANTAGE_IDENTITY_ISSUER: 'http://localhost:8180/realms/vantage',
   KEYCLOAK_DB_PASSWORD: randomBytes(32).toString('hex'), VANTAGE_OIDC_CLIENT_SECRET: randomBytes(32).toString('hex'),
-  VANTAGE_APP_DB_PASSWORD: randomBytes(32).toString('hex') })) {
+  VANTAGE_APP_DB_PASSWORD: randomBytes(32).toString('hex'),
+  VANTAGE_CONNECTION_KEY: randomBytes(32).toString('base64') })) {
   if (!new RegExp(`^${key}=`, 'm').test(content)) content += `${key}=${value}\n`;
 }
 writeFileSync(env, content, { mode: 0o600 });
@@ -25,6 +26,15 @@ if (!existsSync(settings)) writeFileSync(settings, JSON.stringify({
 const configuration = JSON.parse(readFileSync(settings, 'utf8'));
 configuration.ConnectionStrings.VantageRuntime ??= `Host=127.0.0.1;Port=${port};Database=vantage;Username=vantage_app;Password=${value('VANTAGE_APP_DB_PASSWORD')}`;
 configuration.Identity ??= {};
+configuration.Connections ??= {};
+configuration.Connections.EncryptionKey ??= value('VANTAGE_CONNECTION_KEY');
+configuration.Sources ??= {};
+configuration.Sources.Aircraft ??= { Provider: value('VANTAGE_AIRCRAFT_PROVIDER') ?? 'adsb-lol' };
+configuration.Sources.AdsbLol ??= { Enabled: value('VANTAGE_ADSB_ENABLED') !== 'false',
+  PollSeconds: Number(value('VANTAGE_ADSB_POLL_SECONDS') ?? 30) };
+configuration.Sources.Earthquakes ??= { Provider: value('VANTAGE_EARTHQUAKE_PROVIDER') ?? 'usgs-earthquakes' };
+configuration.Sources.Usgs ??= { Enabled: value('VANTAGE_USGS_ENABLED') !== 'false',
+  PollSeconds: Number(value('VANTAGE_USGS_POLL_SECONDS') ?? 60) };
 configuration.Identity.InitialOperator ??= { Id: value('VANTAGE_OWNER_ID'), Subject: value('VANTAGE_OWNER_SUBJECT'),
   Issuer: value('VANTAGE_IDENTITY_ISSUER'), DisplayName: 'Operator' };
 if (configuration.Identity.InitialOperator.Id !== value('VANTAGE_OWNER_ID') ||

@@ -1,5 +1,7 @@
 # Gotham capabilities and implications for VANTAGE
 
+For a factual inventory of Gotham, Europa, current public API documentation, and the saved screenshots, see [Gotham and Gotham Europa — public capability inventory](gotham-europa-capability-inventory.md). This document remains the historical VANTAGE comparison and recommendations.
+
 Review date: 2026-09-21. Original discussion document; recommendations did not change prototype scope until adopted in the governing specification. See the follow-up below.
 
 Follow-up, 2026-09-21: the original assessment below compared specification v0.4. Following owner approval, [specification v0.7](../PROTOTYPE_SPEC.md) adopts the focused evidence, saved-query, radius-search and recovery changes. The [ecosystem brief](../VANTAGE_ECOSYSTEM.md) now maps descriptive capability categories to documented tools and analytical methods; its future-app directions remain exploratory. The original source inventory and comparison below are retained as review history.

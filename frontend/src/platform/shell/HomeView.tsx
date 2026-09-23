@@ -37,7 +37,7 @@ export function HomeView({ registry, workspaces, currentWorkspaceId, busy, sessi
     <div className={styles.heading}>
       <p className={styles.eyebrow}>VANTAGE</p>
       <h1>Home</h1>
-      <p>Open a workspace, launch an app or manage your settings.</p>
+      <p>Open a workspace, launch an app or manage connections and settings.</p>
     </div>
 
     <div className={styles.sections}>
@@ -85,7 +85,7 @@ export function HomeView({ registry, workspaces, currentWorkspaceId, busy, sessi
       <section className={styles.section} aria-labelledby="home-system">
         <div className={styles.sectionHeading}><div><p className={styles.sectionNumber}>03 / MANAGE</p><h2 id="home-system">System</h2></div></div>
         {systemTools.length ? <ul className={styles.destinationList}>{systemTools.map(tool => <li key={tool.manifest.id}>
-          <span className={styles.destinationLabel}>{tool.manifest.navigation.label}</span>
+          <div className={styles.destinationName}><img src={tool.manifest.branding[theme]} alt="" /><span>{tool.manifest.navigation.label}</span></div>
           <Button minimal rightIcon="arrow-right" disabled={busy} onClick={() => onOpenSystem(tool.manifest.id)}
             aria-label={`Open ${tool.manifest.navigation.label}`}>Open</Button>
         </li>)}</ul> : <p className={styles.empty}>No system tools are available.</p>}

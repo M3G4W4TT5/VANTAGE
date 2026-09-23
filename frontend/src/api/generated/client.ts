@@ -436,8 +436,12 @@ export class VantageClient {
         return Promise.resolve<PersonalPreferencesDto>(null as any);
     }
 
-    aircraft_Source(signal?: AbortSignal): Promise<AircraftSourceDto> {
-        let url_ = this.baseUrl + "/api/v1/aircraft/source";
+    aircraft_Source(connectionId?: string | null | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<AircraftSourceDto> {
+        let url_ = this.baseUrl + "/api/v1/aircraft/source?";
+        if (connectionId !== undefined && connectionId !== null)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -470,7 +474,7 @@ export class VantageClient {
         return Promise.resolve<AircraftSourceDto>(null as any);
     }
 
-    aircraft_Query(longitude?: number | undefined, latitude?: number | undefined, radiusNm?: number | undefined, signal?: AbortSignal): Promise<AircraftRecordDto[]> {
+    aircraft_Query(longitude?: number | undefined, latitude?: number | undefined, radiusNm?: number | undefined, connectionId?: string | null | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<AircraftRecordDto[]> {
         let url_ = this.baseUrl + "/api/v1/aircraft?";
         if (longitude === null)
             throw new globalThis.Error("The parameter 'longitude' cannot be null.");
@@ -484,6 +488,10 @@ export class VantageClient {
             throw new globalThis.Error("The parameter 'radiusNm' cannot be null.");
         else if (radiusNm !== undefined)
             url_ += "radiusNm=" + encodeURIComponent("" + radiusNm) + "&";
+        if (connectionId !== undefined && connectionId !== null)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -522,11 +530,13 @@ export class VantageClient {
         return Promise.resolve<AircraftRecordDto[]>(null as any);
     }
 
-    aircraft_Observation(id: string, signal?: AbortSignal): Promise<AircraftRecordDto> {
-        let url_ = this.baseUrl + "/api/v1/aircraft/observations/{id}";
+    aircraft_Observation(id: string, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<AircraftRecordDto> {
+        let url_ = this.baseUrl + "/api/v1/aircraft/observations/{id}?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -565,8 +575,12 @@ export class VantageClient {
         return Promise.resolve<AircraftRecordDto>(null as any);
     }
 
-    earthquakes_Source(signal?: AbortSignal): Promise<EarthquakeSourceDto> {
-        let url_ = this.baseUrl + "/api/v1/earthquakes/source";
+    earthquakes_Source(connectionId?: string | null | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<EarthquakeSourceDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes/source?";
+        if (connectionId !== undefined && connectionId !== null)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -599,8 +613,12 @@ export class VantageClient {
         return Promise.resolve<EarthquakeSourceDto>(null as any);
     }
 
-    earthquakes_Query(signal?: AbortSignal): Promise<EarthquakeSnapshotDto> {
-        let url_ = this.baseUrl + "/api/v1/earthquakes";
+    earthquakes_Query(connectionId?: string | null | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<EarthquakeSnapshotDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes?";
+        if (connectionId !== undefined && connectionId !== null)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -633,11 +651,13 @@ export class VantageClient {
         return Promise.resolve<EarthquakeSnapshotDto>(null as any);
     }
 
-    earthquakes_Observation(id: string, signal?: AbortSignal): Promise<EarthquakeRecordDto> {
-        let url_ = this.baseUrl + "/api/v1/earthquakes/observations/{id}";
+    earthquakes_Observation(id: string, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<EarthquakeRecordDto> {
+        let url_ = this.baseUrl + "/api/v1/earthquakes/observations/{id}?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
         url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -676,7 +696,7 @@ export class VantageClient {
         return Promise.resolve<EarthquakeRecordDto>(null as any);
     }
 
-    earthquakes_Versions(id: string, sourceId?: string | undefined, signal?: AbortSignal): Promise<EarthquakeRecordDto[]> {
+    earthquakes_Versions(id: string, sourceId?: string | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<EarthquakeRecordDto[]> {
         let url_ = this.baseUrl + "/api/v1/earthquakes/entities/{id}/observations?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -685,6 +705,8 @@ export class VantageClient {
             throw new globalThis.Error("The parameter 'sourceId' cannot be null.");
         else if (sourceId !== undefined)
             url_ += "sourceId=" + encodeURIComponent("" + sourceId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -749,6 +771,680 @@ export class VantageClient {
             });
         }
         return Promise.resolve<SessionDto>(null as any);
+    }
+
+    connections_Types(signal?: AbortSignal): Promise<ConnectorTypeDto[]> {
+        let url_ = this.baseUrl + "/api/v1/connections/connector-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Types(_response);
+        });
+    }
+
+    protected processConnections_Types(response: Response): Promise<ConnectorTypeDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectorTypeDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectorTypeDto[]>(null as any);
+    }
+
+    connections_SettingsSchema(typeId: string, signal?: AbortSignal): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/v1/connections/connector-types/{typeId}/settings-schema";
+        if (typeId === undefined || typeId === null)
+            throw new globalThis.Error("The parameter 'typeId' must be defined.");
+        url_ = url_.replace("{typeId}", encodeURIComponent("" + typeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_SettingsSchema(_response);
+        });
+    }
+
+    protected processConnections_SettingsSchema(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    connections_Templates(signal?: AbortSignal): Promise<ConnectionTemplateDto[]> {
+        let url_ = this.baseUrl + "/api/v1/connections/templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Templates(_response);
+        });
+    }
+
+    protected processConnections_Templates(response: Response): Promise<ConnectionTemplateDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionTemplateDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionTemplateDto[]>(null as any);
+    }
+
+    connections_List(signal?: AbortSignal): Promise<ConnectionDto[]> {
+        let url_ = this.baseUrl + "/api/v1/connections";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_List(_response);
+        });
+    }
+
+    protected processConnections_List(response: Response): Promise<ConnectionDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto[]>(null as any);
+    }
+
+    connections_Create(request: CreateConnectionRequest, signal?: AbortSignal): Promise<ConnectionDto> {
+        let url_ = this.baseUrl + "/api/v1/connections";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Create(_response);
+        });
+    }
+
+    protected processConnections_Create(response: Response): Promise<ConnectionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            result201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto;
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            result400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto>(null as any);
+    }
+
+    connections_Get(id: string, signal?: AbortSignal): Promise<ConnectionDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Get(_response);
+        });
+    }
+
+    protected processConnections_Get(response: Response): Promise<ConnectionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto>(null as any);
+    }
+
+    connections_Update(id: string, request: UpdateConnectionRequest, signal?: AbortSignal): Promise<ConnectionDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Update(_response);
+        });
+    }
+
+    protected processConnections_Update(response: Response): Promise<ConnectionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto>(null as any);
+    }
+
+    connections_Remove(id: string, revision?: number | undefined, signal?: AbortSignal): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (revision === null)
+            throw new globalThis.Error("The parameter 'revision' cannot be null.");
+        else if (revision !== undefined)
+            url_ += "revision=" + encodeURIComponent("" + revision) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            signal,
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Remove(_response);
+        });
+    }
+
+    protected processConnections_Remove(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    connections_Status(id: string, signal?: AbortSignal): Promise<ConnectionStatusDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/status";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Status(_response);
+        });
+    }
+
+    protected processConnections_Status(response: Response): Promise<ConnectionStatusDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionStatusDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionStatusDto>(null as any);
+    }
+
+    connections_Impact(id: string, signal?: AbortSignal): Promise<ConnectionImpactDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/impact";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Impact(_response);
+        });
+    }
+
+    protected processConnections_Impact(response: Response): Promise<ConnectionImpactDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionImpactDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionImpactDto>(null as any);
+    }
+
+    connections_Duplicate(id: string, request: DuplicateConnectionRequest, signal?: AbortSignal): Promise<ConnectionDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/duplicate";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Duplicate(_response);
+        });
+    }
+
+    protected processConnections_Duplicate(response: Response): Promise<ConnectionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            result201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto;
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            result400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto>(null as any);
+    }
+
+    connections_Datasets(id: string, signal?: AbortSignal): Promise<DatasetDto[]> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/datasets";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Datasets(_response);
+        });
+    }
+
+    protected processConnections_Datasets(response: Response): Promise<DatasetDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DatasetDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DatasetDto[]>(null as any);
+    }
+
+    connections_Preview(request: ConnectionPreviewRequest, signal?: AbortSignal): Promise<ConnectionTestDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/preview";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Preview(_response);
+        });
+    }
+
+    protected processConnections_Preview(response: Response): Promise<ConnectionTestDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionTestDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionTestDto>(null as any);
+    }
+
+    connections_Test(id: string, request: ConnectionTestRequest, signal?: AbortSignal): Promise<ConnectionTestDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/test";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Test(_response);
+        });
+    }
+
+    protected processConnections_Test(response: Response): Promise<ConnectionTestDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionTestDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionTestDto>(null as any);
+    }
+
+    connections_Export(signal?: AbortSignal): Promise<ConnectionImportRequest> {
+        let url_ = this.baseUrl + "/api/v1/connections/export";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Export(_response);
+        });
+    }
+
+    protected processConnections_Export(response: Response): Promise<ConnectionImportRequest> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionImportRequest;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionImportRequest>(null as any);
+    }
+
+    connections_Import(document: any, signal?: AbortSignal): Promise<ConnectionImportResultDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/import";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(document);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Import(_response);
+        });
+    }
+
+    protected processConnections_Import(response: Response): Promise<ConnectionImportResultDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionImportResultDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionImportResultDto>(null as any);
+    }
+
+    connections_Credential(id: string, request: ConnectionCredentialRequest, signal?: AbortSignal): Promise<ConnectionDto> {
+        let url_ = this.baseUrl + "/api/v1/connections/{id}/credential";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            signal,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processConnections_Credential(_response);
+        });
+    }
+
+    protected processConnections_Credential(response: Response): Promise<ConnectionDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ConnectionDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ConnectionDto>(null as any);
     }
 }
 
@@ -820,6 +1516,8 @@ export interface DuplicateWorkspaceRequest {
 export interface PersonalPreferencesDto {
     schemaVersion?: number;
     theme?: string;
+    defaultRegion?: string;
+    timeZone?: string;
     revision?: number;
     updatedAt?: string | undefined;
 }
@@ -827,6 +1525,8 @@ export interface PersonalPreferencesDto {
 export interface UpdatePersonalPreferencesRequest {
     theme?: string;
     revision?: number;
+    defaultRegion?: string | undefined;
+    timeZone?: string | undefined;
 }
 
 export interface AircraftSourceDto {
@@ -1000,6 +1700,175 @@ export interface SessionUserDto {
     id?: string;
     displayName?: string;
     canUseData?: boolean;
+}
+
+export interface ConnectorTypeDto {
+    id?: string;
+    version?: number;
+    name?: string;
+    domain?: string;
+    capabilities?: string[];
+    authenticationModes?: string[];
+    settingsSchemaUrl?: string;
+    coverage?: string;
+    attribution?: string;
+    pollSeconds?: number;
+    resultLimit?: number;
+    sourceId?: string;
+}
+
+export interface ConnectionTemplateDto {
+    id?: string;
+    version?: number;
+    connectorTypeId?: string;
+    name?: string;
+    schemaVersion?: number;
+    settings?: any;
+}
+
+export interface ConnectionDto {
+    id?: string;
+    name?: string;
+    connectorTypeId?: string;
+    templateId?: string | undefined;
+    templateVersion?: number | undefined;
+    schemaVersion?: number;
+    scope?: string;
+    workspaceId?: string | undefined;
+    enabled?: boolean;
+    revision?: number;
+    settings?: any;
+    hasCredential?: boolean;
+    status?: string;
+    datasets?: DatasetDto[];
+    createdAt?: string;
+    updatedAt?: string;
+    removedAt?: string | undefined;
+}
+
+export interface DatasetDto {
+    id?: string;
+    connectionId?: string;
+    productId?: string;
+    sourceId?: string;
+    domain?: string;
+    capabilities?: string[];
+    coverage?: string;
+    attribution?: string;
+    allowedOperations?: string[];
+    pollSeconds?: number;
+    staleAfterSeconds?: number;
+    availability?: string;
+}
+
+export interface ConnectionStatusDto {
+    connectionId?: string;
+    healthState?: string;
+    healthMessage?: string;
+    activeOperations?: number;
+    activeConsumers?: number;
+    providerAvailable?: boolean;
+    cachedRetrievedAt?: string | undefined;
+    cachedRecords?: number;
+    asOf?: string;
+}
+
+export interface ConnectionImpactDto {
+    connectionId?: string;
+    revision?: number;
+    workspaceIds?: string[];
+    effect?: string;
+}
+
+export interface CreateConnectionRequest {
+    name?: string;
+    connectorTypeId?: string;
+    templateId?: string | undefined;
+    schemaVersion?: number;
+    settings?: any;
+    scope?: string;
+    workspaceId?: string | undefined;
+    enabled?: boolean;
+}
+
+export interface UpdateConnectionRequest {
+    name?: string;
+    revision?: number;
+    schemaVersion?: number;
+    settings?: any;
+    scope?: string;
+    workspaceId?: string | undefined;
+    enabled?: boolean;
+}
+
+export interface DuplicateConnectionRequest {
+    name?: string;
+    revision?: number;
+}
+
+export interface ConnectionTestDto {
+    valid?: boolean;
+    state?: string;
+    message?: string;
+    problems?: string[];
+    previewCount?: number | undefined;
+    testedAt?: string | undefined;
+    previewRows?: ConnectionPreviewRowDto[];
+}
+
+export interface ConnectionPreviewRowDto {
+    id?: string;
+    label?: string;
+    sourceTime?: string | undefined;
+    retrievedAt?: string;
+    longitude?: number | undefined;
+    latitude?: number | undefined;
+}
+
+export interface ConnectionPreviewRequest {
+    connectorTypeId?: string;
+    schemaVersion?: number;
+    settings?: any;
+}
+
+export interface ConnectionTestRequest {
+    revision?: number;
+    schemaVersion?: number;
+    settings?: any;
+}
+
+export interface ConnectionImportRequest {
+    schemaVersion?: number;
+    connections?: ConnectionExportDto[];
+}
+
+export interface ConnectionExportDto {
+    schemaVersion?: number;
+    connectorTypeId?: string;
+    name?: string;
+    scope?: string;
+    workspaceId?: string | undefined;
+    enabled?: boolean;
+    settings?: any;
+    requiresCredential?: boolean;
+}
+
+export interface ConnectionImportResultDto {
+    connections?: ConnectionDto[];
+    rejected?: number;
+    problems?: string[];
+}
+
+export interface ConnectionCredentialRequest {
+    revision?: number;
+    value?: string;
+}
+
+export interface FileResponse {
+    data: Blob;
+    status: number;
+    fileName?: string;
+    headers?: { [name: string]: any };
 }
 
 export class ApiException extends Error {

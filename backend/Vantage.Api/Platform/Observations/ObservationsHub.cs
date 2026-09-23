@@ -3,10 +3,12 @@ using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Vantage.Api.Contracts;
 using Vantage.Api.Platform.Identity;
+using Vantage.Api.Platform.Connections;
 
 namespace Vantage.Api.Platform.Observations;
 
-public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeCoordinator earthquakes, PlatformAccess access, ISessionLifetime sessions) : Hub
+public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeCoordinator earthquakes, PlatformAccess access,
+    ConnectionAccess connections, ISessionLifetime sessions) : Hub
 {
     public override async Task OnConnectedAsync()
     {
@@ -33,13 +35,31 @@ public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeC
         using var linked = StreamCancellation(ct);
         ct = linked.Token;
         await access.RequireDataAsync(ct);
-        await foreach (var batch in coordinator.Subscribe(query, ct)) yield return batch;
+        var connection = await connections.RequireActiveAsync(BuiltinConnections.Aircraft, null, ct);
+        await foreach (var batch in coordinator.Subscribe(query, ct, connection)) yield return batch;
     }
     public async IAsyncEnumerable<EarthquakeBatchDto> Earthquakes([EnumeratorCancellation] CancellationToken ct)
     {
         using var linked = StreamCancellation(ct);
         ct = linked.Token;
         await access.RequireDataAsync(ct);
-        await foreach (var batch in earthquakes.Subscribe(ct)) yield return batch;
+        var connection = await connections.RequireActiveAsync(BuiltinConnections.Earthquakes, null, ct);
+        await foreach (var batch in earthquakes.Subscribe(ct, connection)) yield return batch;
+    }
+    public async IAsyncEnumerable<AircraftBatchDto> AircraftConnection(string connectionId, string? workspaceId,
+        AircraftQuery query, [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var linked = StreamCancellation(ct); ct = linked.Token;
+        var connection = await connections.RequireActiveAsync(connectionId, workspaceId, ct);
+        if (connection.ConnectorTypeId != "adsb-lol") throw new HubException("This connection does not provide aircraft observations.");
+        await foreach (var batch in coordinator.Subscribe(query, ct, connection)) yield return batch;
+    }
+    public async IAsyncEnumerable<EarthquakeBatchDto> EarthquakeConnection(string connectionId, string? workspaceId,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var linked = StreamCancellation(ct); ct = linked.Token;
+        var connection = await connections.RequireActiveAsync(connectionId, workspaceId, ct);
+        if (connection.ConnectorTypeId != "usgs-earthquakes") throw new HubException("This connection does not provide earthquake observations.");
+        await foreach (var batch in earthquakes.Subscribe(ct, connection)) yield return batch;
     }
 }

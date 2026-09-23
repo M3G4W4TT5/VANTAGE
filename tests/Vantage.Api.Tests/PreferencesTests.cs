@@ -62,8 +62,10 @@ public sealed class PreferencesTests
 
         var migrated = (await owner.GetFromJsonAsync<PersonalPreferencesDto>("/api/v1/preferences"))!;
         Assert.Equal((1, "light", 1), (migrated.SchemaVersion, migrated.Theme, migrated.Revision));
+        Assert.Equal(("northern-europe", "UTC"), (migrated.DefaultRegion, migrated.TimeZone));
         var missing = (await other.GetFromJsonAsync<PersonalPreferencesDto>("/api/v1/preferences"))!;
         Assert.Equal((1, "dark", 0), (missing.SchemaVersion, missing.Theme, missing.Revision));
+        Assert.Equal(("northern-europe", "UTC"), (missing.DefaultRegion, missing.TimeZone));
         Assert.Null(missing.UpdatedAt);
 
         var otherSave = await other.PutAsJsonAsync("/api/v1/preferences", new UpdatePersonalPreferencesRequest("dark", missing.Revision));
@@ -75,6 +77,7 @@ public sealed class PreferencesTests
         Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
         var changed = (await updated.Content.ReadFromJsonAsync<PersonalPreferencesDto>())!;
         Assert.Equal(("dark", 2), (changed.Theme, changed.Revision));
+        Assert.Equal(("northern-europe", "UTC"), (changed.DefaultRegion, changed.TimeZone));
         var stale = await owner.PutAsJsonAsync("/api/v1/preferences", new UpdatePersonalPreferencesRequest("light", migrated.Revision));
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         Assert.Equal("revision_conflict", (await stale.Content.ReadFromJsonAsync<ApiError>())!.Code);
@@ -83,10 +86,34 @@ public sealed class PreferencesTests
         Assert.Equal("invalid_theme", (await invalid.Content.ReadFromJsonAsync<ApiError>())!.Code);
         Assert.Equal("dark", (await owner.GetFromJsonAsync<PersonalPreferencesDto>("/api/v1/preferences"))!.Theme);
 
+        var invalidRegion = await owner.PutAsJsonAsync("/api/v1/preferences",
+            new UpdatePersonalPreferencesRequest("dark", changed.Revision, "Atlantis", "UTC"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalidRegion.StatusCode);
+        Assert.Equal("invalid_region", (await invalidRegion.Content.ReadFromJsonAsync<ApiError>())!.Code);
+        var invalidZone = await owner.PutAsJsonAsync("/api/v1/preferences",
+            new UpdatePersonalPreferencesRequest("dark", changed.Revision, "denmark", "Unknown/Zone"));
+        Assert.Equal(HttpStatusCode.BadRequest, invalidZone.StatusCode);
+        Assert.Equal("invalid_time_zone", (await invalidZone.Content.ReadFromJsonAsync<ApiError>())!.Code);
+        var display = await owner.PutAsJsonAsync("/api/v1/preferences",
+            new UpdatePersonalPreferencesRequest("dark", changed.Revision, "denmark", "Europe/Copenhagen"));
+        Assert.Equal(HttpStatusCode.OK, display.StatusCode);
+        var displayChanged = (await display.Content.ReadFromJsonAsync<PersonalPreferencesDto>())!;
+        Assert.Equal(("denmark", "Europe/Copenhagen", 3),
+            (displayChanged.DefaultRegion, displayChanged.TimeZone, displayChanged.Revision));
+        var created = await owner.PostAsJsonAsync("/api/v1/workspaces", new CreateWorkspaceRequest("Denmark default"));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var newWorkspace = (await created.Content.ReadFromJsonAsync<WorkspaceDto>())!;
+        using (var paneState = JsonDocument.Parse(JsonSerializer.Serialize(newWorkspace.Panes[0].State, WorkspaceValidation.Json)))
+        {
+            Assert.Equal(10.2, paneState.RootElement.GetProperty("camera").GetProperty("longitude").GetDouble());
+            Assert.Equal(56.1, paneState.RootElement.GetProperty("camera").GetProperty("latitude").GetDouble());
+        }
+
         await using var restarted = new PreferencesApp(database.Connection);
         using var restoredClient = await restarted.CreateAuthorizedClientAsync();
         var restored = (await restoredClient.GetFromJsonAsync<PersonalPreferencesDto>("/api/v1/preferences"))!;
-        Assert.Equal(("dark", 2), (restored.Theme, restored.Revision));
+        Assert.Equal(("dark", "denmark", "Europe/Copenhagen", 3),
+            (restored.Theme, restored.DefaultRegion, restored.TimeZone, restored.Revision));
         using var unchangedScope = restarted.Services.CreateScope();
         var workspaces = await unchangedScope.ServiceProvider.GetRequiredService<VantageDbContext>()
             .Workspaces.AsNoTracking().OrderBy(w => w.UpdatedAt).ToArrayAsync();

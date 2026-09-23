@@ -11,7 +11,7 @@ public sealed class WorkspaceValidation(JsonSchema schema, IReadOnlyDictionary<s
     public static async Task<WorkspaceValidation> LoadAsync(IReadOnlyDictionary<string, (int Version, string Schema)> appStates) => new(await JsonSchema.FromFileAsync(
         Path.Combine(AppContext.BaseDirectory, "Schemas", "records.schema.json")), appStates);
 
-    public string? Validate(string id, int version, WorkspaceStateDto state)
+    public string? Validate(string id, int version, WorkspaceStateDto state, bool allowLegacyAtlas = false)
     {
         if (version != 1) return "This workspace version is not supported. Its stored data has been preserved.";
         var json = JsonSerializer.Serialize(state, Json);
@@ -48,9 +48,49 @@ public sealed class WorkspaceValidation(JsonSchema schema, IReadOnlyDictionary<s
                 var cursor = time.GetProperty("cursor").GetDateTimeOffset();
                 if (from > to || cursor < from || cursor > to) return "Replay cursor must lie inside an ordered interval.";
             }
-            if (appStates.TryGetValue(pane.AppId, out var contract) && (pane.StateSchemaVersion != contract.Version ||
-                schema.Definitions[contract.Schema].Validate(JsonSerializer.Serialize(pane.State, Json)).Count > 0))
-                return "App pane state is invalid or unsupported. Its stored data has been preserved.";
+            if (appStates.TryGetValue(pane.AppId, out var contract))
+            {
+                var appJson = JsonSerializer.Serialize(pane.State, Json);
+                var legacy = allowLegacyAtlas && pane.AppId == "atlas" && pane.StateSchemaVersion == 1;
+                var definition = legacy ? "AtlasStateV1" : contract.Schema;
+                if (!legacy && pane.StateSchemaVersion != contract.Version || schema.Definitions[definition].Validate(appJson).Count > 0)
+                    return $"App pane {pane.Id} has invalid or unsupported state version {pane.StateSchemaVersion}. Its original data has been preserved.";
+                if (!legacy && pane.AppId == "atlas")
+                {
+                    using var app = JsonDocument.Parse(appJson);
+                    var layerIds = app.RootElement.GetProperty("layers").EnumerateArray()
+                        .Select(layer => layer.GetProperty("id").GetString()!).ToArray();
+                    if (layerIds.Distinct().Count() != layerIds.Length) return "ATLAS layer IDs must be unique.";
+                    var focused = app.RootElement.GetProperty("focusedLayerId").GetString();
+                    var selected = app.RootElement.GetProperty("selectedLayerId").GetString();
+                    if (!(layerIds.Length == 0 && focused == "none") && !layerIds.Contains(focused) ||
+                        selected is not null && !layerIds.Contains(selected))
+                        return "ATLAS focus or selection refers to a missing layer.";
+                    if (app.RootElement.TryGetProperty("showMap", out var showMap) && !showMap.GetBoolean() &&
+                        app.RootElement.TryGetProperty("showList", out var showList) && !showList.GetBoolean())
+                        return "ATLAS needs an open map or list.";
+                    var grouped = app.RootElement.GetProperty("layers").EnumerateArray()
+                        .GroupBy(layer => layer.TryGetProperty("groupId", out var value) ? value.GetString() : layer.GetProperty("id").GetString());
+                    foreach (var members in grouped)
+                    {
+                        var first = members.First();
+                        if (members.Any(layer => layer.GetProperty("domain").GetString() != first.GetProperty("domain").GetString() ||
+                            layer.GetProperty("visible").GetBoolean() != first.GetProperty("visible").GetBoolean() ||
+                            layer.GetProperty("participating").GetBoolean() != first.GetProperty("participating").GetBoolean() ||
+                            (layer.TryGetProperty("groupName", out var name) ? name.GetString() : null) !=
+                            (first.TryGetProperty("groupName", out var firstName) ? firstName.GetString() : null)))
+                            return "ATLAS group members must share type, name and visibility.";
+                    }
+                    if (app.RootElement.TryGetProperty("resultLayerIds", out var resultLayerIds) &&
+                        resultLayerIds.EnumerateArray().Any(value => !layerIds.Contains(value.GetString())))
+                        return "ATLAS result scope refers to a missing layer.";
+                    var participating = app.RootElement.GetProperty("layers").EnumerateArray()
+                        .Where(layer => layer.GetProperty("participating").GetBoolean())
+                        .Select(layer => layer.GetProperty("id").GetString()).ToArray();
+                    var contextLayers = c.GetProperty("layerIds").EnumerateArray().Select(value => value.GetString()).ToArray();
+                    if (!participating.SequenceEqual(contextLayers)) return "ATLAS participating layers must match pane context layer IDs.";
+                }
+            }
         }
         return null;
     }

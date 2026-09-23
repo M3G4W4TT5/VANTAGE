@@ -421,6 +421,26 @@
           "Aircraft"
         ],
         "operationId": "Aircraft_Source",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -471,6 +491,24 @@
               "default": 250
             },
             "x-position": 3
+          },
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 4
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 5
           }
         ],
         "responses": {
@@ -515,6 +553,15 @@
               "type": "string"
             },
             "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -547,6 +594,26 @@
           "Earthquakes"
         ],
         "operationId": "Earthquakes_Source",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -567,6 +634,26 @@
           "Earthquakes"
         ],
         "operationId": "Earthquakes_Query",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -596,6 +683,15 @@
               "type": "string"
             },
             "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -645,6 +741,15 @@
               "type": "string"
             },
             "x-position": 2
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -677,6 +782,595 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/connector-types": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Types",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/connector-types/{typeId}/settings-schema": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_SettingsSchema",
+        "parameters": [
+          {
+            "name": "typeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/templates": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Templates",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectionTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_List",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectionDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Create",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "revision",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/status": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/impact": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Impact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionImpactDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Duplicate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/datasets": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Datasets",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DatasetDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/preview": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Preview",
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionPreviewRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionTestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/test": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Test",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionTestRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionTestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/export": {
+      "get": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Export",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionImportRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/import": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Import",
+        "requestBody": {
+          "x-name": "document",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true,
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionImportResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{id}/credential": {
+      "put": {
+        "tags": [
+          "Connections"
+        ],
+        "operationId": "Connections_Credential",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "x-name": "request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionCredentialRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-position": 2
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDto"
                 }
               }
             }
@@ -899,6 +1593,12 @@
           "theme": {
             "type": "string"
           },
+          "defaultRegion": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
           "revision": {
             "type": "integer",
             "format": "int64"
@@ -920,6 +1620,14 @@
           "revision": {
             "type": "integer",
             "format": "int64"
+          },
+          "defaultRegion": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -1494,6 +2202,510 @@
           },
           "canUseData": {
             "type": "boolean"
+          }
+        }
+      },
+      "ConnectorTypeDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authenticationModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "settingsSchemaUrl": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resultLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sourceId": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectionTemplateDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "connectorTypeId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {}
+        }
+      },
+      "ConnectionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "connectorTypeId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateVersion": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "settings": {},
+          "hasCredential": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "datasets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "removedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "DatasetDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "allowedOperations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "staleAfterSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availability": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectionStatusDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "healthState": {
+            "type": "string"
+          },
+          "healthMessage": {
+            "type": "string"
+          },
+          "activeOperations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activeConsumers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "providerAvailable": {
+            "type": "boolean"
+          },
+          "cachedRetrievedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cachedRecords": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConnectionImpactDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "workspaceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effect": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateConnectionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "connectorTypeId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {},
+          "scope": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateConnectionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {},
+          "scope": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DuplicateConnectionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ConnectionTestDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "previewCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "testedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "previewRows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionPreviewRowDto"
+            }
+          }
+        }
+      },
+      "ConnectionPreviewRowDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "sourceTime": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retrievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        }
+      },
+      "ConnectionPreviewRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connectorTypeId": {
+            "type": "string"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {}
+        }
+      },
+      "ConnectionTestRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {}
+        }
+      },
+      "ConnectionImportRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionExportDto"
+            }
+          }
+        }
+      },
+      "ConnectionExportDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "connectorTypeId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "settings": {},
+          "requiresCredential": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConnectionImportResultDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionDto"
+            }
+          },
+          "rejected": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ConnectionCredentialRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value": {
+            "type": "string"
           }
         }
       }

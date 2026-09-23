@@ -6,7 +6,7 @@ using Vantage.Api.Contracts;
 using Vantage.Api.Platform.Observations;
 namespace Vantage.Api.Connectors.Usgs;
 
-public sealed partial class UsgsEarthquakeSource(HttpClient http, IConfiguration configuration) : IEarthquakeSource
+public sealed partial class UsgsEarthquakeSource(HttpClient http) : IEarthquakeSource
 {
     public const string SourceId = "usgs-earthquakes";
     public const string Endpoint = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson";
@@ -14,11 +14,11 @@ public sealed partial class UsgsEarthquakeSource(HttpClient http, IConfiguration
     public const string Credit = "U.S. Geological Survey · contributing seismic networks";
     public EarthquakeSourceDto Metadata { get; } = new(SourceId, "USGS Earthquakes",
         "https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php", Terms, Credit,
-        ["current_catalog", "live_subscription", "local_cache"], Math.Clamp(configuration.GetValue("Sources:Usgs:PollSeconds", 60), 60, 3600),
+        ["current_catalog", "live_subscription", "local_cache"], 60,
         EarthquakeCachePolicy.ResultLimit, EarthquakeCachePolicy.RetentionHours,
         "Worldwide reported events in the source's past-day M2.5+ feed. Detection and reporting are incomplete; locations and magnitudes may be revised.",
-        "Past day · M2.5+ · worldwide", Math.Max(180, Math.Clamp(configuration.GetValue("Sources:Usgs:PollSeconds", 60), 60, 3600) * 3));
-    public bool Enabled { get; } = configuration.GetValue("Sources:Usgs:Enabled", true);
+        "Past day · M2.5+ · worldwide", 180);
+    public bool Enabled => true;
     public async Task<EarthquakeFetch> FetchAsync(CancellationToken cancellation) =>
         Parse(await SourceTransport.ReadAsync(http, Endpoint, "USGS", cancellation), DateTimeOffset.UtcNow);
 

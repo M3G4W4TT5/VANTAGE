@@ -57,6 +57,20 @@ try:
         result = fingerprint(schema, table['table'], original_columns[key])
         if result != str(table['rows'])+'|'+table['contentMd5']:
             raise SystemExit(f"Original data changed during migration for {table['table']}.")
+    if query("SELECT to_regclass('platform.connections') IS NOT NULL") == 't' and not any(
+            t['schema'] == 'platform' and t['table'] == 'connections' for t in manifest['tables']):
+        checks = {
+            'seeded connections': "SELECT count(*) = 2 FROM platform.connections WHERE \"Id\" IN ('legacy-aircraft','legacy-earthquakes')",
+            'seeded datasets': "SELECT count(*) = 2 FROM platform.datasets WHERE \"ConnectionId\" IN ('legacy-aircraft','legacy-earthquakes')",
+            'aircraft projection linkage': "SELECT count(*) = 0 FROM platform.current_aircraft WHERE \"ConnectionId\" <> 'legacy-aircraft'",
+            'earthquake projection linkage': "SELECT count(*) = 0 FROM platform.current_earthquakes WHERE \"ConnectionId\" <> 'legacy-earthquakes'",
+            'feed linkage': "SELECT count(*) = 0 FROM platform.earthquake_feeds WHERE \"ConnectionId\" <> 'legacy-earthquakes'",
+            'observation delivery backfill': """SELECT (SELECT count(*) FROM platform.observation_deliveries) =
+                (SELECT count(*) FROM platform.observations WHERE (\"DataType\"='aircraft' AND \"SourceId\"='adsb-lol')
+                OR (\"DataType\"='earthquake' AND \"SourceId\"='usgs-earthquakes'))""",
+        }
+        for label, statement in checks.items():
+            if query(statement) != 't': raise SystemExit(f'Step-5 migration check failed: {label}.')
     print('PASS: isolated restored database migrated; every original row and field preserved across all tables.')
 finally:
     subprocess.run(base+['dropdb','-U','vantage',name],check=True)

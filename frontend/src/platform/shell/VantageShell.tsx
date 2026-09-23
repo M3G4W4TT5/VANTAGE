@@ -9,10 +9,11 @@ import { PaneBoundary } from '../ui/PaneBoundary';
 import type { AuthenticatedSession } from '../session/SessionService';
 import { SignOutForm } from '../session/SignOutForm';
 import { HomeView } from './HomeView';
+import { setDisplayTimeZone } from '../ui/format';
 import styles from './VantageShell.module.css';
 
-type Surface = { kind: 'home' } | { kind: 'workspace' } | { kind: 'system'; id: string };
-type DialogKind = 'new' | 'rename' | 'duplicate' | 'delete' | 'switch' | 'choose-workspace' | 'unsaved' | 'search' | null;
+type Surface = { kind: 'home' } | { kind: 'workspace' } | { kind: 'system'; id: string; referenceId?: string };
+type DialogKind = 'new' | 'rename' | 'duplicate' | 'delete' | 'switch' | 'choose-workspace' | 'unsaved' | 'system-unsaved' | 'search' | null;
 type Theme = 'dark' | 'light';
 
 export function VantageShell({ registry, workspaces, session }: { registry: AppRegistry; workspaces: WorkspaceService; session: AuthenticatedSession }) {
@@ -23,6 +24,8 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
   const [targetId, setTargetId] = useState('');
   const [launchAppId, setLaunchAppId] = useState('');
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
+  const [pendingSystemAction, setPendingSystemAction] = useState<(() => void) | null>(null);
+  const [systemDirty, setSystemDirty] = useState(false);
   const [name, setName] = useState('');
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState('');
@@ -38,17 +41,21 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
     return () => abort.abort();
   }, []);
   const theme: Theme = preferences?.theme === 'light' ? 'light' : 'dark';
+  setDisplayTimeZone(preferences?.timeZone ?? 'UTC');
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     document.body.classList.toggle('bp6-dark', theme === 'dark');
   }, [theme]);
-  const changeTheme = async (value: Theme) => {
-    if (!preferences || preferenceBusy || preferences.theme === value) return;
+  const changePreferences = async (patch: { theme?: Theme; defaultRegion?: string; timeZone?: string }) => {
+    if (!preferences || preferenceBusy) return;
     setPreferenceBusy(true); setPreferenceError('');
-    try { setPreferences(await client.personalPreferences_Update({ theme: value, revision: preferences.revision })); }
+    try { setPreferences(await client.personalPreferences_Update({ theme: patch.theme ?? preferences.theme,
+      defaultRegion: patch.defaultRegion ?? preferences.defaultRegion, timeZone: patch.timeZone ?? preferences.timeZone,
+      revision: preferences.revision })); }
     catch (reason) { setPreferenceError(errorMessage(reason)); }
     finally { setPreferenceBusy(false); }
   };
+  const changeTheme = (value: Theme) => { if (preferences?.theme !== value) void changePreferences({ theme: value }); };
   const workspaceId = doc?.id;
   const bus = useMemo(() => new ContextBus(
     id => workspaces.getSnapshot().document?.id === workspaceId ? workspaces.getSnapshot().document?.panes.find(p => p.id === id)?.context : undefined,
@@ -59,18 +66,50 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setDialog('search'); }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && workspaces.getSnapshot().dirty) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && surface.kind === 'workspace' && workspaces.getSnapshot().dirty) {
         event.preventDefault(); void workspaces.save();
       }
     };
-    const leave = (event: BeforeUnloadEvent) => { if (workspaces.getSnapshot().dirty) event.preventDefault(); };
+    const leave = (event: BeforeUnloadEvent) => { if (workspaces.getSnapshot().dirty || systemDirty) event.preventDefault(); };
     window.addEventListener('keydown', key); window.addEventListener('beforeunload', leave);
     return () => { window.removeEventListener('keydown', key); window.removeEventListener('beforeunload', leave); };
-  }, [workspaces]);
+  }, [workspaces, surface.kind, systemDirty]);
   const activePane = doc?.panes.find(p => p.id === doc.appStates.shell.activePaneId) ?? doc?.panes[0];
   const activeApp = activePane ? registry.get(activePane.appId) : undefined;
+  const duplicatePane = () => {
+    if (!activePane || !activeApp || !doc || doc.panes.length >= 8) return;
+    workspaces.update(document => {
+      const id = `${activePane.appId}-${crypto.randomUUID().slice(0, 8)}`;
+      const copy = structuredClone(activePane);
+      copy.id = id; copy.context.paneId = id; copy.context.linkGroupId = null;
+      return { ...document, panes: [...document.panes, copy],
+        appStates: { ...document.appStates, shell: { ...document.appStates.shell, activePaneId: id } } };
+    });
+  };
+  const closePane = () => {
+    if (!activePane || !doc || doc.panes.length <= 1) return;
+    workspaces.update(document => {
+      const panes = document.panes.filter(pane => pane.id !== activePane.id);
+      const linkGroups = document.linkGroups.map(group => ({ ...group, paneIds: group.paneIds.filter(id => id !== activePane.id) }))
+        .filter(group => group.paneIds.length >= 2);
+      return { ...document, panes: panes.map(pane => ({ ...pane, context: { ...pane.context,
+        linkGroupId: linkGroups.find(group => group.paneIds.includes(pane.id))?.id ?? null } })), linkGroups,
+        appStates: { ...document.appStates, shell: { ...document.appStates.shell, activePaneId: panes[0].id } } };
+    });
+  };
   const activeSystem = surface.kind === 'system' ? registry.get(surface.id) : undefined;
   const wordmarkColour = theme === 'dark' ? 'white' : 'black';
+  const systemTools = registry.list().filter(module => module.manifest.kind === 'system-tool' &&
+    !module.manifest.workspaceRequired && module.SystemView);
+  const changeSurface = useCallback((action: () => void) => {
+    if (surface.kind === 'system' && systemDirty) { setPendingSystemAction(() => action); setDialog('system-unsaved'); }
+    else { setSystemDirty(false); action(); }
+  }, [surface.kind, systemDirty]);
+  const showSystem = useCallback((id: string, referenceId?: string) => {
+    const tool = registry.get(id);
+    if (tool?.SystemView && !tool.manifest.workspaceRequired && !(surface.kind === 'system' && surface.id === id && !referenceId))
+      changeSurface(() => setSurface({ kind: 'system', id, referenceId }));
+  }, [registry, surface, changeSurface]);
 
   const openWorkspace = async (id: string, requiredAppId?: string) => {
     if (doc?.id !== id) await workspaces.open(id);
@@ -113,11 +152,11 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
   };
   const searchResults = surface.kind === 'workspace' && search.trim() ? registry.search(search) : [];
   const systemView = activeSystem?.SystemView;
-  const skipTarget = surface.kind === 'workspace' ? '#workspace' : surface.kind === 'system' ? '#settings' : '#home';
+  const skipTarget = surface.kind === 'workspace' ? '#workspace' : surface.kind === 'system' ? '#' + surface.id : '#home';
   return <div className={styles.shell}>
     <a className={styles.skip} href={skipTarget}>Skip to content</a>
     <header className={styles.header}>
-      <button className={styles.brandButton} onClick={() => setSurface({ kind: 'home' })} aria-label="VANTAGE Home">
+      <button className={styles.brandButton} onClick={() => changeSurface(() => setSurface({ kind: 'home' }))} aria-label="VANTAGE Home">
         <span className={styles.brand}>
           <img className={styles.vantageMark} src={'/brand/vantage-mark-' + wordmarkColour + '.svg'} alt="" />
           <img className={styles.vantageWordmark} src={'/brand/vantage-wordmark-' + wordmarkColour + '.svg'} alt="VANTAGE" />
@@ -126,8 +165,12 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
       <span className={styles.slash}>/</span>
       {surface.kind === 'workspace' && activeApp
         ? <img className={styles.appWordmark} src={activeApp.manifest.branding[theme]} alt={activeApp.manifest.branding.alt} />
-        : <strong className={styles.appName}>{surface.kind === 'home' ? 'Home' : surface.kind === 'system' ? activeSystem?.manifest.name ?? 'System' : 'Unavailable app'}</strong>}
-      {surface.kind !== 'home' && <Button minimal icon="home" onClick={() => setSurface({ kind: 'home' })}>Home</Button>}
+        : surface.kind === 'system' && activeSystem ? <img className={styles.systemWordmark} src={activeSystem.manifest.branding[theme]}
+          alt={activeSystem.manifest.branding.alt} /> : <strong className={styles.appName}>{surface.kind === 'home' ? 'Home' : 'Unavailable app'}</strong>}
+      {surface.kind !== 'home' && <Button minimal icon="home" onClick={() => changeSurface(() => setSurface({ kind: 'home' }))}>Home</Button>}
+      <nav className={styles.systemNav} aria-label="System tools">{systemTools.map(tool => <Button key={tool.manifest.id} minimal small
+        active={surface.kind === 'system' && surface.id === tool.manifest.id} onClick={() => showSystem(tool.manifest.id)}>
+        {tool.manifest.navigation.label}</Button>)}</nav>
       <Button minimal icon="search" className={styles.searchButton} onClick={() => setDialog('search')}>Search <kbd>⌘ / Ctrl K</kbd></Button>
       <div className={styles.workspaceControls}>
         {surface.kind === 'workspace' && <>
@@ -167,21 +210,28 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
       onRenameWorkspace={id => { if (id === doc?.id) guard(async () => openDialog('rename', id)); else openDialog('rename', id); }}
       onDeleteWorkspace={id => { if (id === doc?.id) guard(async () => openDialog('delete', id)); else openDialog('delete', id); }}
       onLaunchApp={id => { setLaunchAppId(id); setDialog('choose-workspace'); }}
-      onOpenSystem={id => { const tool = registry.get(id); if (tool?.SystemView && !tool.manifest.workspaceRequired) setSurface({ kind: 'system', id }); }}
+      onOpenSystem={showSystem}
       onThemeChange={value => void changeTheme(value)} />}
     {surface.kind === 'system' && systemView && (() => {
       const View = systemView;
-      return <View session={session} theme={theme} themeDisabled={!preferences || preferenceBusy} onThemeChange={value => void changeTheme(value)} />;
+      return <View session={session} theme={theme} themeDisabled={!preferences || preferenceBusy}
+        onThemeChange={value => void changeTheme(value)} onDirtyChange={setSystemDirty}
+        defaultRegion={preferences?.defaultRegion} timeZone={preferences?.timeZone}
+        onDisplayPreferenceChange={patch => void changePreferences(patch)}
+        focusReferenceId={surface.kind === 'system' ? surface.referenceId : undefined} />;
     })()}
     {surface.kind === 'workspace' && (!doc ? <div className={styles.loading}><NonIdealState icon={<Spinner size={24} />} title="Opening workspace" /></div> : <>
-      {doc.panes.length > 1 && <nav className={styles.panes} aria-label="Workspace panes">{doc.panes.map(p => <Button minimal key={p.id} active={p.id === activePane?.id}
+      <nav className={styles.panes} aria-label="Workspace panes">{doc.panes.length > 1 && doc.panes.map(p => <Button minimal key={p.id} active={p.id === activePane?.id}
         onClick={() => workspaces.update(document => ({ ...document, appStates: { ...document.appStates, shell: { ...document.appStates.shell, activePaneId: p.id } } }))}>
-        {registry.get(p.appId)?.manifest.name ?? p.appId} · {p.id}</Button>)}</nav>}
-      {activePane && <PaneBoundary key={doc.id + '/' + activePane.id}><PaneHost pane={activePane} module={activeApp} registry={registry} bus={bus} workspaces={workspaces} notify={notify} /></PaneBoundary>}
+        {registry.get(p.appId)?.manifest.name ?? p.appId} · {p.id}</Button>)}
+        {activeApp?.View && <Button small minimal disabled={doc.panes.length >= 8} onClick={duplicatePane}>Duplicate pane</Button>}
+        {doc.panes.length > 1 && <Button small minimal onClick={closePane}>Close current pane</Button>}
+      </nav>
+      {activePane && <PaneBoundary key={doc.id + '/' + activePane.id}><PaneHost pane={activePane} module={activeApp} registry={registry} bus={bus} workspaces={workspaces} notify={notify} openSystemTool={showSystem} /></PaneBoundary>}
     </>)}
-    <Dialog isOpen={dialog !== null} onClose={() => { setDialog(null); setPendingAction(null); }}
+    <Dialog isOpen={dialog !== null} onClose={() => { setDialog(null); setPendingAction(null); setPendingSystemAction(null); }}
       title={dialog === 'search' ? 'Search' : dialog === 'choose-workspace' ? 'Choose a workspace' :
-        dialog === 'unsaved' ? 'Unsaved workspace changes' : dialog === 'switch' ? 'Reload saved workspace?' :
+        dialog === 'unsaved' ? 'Unsaved workspace changes' : dialog === 'system-unsaved' ? 'Unsaved connection draft' : dialog === 'switch' ? 'Reload saved workspace?' :
           (dialog ? dialog[0].toUpperCase() + dialog.slice(1) : '') + ' workspace'}>
       <DialogBody>
         {['new', 'rename', 'duplicate'].includes(dialog ?? '') && <FormGroup label="Workspace name" labelFor="workspace-name">
@@ -190,6 +240,7 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
         {dialog === 'delete' && <p>Delete “{list.find(w => w.id === targetId)?.name}” and its saved layout? This cannot be undone. Other workspaces remain available.</p>}
         {dialog === 'switch' && <p>{dirty ? 'Discard your unsaved changes and open the stored version?' : 'Open the latest stored version of this workspace?'}</p>}
         {dialog === 'unsaved' && <p>Save this workspace before leaving, or discard its unsaved changes. Your saved work remains available.</p>}
+        {dialog === 'system-unsaved' && <p>Leaving NEXUS will discard its unsaved connection draft. The saved connection remains available.</p>}
         {dialog === 'choose-workspace' && <>
           <p>Select the workspace where {registry.get(launchAppId)?.manifest.name ?? 'the app'} should open.</p>
           <div className={styles.searchResults}>{list.map(w => w.id && <Button fill minimal alignText="left" key={w.id} icon="projects"
@@ -201,7 +252,9 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
           <p className={styles.help}>Search saved workspaces. Use the active view’s filters to find live records.</p>
           <div className={styles.searchResults}>
             {list.filter(w => search.trim() && w.name?.toLowerCase().includes(search.toLowerCase())).map(w => <Button key={w.id} fill minimal alignText="left" icon="projects"
-              onClick={() => { if (!w.id) return; if (w.id === doc?.id) void openWorkspace(w.id); else guard(() => openWorkspace(w.id!)); }}>{w.name}</Button>)}
+              onClick={() => { if (!w.id) return; changeSurface(() => {
+                if (w.id === doc?.id) void openWorkspace(w.id!); else guard(() => openWorkspace(w.id!));
+              }); }}>{w.name}</Button>)}
             {searchResults.map(result => <Button fill minimal alignText="left" key={result.appId + '/' + result.id} icon="search-around" onClick={() => {
               const target = doc?.panes.find(p => p.appId === result.appId); const app = registry.get(result.appId);
               if (!target || !app) { notify('Open a compatible app pane to inspect this record.'); return; }
@@ -221,13 +274,16 @@ export function VantageShell({ registry, workspaces, session }: { registry: AppR
         {error && <p className={styles.dialogError} role="alert">{error}</p>}
       </DialogBody>
       <DialogFooter actions={<>
-        <Button onClick={() => { setDialog(null); setPendingAction(null); }}>Cancel</Button>
+        <Button onClick={() => { setDialog(null); setPendingAction(null); setPendingSystemAction(null); }}>Cancel</Button>
         {dialog === 'unsaved' && <>
           <Button onClick={() => void continueAfterDraft(false)}>Discard and continue</Button>
           <Button intent="primary" disabled={busy} onClick={() => void continueAfterDraft(true)}>Save and continue</Button>
         </>}
+        {dialog === 'system-unsaved' && <Button intent="warning" onClick={() => {
+          const action = pendingSystemAction; setPendingSystemAction(null); setDialog(null); setSystemDirty(false); action?.();
+        }}>Discard draft and leave</Button>}
         {dialog === 'choose-workspace' && <Button intent="primary" onClick={() => guard(async () => openDialog('new'))}>Create workspace</Button>}
-        {dialog !== 'unsaved' && dialog !== 'choose-workspace' && dialog !== 'search' && <Button intent={dialog === 'delete' ? 'danger' : 'primary'}
+        {dialog !== 'unsaved' && dialog !== 'system-unsaved' && dialog !== 'choose-workspace' && dialog !== 'search' && <Button intent={dialog === 'delete' ? 'danger' : 'primary'}
           disabled={busy || (['new', 'rename', 'duplicate'].includes(dialog ?? '') && !name.trim())} onClick={() => void submit()}>
           {dialog === 'delete' ? 'Delete workspace' : dialog === 'switch' ? 'Reload' : 'Save workspace'}</Button>}
       </>} />

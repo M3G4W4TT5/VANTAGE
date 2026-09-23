@@ -8,8 +8,8 @@ import { UiIcon } from '../../platform/ui/UiIcon';
 import { ageLabel, measure, utc } from '../../platform/ui/format';
 import styles from './Atlas.module.css';
 
-export function EarthquakeInspector({ record, selectedObservationId, now, expanded, toggleExpanded, close, zoom }: {
-  record: EarthquakeRecord; selectedObservationId?: string; now: number; expanded: boolean; toggleExpanded(): void; close(): void; zoom(): void;
+export function EarthquakeInspector({ record, selectedObservationId, workspaceId, now, expanded, toggleExpanded, close, zoom }: {
+  record: EarthquakeRecord; selectedObservationId?: string; workspaceId?: string; now: number; expanded: boolean; toggleExpanded(): void; close(): void; zoom(): void;
 }) {
   const o = record.observation; const p = o.properties;
   return <InspectorFrame title={record.entity.label} kind={`Earthquake / ${o.sourceId}`} symbol="event" evidence={`${o.evidenceClass.toUpperCase()} EVENT`} close={close}
@@ -34,19 +34,19 @@ export function EarthquakeInspector({ record, selectedObservationId, now, expand
         { label: 'Property lineage', value: `${o.id}: magnitude /properties/magnitude; type /properties/magnitudeType; depth /properties/depthKilometres; location /geometry and /properties/place; occurrence /observedAt; update /properties/sourceUpdatedAt; retrieval /retrievedAt.` },
         { label: 'Retention', value: 'Bounded cache: up to 48 hours / 50,000 observation versions per source. Save stores view settings and references, not a preserved evidence snapshot.' },
       ]} />
-    {expanded && <EarthquakeVersions key={`${record.entity.id}:${o.id}`} record={record} />}
+    {expanded && <EarthquakeVersions key={`${record.entity.id}:${o.id}`} record={record} workspaceId={workspaceId} />}
   </InspectorFrame>;
 }
-function EarthquakeVersions({ record }: { record: EarthquakeRecord }) {
+function EarthquakeVersions({ record, workspaceId }: { record: EarthquakeRecord; workspaceId?: string }) {
   const [versions, setVersions] = useState<EarthquakeRecord[]>([]); const [status, setStatus] = useState('Loading retained versions…');
   useEffect(() => {
     const controller = new AbortController();
-    void client.earthquakes_Versions(record.entity.id, record.observation.sourceId, controller.signal).then(values => {
+    void client.earthquakes_Versions(record.entity.id, record.observation.sourceId, workspaceId, controller.signal).then(values => {
       for (const value of values) validateContract<EarthquakeRecord>('EarthquakeRecord', value);
       if (!controller.signal.aborted) { setVersions(values as EarthquakeRecord[]); setStatus(values.length ? 'Up to 20 recently retrieved versions. Earlier versions may have expired.' : 'No versions are available in the bounded cache.'); }
     }).catch(() => { if (!controller.signal.aborted) setStatus('Retained versions are unavailable. Current facts remain visible.'); });
     return () => controller.abort();
-  }, [record.entity.id, record.observation.sourceId]);
+  }, [record.entity.id, record.observation.sourceId, workspaceId]);
   return <section><h3>Retained source versions</h3><p className={styles.muted}>{status}</p>
     {versions.map(version => <details key={version.observation.id}><summary>Updated {utc(version.observation.properties.sourceUpdatedAt)} · M {version.observation.properties.magnitude?.toFixed(1) ?? 'unknown'}</summary>
       <FieldRows lineage fields={[

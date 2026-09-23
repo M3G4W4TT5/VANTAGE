@@ -1,0 +1,1 @@
+{"id":"usgs-earthquakes-default","version":1,"connectorTypeId":"usgs-earthquakes","name":"USGS Earthquakes","schemaVersion":1,"settings":{"pollSeconds":60}}

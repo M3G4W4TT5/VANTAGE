@@ -1188,7 +1188,7 @@
       "type": "object",
       "properties": {
         "schemaVersion": {
-          "const": 1
+          "const": 2
         },
         "viewMode": {
           "enum": [
@@ -1224,20 +1224,16 @@
         "expandedDetails": {
           "type": "boolean"
         },
-        "dataMode": {
-          "enum": [
-            "live",
-            "demo"
-          ]
-        },
-        "aircraftQuery": {
-          "$ref": "#/definitions/AircraftQuery"
-        },
         "mapMode": {
           "enum": [
             "2d",
             "3d"
           ]
+        },
+        "basemapId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
         },
         "camera": {
           "type": "object",
@@ -1265,89 +1261,136 @@
           ],
           "additionalProperties": false
         },
-        "basemapId": {
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AtlasLayer"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "focusedLayerId": {
           "type": "string",
           "minLength": 1,
           "maxLength": 160
         },
-        "liveView": {
-          "enum": [
-            "aircraft",
-            "earthquakes"
+        "selectedLayerId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "earthquakeCamera": {
+        "resultScope": {
+          "enum": [
+            "focused",
+            "participating",
+            "selected",
+            "map-area"
+          ]
+        },
+        "resultLayerIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "uniqueItems": true,
+          "maxItems": 16
+        },
+        "resultTable": {
+          "enum": ["mixed", "aircraft", "earthquakes"]
+        },
+        "sidebarTab": {
+          "enum": ["layers", "sources", "tools"]
+        },
+        "showMap": { "type": "boolean" },
+        "showList": { "type": "boolean" },
+        "mapListRatio": { "type": "number", "minimum": 0.2, "maximum": 0.8 },
+        "timelineOpen": { "type": "boolean" },
+        "hiddenMapRecordIds": {
+          "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 400 },
+          "uniqueItems": true, "maxItems": 2000
+        },
+        "hiddenMapGroupIds": {
+          "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "uniqueItems": true, "maxItems": 16
+        },
+        "shownMapRecordIds": {
+          "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 400 },
+          "uniqueItems": true, "maxItems": 2000
+        },
+        "recovery": {
           "type": "object",
           "properties": {
-            "longitude": {
-              "type": "number",
-              "minimum": -180,
-              "maximum": 180
+            "fromStateVersion": {
+              "const": 1
             },
-            "latitude": {
-              "type": "number",
-              "minimum": -90,
-              "maximum": 90
+            "inactiveDomain": {
+              "enum": [
+                "aircraft",
+                "earthquakes"
+              ]
             },
-            "height": {
-              "type": "number",
-              "minimum": 100,
-              "maximum": 50000000
-            }
-          },
-          "required": [
-            "longitude",
-            "latitude",
-            "height"
-          ],
-          "additionalProperties": false
-        },
-        "aircraftSelection": {
-          "$ref": "#/definitions/Selection"
-        },
-        "earthquakeSelection": {
-          "$ref": "#/definitions/Selection"
-        },
-        "earthquakeSettings": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "maxLength": 500
-            },
-            "minimumMagnitude": {
+            "inactiveCamera": {
               "anyOf": [
                 {
-                  "type": "number",
-                  "minimum": -10,
-                  "maximum": 15
+                  "type": "object",
+                  "properties": {
+                    "longitude": {
+                      "type": "number",
+                      "minimum": -180,
+                      "maximum": 180
+                    },
+                    "latitude": {
+                      "type": "number",
+                      "minimum": -90,
+                      "maximum": 90
+                    },
+                    "height": {
+                      "type": "number",
+                      "minimum": 100,
+                      "maximum": 50000000
+                    }
+                  },
+                  "required": [
+                    "longitude",
+                    "latitude",
+                    "height"
+                  ],
+                  "additionalProperties": false
                 },
                 {
                   "type": "null"
                 }
               ]
             },
-            "maxAgeHours": {
+            "inactiveSelection": {
+              "$ref": "#/definitions/Selection"
+            },
+            "legacyDataMode": {
               "enum": [
-                null,
-                1,
-                6,
-                24
+                "live",
+                "demo"
               ]
             },
-            "sort": {
-              "enum": [
-                "occurred",
-                "magnitude",
-                "updated"
-              ]
+            "legacyContextFilters": {
+              "type": "object"
+            },
+            "explanation": {
+              "type": "string",
+              "maxLength": 500
             }
           },
           "required": [
-            "query",
-            "minimumMagnitude",
-            "maxAgeHours",
-            "sort"
+            "fromStateVersion",
+            "inactiveDomain",
+            "inactiveCamera",
+            "inactiveSelection",
+            "legacyContextFilters",
+            "explanation"
           ],
           "additionalProperties": false
         }
@@ -1361,7 +1404,13 @@
         "sidebarWidth",
         "inspectorWidth",
         "sort",
-        "expandedDetails"
+        "expandedDetails",
+        "mapMode",
+        "camera",
+        "layers",
+        "focusedLayerId",
+        "selectedLayerId",
+        "resultScope"
       ],
       "additionalProperties": false
     },
@@ -3371,6 +3420,395 @@
           ]
         }
       }
+    },
+    "AtlasStateV1": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "viewMode": {
+          "enum": [
+            "canvas",
+            "list"
+          ]
+        },
+        "resultsOpen": {
+          "type": "boolean"
+        },
+        "sidebarOpen": {
+          "type": "boolean"
+        },
+        "inspectorOpen": {
+          "type": "boolean"
+        },
+        "sidebarWidth": {
+          "type": "integer",
+          "minimum": 240,
+          "maximum": 440
+        },
+        "inspectorWidth": {
+          "type": "integer",
+          "minimum": 280,
+          "maximum": 520
+        },
+        "sort": {
+          "enum": [
+            "label",
+            "kind"
+          ]
+        },
+        "expandedDetails": {
+          "type": "boolean"
+        },
+        "dataMode": {
+          "enum": [
+            "live",
+            "demo"
+          ]
+        },
+        "aircraftQuery": {
+          "$ref": "#/definitions/AircraftQuery"
+        },
+        "mapMode": {
+          "enum": [
+            "2d",
+            "3d"
+          ]
+        },
+        "camera": {
+          "type": "object",
+          "properties": {
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "height": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 50000000
+            }
+          },
+          "required": [
+            "longitude",
+            "latitude",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "basemapId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "liveView": {
+          "enum": [
+            "aircraft",
+            "earthquakes"
+          ]
+        },
+        "earthquakeCamera": {
+          "type": "object",
+          "properties": {
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "height": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 50000000
+            }
+          },
+          "required": [
+            "longitude",
+            "latitude",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "aircraftSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "earthquakeSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "earthquakeSettings": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "minimumMagnitude": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": -10,
+                  "maximum": 15
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxAgeHours": {
+              "enum": [
+                null,
+                1,
+                6,
+                24
+              ]
+            },
+            "sort": {
+              "enum": [
+                "occurred",
+                "magnitude",
+                "updated"
+              ]
+            }
+          },
+          "required": [
+            "query",
+            "minimumMagnitude",
+            "maxAgeHours",
+            "sort"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "viewMode",
+        "resultsOpen",
+        "sidebarOpen",
+        "inspectorOpen",
+        "sidebarWidth",
+        "inspectorWidth",
+        "sort",
+        "expandedDetails"
+      ],
+      "additionalProperties": false
+    },
+    "AtlasAircraftLayer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "connectionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "datasetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "groupId": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "groupName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "visible": {
+          "type": "boolean"
+        },
+        "participating": {
+          "type": "boolean"
+        },
+        "appearance": {
+          "type": "object",
+          "properties": {
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sizeScale": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2
+            }
+          },
+          "required": [
+            "opacity",
+            "sizeScale"
+          ],
+          "additionalProperties": false
+        },
+        "lastSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "domain": {
+          "const": "aircraft"
+        },
+        "query": {
+          "$ref": "#/definitions/AircraftQuery"
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "freshness": {
+              "enum": [
+                "all",
+                "recent",
+                "older"
+              ]
+            }
+          },
+          "required": [
+            "query",
+            "freshness"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "connectionId",
+        "datasetId",
+        "domain",
+        "visible",
+        "participating",
+        "appearance",
+        "filters",
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "AtlasEarthquakeLayer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "connectionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "datasetId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "groupId": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "groupName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "visible": {
+          "type": "boolean"
+        },
+        "participating": {
+          "type": "boolean"
+        },
+        "appearance": {
+          "type": "object",
+          "properties": {
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sizeScale": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 2
+            }
+          },
+          "required": [
+            "opacity",
+            "sizeScale"
+          ],
+          "additionalProperties": false
+        },
+        "lastSelection": {
+          "$ref": "#/definitions/Selection"
+        },
+        "domain": {
+          "const": "earthquakes"
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "minimumMagnitude": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": -10,
+                  "maximum": 15
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxAgeHours": {
+              "enum": [
+                null,
+                1,
+                6,
+                24
+              ]
+            },
+            "sort": {
+              "enum": [
+                "occurred",
+                "magnitude",
+                "updated"
+              ]
+            }
+          },
+          "required": [
+            "query",
+            "minimumMagnitude",
+            "maxAgeHours",
+            "sort"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "connectionId",
+        "datasetId",
+        "domain",
+        "visible",
+        "participating",
+        "appearance",
+        "filters"
+      ],
+      "additionalProperties": false
+    },
+    "AtlasLayer": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/AtlasAircraftLayer"
+        },
+        {
+          "$ref": "#/definitions/AtlasEarthquakeLayer"
+        }
+      ]
     }
   }
 }

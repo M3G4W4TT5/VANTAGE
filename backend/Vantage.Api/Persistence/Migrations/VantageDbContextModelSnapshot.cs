@@ -30,6 +30,11 @@ namespace Vantage.Api.Persistence.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)");
 
+                    b.Property<string>("DefaultRegion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<long>("Revision")
                         .IsConcurrencyToken()
                         .HasColumnType("bigint");
@@ -39,6 +44,11 @@ namespace Vantage.Api.Persistence.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("character varying(5)");
 
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -46,6 +56,8 @@ namespace Vantage.Api.Persistence.Migrations
 
                     b.ToTable("personal_preferences", "platform", t =>
                         {
+                            t.HasCheckConstraint("CK_personal_preferences_region", "\"DefaultRegion\" IN ('northern-europe', 'denmark', 'europe', 'world')");
+
                             t.HasCheckConstraint("CK_personal_preferences_theme", "\"Theme\" IN ('dark', 'light')");
                         });
                 });
@@ -90,6 +102,181 @@ namespace Vantage.Api.Persistence.Migrations
                     b.ToTable("workspaces", "platform");
                 });
 
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ConnectionRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("ConnectorTypeId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialRef")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTimeOffset?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<string>("SettingsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TemplateId")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int?>("TemplateVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkspaceId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "RemovedAt");
+
+                    b.ToTable("connections", "platform", t =>
+                        {
+                            t.HasCheckConstraint("CK_connections_scope", "(\"Scope\" = 'global' AND \"WorkspaceId\" IS NULL) OR (\"Scope\" = 'workspace' AND \"WorkspaceId\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ConnectionSecretRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<byte[]>("Ciphertext")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ConnectionId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<byte[]>("Nonce")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<byte[]>("Tag")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.ToTable("connection_secrets", "private");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.DatasetRow", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("ConnectionId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("ProductId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("SourceId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("datasets", "platform");
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ObservationDeliveryRow", b =>
+                {
+                    b.Property<string>("ConnectionId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<string>("ObservationId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<long>("ConfigurationRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("DatasetId")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<DateTimeOffset>("RetrievedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ConnectionId", "ObservationId", "ConfigurationRevision");
+
+                    b.HasIndex("ObservationId");
+
+                    b.HasIndex("DatasetId", "RetrievedAt");
+
+                    b.ToTable("observation_deliveries", "platform");
+                });
+
             modelBuilder.Entity("Vantage.Api.Platform.Identity.PlatformUserRow", b =>
                 {
                     b.Property<string>("Id")
@@ -130,6 +317,10 @@ namespace Vantage.Api.Persistence.Migrations
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentAircraftRow", b =>
                 {
+                    b.Property<string>("ConnectionId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
@@ -150,7 +341,7 @@ namespace Vantage.Api.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("Id");
+                    b.HasKey("ConnectionId", "Id");
 
                     b.HasIndex("Position");
 
@@ -165,6 +356,10 @@ namespace Vantage.Api.Persistence.Migrations
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.CurrentEarthquakeRow", b =>
                 {
+                    b.Property<string>("ConnectionId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<string>("Id")
                         .HasColumnType("text");
 
@@ -191,7 +386,7 @@ namespace Vantage.Api.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.HasKey("Id");
+                    b.HasKey("ConnectionId", "Id");
 
                     b.HasIndex("Position");
 
@@ -204,6 +399,10 @@ namespace Vantage.Api.Persistence.Migrations
 
             modelBuilder.Entity("Vantage.Api.Platform.Observations.EarthquakeFeedRow", b =>
                 {
+                    b.Property<string>("ConnectionId")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
                     b.Property<string>("SourceId")
                         .HasColumnType("text");
 
@@ -222,7 +421,7 @@ namespace Vantage.Api.Persistence.Migrations
                     b.Property<bool>("Truncated")
                         .HasColumnType("boolean");
 
-                    b.HasKey("SourceId");
+                    b.HasKey("ConnectionId", "SourceId");
 
                     b.ToTable("earthquake_feeds", "platform");
                 });
@@ -291,6 +490,54 @@ namespace Vantage.Api.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ConnectionRow", b =>
+                {
+                    b.HasOne("Vantage.Api.Platform.Identity.PlatformUserRow", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ConnectionSecretRow", b =>
+                {
+                    b.HasOne("Vantage.Api.Platform.Connections.ConnectionRow", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.DatasetRow", b =>
+                {
+                    b.HasOne("Vantage.Api.Platform.Connections.ConnectionRow", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Vantage.Api.Platform.Connections.ObservationDeliveryRow", b =>
+                {
+                    b.HasOne("Vantage.Api.Platform.Connections.ConnectionRow", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vantage.Api.Platform.Connections.DatasetRow", null)
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vantage.Api.Platform.Observations.ObservationRow", null)
+                        .WithMany()
+                        .HasForeignKey("ObservationId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

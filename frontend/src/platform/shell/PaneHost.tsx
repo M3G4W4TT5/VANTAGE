@@ -5,16 +5,17 @@ import type { AppModule, AppRegistry, HostServices } from '../registry/AppRegist
 import type { ContextBus } from '../context/ContextBus';
 import type { WorkspaceService } from '../workspaces/WorkspaceService';
 
-export function PaneHost({ pane, module, registry, bus, workspaces, notify }: {
+export function PaneHost({ pane, module, registry, bus, workspaces, notify, openSystemTool }: {
   pane: Pane; module: AppModule | undefined; registry: AppRegistry; bus: ContextBus; workspaces: WorkspaceService; notify(message: string): void;
+  openSystemTool?(id: string, referenceId?: string): void;
 }) {
   const host = useMemo<HostServices>(() => ({
     getState: () => workspaces.getSnapshot().document!.panes.find(p => p.id === pane.id)!.state,
     updateState: state => workspaces.update(doc => ({ ...doc, panes: doc.panes.map(p => p.id === pane.id ? { ...p, state: module!.serializeState(state) } : p) })),
     getContext: () => workspaces.getSnapshot().document!.panes.find(p => p.id === pane.id)!.context,
     changeContext: patch => bus.change(pane.id, patch),
-    subscribe: listener => bus.subscribe(pane.id, listener), notify,
-  }), [pane.id, module, bus, workspaces, notify]);
+    subscribe: listener => bus.subscribe(pane.id, listener), notify, openSystemTool,
+  }), [pane.id, module, bus, workspaces, notify, openSystemTool]);
   useEffect(() => {
     if (!module) return;
     const dispose = registry.mount(module.manifest.id, host);

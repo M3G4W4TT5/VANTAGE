@@ -1,0 +1,1 @@
+{"id":"adsb-lol-default","version":1,"connectorTypeId":"adsb-lol","name":"ADSB.lol aircraft","schemaVersion":1,"settings":{"pollSeconds":30}}

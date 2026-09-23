@@ -17,7 +17,11 @@ import globe from '@tabler/icons/outline/world.svg?raw';
 import layers from '@tabler/icons/outline/layout-sidebar.svg?raw';
 import search from '@tabler/icons/outline/search.svg?raw';
 import clock from '@tabler/icons/outline/clock.svg?raw';
-const assets = { question, plane, circle, event, selection, plus, minus, locate, close, up, down, right, map, list, table, globe, layers, search, clock };
+import eye from '@tabler/icons/outline/eye.svg?raw';
+import eyeOff from '@tabler/icons/outline/eye-off.svg?raw';
+import tools from '@tabler/icons/outline/tools.svg?raw';
+import bell from '@tabler/icons/outline/bell.svg?raw';
+const assets = { question, plane, circle, event, selection, plus, minus, locate, close, up, down, right, map, list, table, globe, layers, search, clock, eye, eyeOff, tools, bell };
 export type SymbolName = keyof typeof assets;
 // Only pinned, bundled Tabler assets enter SVG image URLs. No source content is interpolated.
 const urls = Object.fromEntries(Object.entries(assets).map(([key, svg]) => [key,

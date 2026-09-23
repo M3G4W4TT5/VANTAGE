@@ -9,6 +9,7 @@ using Vantage.Api.Platform.Observations;
 using Vantage.Api.Connectors.AdsbLol;
 using Vantage.Api.Connectors.Usgs;
 using Vantage.Api.Platform.Identity;
+using Vantage.Api.Platform.Connections;
 
 var exportIndex = Array.IndexOf(args, "--export-openapi");
 var builder = WebApplication.CreateBuilder(args);
@@ -23,13 +24,21 @@ builder.Services.AddDbContext<VantageDbContext>(o => o.UseNpgsql(
     builder.Configuration.GetConnectionString(args.Contains("--migrate") ? "Vantage" : "VantageRuntime") ?? "Host=127.0.0.1;Port=54329;Database=vantage;Username=vantage_app;Timeout=2",
     pg => pg.UseNetTopologySuite()));
 var atlasEnabled = builder.Configuration.GetValue("Applications:AtlasEnabled", true);
-builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(atlasEnabled ? new Dictionary<string, (int, string)> { ["atlas"] = (1, "AtlasState") } : new Dictionary<string, (int, string)>()));
+builder.Services.AddSingleton(await WorkspaceValidation.LoadAsync(atlasEnabled ? new Dictionary<string, (int, string)> { ["atlas"] = (2, "AtlasState") } : new Dictionary<string, (int, string)>()));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentSession, HttpCurrentSession>();
 builder.Services.AddScoped<PlatformAccess>();
 builder.Services.AddPlatformAuthentication(builder.Configuration);
 builder.Services.AddSingleton(await ObservationValidation.LoadAsync());
-if (atlasEnabled) builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
+builder.Services.AddSingleton(await ConnectorRegistry.LoadAsync());
+builder.Services.AddScoped<ConnectionAccess>();
+builder.Services.AddScoped<ConnectionSecretStore>();
+builder.Services.AddSingleton<ProviderRequestBudget>();
+if (atlasEnabled)
+{
+    builder.Services.AddSingleton<IWorkspaceTemplate, AtlasWorkspaceTemplate>();
+    builder.Services.AddSingleton<IWorkspaceStateMigrator, AtlasWorkspaceStateMigrator>();
+}
 builder.Services.AddHttpClient<AdsbLolClient>(http =>
 {
     http.Timeout = TimeSpan.FromSeconds(15);
@@ -40,6 +49,7 @@ builder.Services.AddSingleton<AircraftSources>();
 builder.Services.AddScoped<AircraftStore>();
 builder.Services.AddSingleton<AircraftCoordinator>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AircraftCoordinator>());
+builder.Services.AddSingleton<IConnectionDemandControl>(sp => sp.GetRequiredService<AircraftCoordinator>());
 builder.Services.AddHttpClient<UsgsEarthquakeSource>(http =>
 {
     http.Timeout = TimeSpan.FromSeconds(15);
@@ -50,6 +60,7 @@ builder.Services.AddSingleton<EarthquakeSources>();
 builder.Services.AddScoped<EarthquakeStore>();
 builder.Services.AddSingleton<EarthquakeCoordinator>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<EarthquakeCoordinator>());
+builder.Services.AddSingleton<IConnectionDemandControl>(sp => sp.GetRequiredService<EarthquakeCoordinator>());
 builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 16384; o.MaximumParallelInvocationsPerClient = 1; })
     .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new UtcTimestampConverter()));
 var app = builder.Build();
@@ -62,6 +73,11 @@ app.Use(async (context, next) =>
     {
         context.Response.StatusCode = denied.Status;
         await context.Response.WriteAsJsonAsync(new ApiError("access_denied", "An authorized VANTAGE session is required."));
+    }
+    catch (ConnectionUnavailableException unavailable)
+    {
+        context.Response.StatusCode = 409;
+        await context.Response.WriteAsJsonAsync(new ApiError(unavailable.State, "This connection is not available for collection."));
     }
     catch (Npgsql.NpgsqlException)
     {
@@ -87,7 +103,8 @@ if (exportIndex >= 0)
 if (args.Contains("--migrate"))
 {
     await using var scope = app.Services.CreateAsyncScope();
-    await OwnershipMigration.MigrateAsync(scope.ServiceProvider.GetRequiredService<VantageDbContext>(), InitialOperator.FromConfiguration(builder.Configuration));
+    await OwnershipMigration.MigrateAsync(scope.ServiceProvider.GetRequiredService<VantageDbContext>(),
+        InitialOperator.FromConfiguration(builder.Configuration), config: builder.Configuration);
     return;
 }
 app.UseOpenApi(o => o.Path = "/api/openapi/{documentName}.json");

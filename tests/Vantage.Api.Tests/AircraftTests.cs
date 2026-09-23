@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NJsonSchema;
 using Npgsql;
@@ -106,7 +105,7 @@ public sealed class AircraftTests
     public async Task ProviderRateLimitAndInvalidDataRemainExplicit()
     {
         var handler = new FeedHandler("{}") { Status = HttpStatusCode.TooManyRequests };
-        var client = new AdsbLolClient(new HttpClient(handler), new ConfigurationBuilder().Build());
+        var client = new AdsbLolClient(new HttpClient(handler));
         var error = await Assert.ThrowsAsync<SourceException>(() => client.FetchAsync(new(), CancellationToken.None));
         Assert.Equal("rate_limited", error.State); Assert.Equal(TimeSpan.FromMinutes(3), error.RetryAfter);
         Assert.Throws<SourceException>(() => AdsbLolClient.Parse("{}", DateTimeOffset.UtcNow, "https://api.adsb.lol/"));

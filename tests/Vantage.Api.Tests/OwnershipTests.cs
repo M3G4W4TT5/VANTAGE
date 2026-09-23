@@ -63,9 +63,9 @@ public sealed class OwnershipTests
         await OwnershipMigration.MigrateAsync(db, TestIdentity.Owner);
         Assert.Equal(observationsBefore, await Snapshot(db, "platform.observations"));
         Assert.Equal(workspacesBefore, await Snapshot(db, "platform.workspaces", excludeOwner: true));
-        Assert.Equal(aircraftBefore, await Snapshot(db, "platform.current_aircraft"));
-        Assert.Equal(earthquakesBefore, await Snapshot(db, "platform.current_earthquakes"));
-        Assert.Equal(feedsBefore, await Snapshot(db, "platform.earthquake_feeds"));
+        Assert.Equal(aircraftBefore, await Snapshot(db, "platform.current_aircraft", excludeConnection: true));
+        Assert.Equal(earthquakesBefore, await Snapshot(db, "platform.current_earthquakes", excludeConnection: true));
+        Assert.Equal(feedsBefore, await Snapshot(db, "platform.earthquake_feeds", excludeConnection: true));
         foreach (var table in new[] { "atlas.current_aircraft", "atlas.current_earthquakes", "atlas.earthquake_feeds" })
             Assert.False(await TableExists(db, table));
         Assert.All(await db.Workspaces.AsNoTracking().ToListAsync(), row => Assert.Equal(TestIdentity.Owner.Id, row.OwnerId));
@@ -168,14 +168,14 @@ public sealed class OwnershipTests
     }
 
     private static IEnumerable<Type> ExpandType(Type type) => new[] { type }.Concat(type.IsGenericType ? type.GetGenericArguments().SelectMany(ExpandType) : []).Concat(type.HasElementType ? ExpandType(type.GetElementType()!) : []);
-    private static async Task<string> Snapshot(VantageDbContext db, string table, bool excludeOwner = false)
+    private static async Task<string> Snapshot(VantageDbContext db, string table, bool excludeOwner = false, bool excludeConnection = false)
     {
         // Table names are hard-coded by this test, never user input.
         await db.Database.OpenConnectionAsync();
         try
         {
             await using var command = db.Database.GetDbConnection().CreateCommand();
-            var row = excludeOwner ? "to_jsonb(t) - 'OwnerId'" : "to_jsonb(t)";
+            var row = excludeOwner ? "to_jsonb(t) - 'OwnerId'" : excludeConnection ? "to_jsonb(t) - 'ConnectionId'" : "to_jsonb(t)";
             command.CommandText = $"SELECT COALESCE(jsonb_agg(row_data ORDER BY row_data::text), '[]'::jsonb)::text FROM (SELECT {row} row_data FROM {table} t) rows";
             return (string)(await command.ExecuteScalarAsync())!;
         }

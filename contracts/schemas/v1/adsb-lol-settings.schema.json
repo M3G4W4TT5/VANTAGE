@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vantage.local/schemas/v1/adsb-lol-settings.schema.json",
+  "title": "ADSB.lol connection settings v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pollSeconds"],
+  "properties": { "pollSeconds": { "type": "integer", "minimum": 30, "maximum": 600, "readOnly": true } }
+}

@@ -15,11 +15,13 @@ import { AppRegistry } from './platform/registry/AppRegistry';
 import { SessionGate } from './platform/session/SessionGate';
 import { atlasModule } from './apps/atlas/atlasModule';
 import { settingsModule } from './platform/settings/SettingsModule';
+import { nexusModule } from './platform/nexus/NexusModule';
 
 import { SourceServicesContext } from './platform/sources/SourceServices';
 import * as sources from './connectors/sourceRegistration';
 
 const registry = new AppRegistry();
 registry.register(atlasModule);
+registry.register(nexusModule);
 registry.register(settingsModule);
 createRoot(document.getElementById('root')!).render(<StrictMode><HotkeysProvider><SourceServicesContext value={sources}><SessionGate registry={registry} /></SourceServicesContext></HotkeysProvider></StrictMode>);

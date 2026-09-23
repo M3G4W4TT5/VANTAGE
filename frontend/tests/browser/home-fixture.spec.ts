@@ -13,15 +13,25 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
   let workspace = {
     id: workspaceId, ownerId, name: 'Fixture workspace', revision: 1, schemaVersion: 1,
     createdAt: now, updatedAt: now, linkGroups: [], appStates: { shell: { theme: 'dark', activePaneId: 'atlas-1' } },
-    panes: [{ id: 'atlas-1', appId: 'atlas', stateSchemaVersion: 1,
-      state: { schemaVersion: 1, viewMode: 'list', resultsOpen: false, sidebarOpen: true, inspectorOpen: false,
-        sidebarWidth: 280, inspectorWidth: 360, sort: 'label', expandedDetails: false, dataMode: 'live',
-        aircraftQuery: { longitude: 12, latitude: 58, radiusNm: 250 }, mapMode: '2d' },
+    panes: [{ id: 'atlas-1', appId: 'atlas', stateSchemaVersion: 2,
+      state: { schemaVersion: 2, viewMode: 'list', resultsOpen: false, sidebarOpen: true, inspectorOpen: false,
+        sidebarWidth: 280, inspectorWidth: 360, sort: 'label', expandedDetails: false,
+        camera: { longitude: 12, latitude: 58, height: 2400000 }, mapMode: '2d',
+        focusedLayerId: 'aircraft-1', selectedLayerId: null as string | null, resultScope: 'focused',
+        layers: [
+          { id: 'aircraft-1', domain: 'aircraft', connectionId: 'legacy-aircraft', datasetId: 'legacy-aircraft:positions',
+            visible: true, participating: true, appearance: { opacity: 1, sizeScale: 1 },
+            query: { longitude: 12, latitude: 58, radiusNm: 250 }, filters: { query: '', freshness: 'all' } },
+          { id: 'earthquakes-1', domain: 'earthquakes', connectionId: 'legacy-earthquakes', datasetId: 'legacy-earthquakes:events',
+            visible: false, participating: false, appearance: { opacity: 1, sizeScale: 1 },
+            filters: { query: '', minimumMagnitude: null, maxAgeHours: null, sort: 'occurred' } },
+        ] },
       context: { schemaVersion: 1, workspaceId, paneId: 'atlas-1',
         selection: { entityIds: [], observationIds: [] }, area: null,
-        time: { mode: 'live', cursor: null, from: null, to: null }, layerIds: ['aircraft'], filters: {}, linkGroupId: null } }],
+        time: { mode: 'live', cursor: null, from: null, to: null }, layerIds: ['aircraft-1'], filters: {}, linkGroupId: null } }],
   };
-  let preference = { schemaVersion: 1, theme: 'dark', revision: 0, updatedAt: null as string | null };
+  let preference = { schemaVersion: 1, theme: 'dark', defaultRegion: 'northern-europe', timeZone: 'UTC',
+    revision: 0, updatedAt: null as string | null };
   let workspaceReads = 0;
   let signedOut = false;
   let logoutPosts = 0;
@@ -40,14 +50,21 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
     if (path === '/api/v1/preferences') {
       if (method === 'GET') return json(route, 200, preference);
       if (method === 'PUT') {
-        const body = request.postDataJSON() as { theme: string; revision: number };
+        const body = request.postDataJSON() as { theme: string; defaultRegion?: string; timeZone?: string; revision: number };
         if (body.revision !== preference.revision) return json(route, 409, { code: 'revision_conflict', message: 'Preferences changed elsewhere.' });
         if (body.theme !== 'dark' && body.theme !== 'light') return json(route, 400, { code: 'invalid_theme', message: 'Invalid theme.' });
-        preference = { schemaVersion: 1, theme: body.theme, revision: preference.revision + 1, updatedAt: now };
+        preference = { ...preference, theme: body.theme, defaultRegion: body.defaultRegion ?? preference.defaultRegion,
+          timeZone: body.timeZone ?? preference.timeZone, revision: preference.revision + 1, updatedAt: now };
         return json(route, 200, preference);
       }
     }
     if (path === '/api/v1/health' && method === 'GET') return json(route, 200, { status: 'ready', storage: 'ready', contractVersion: 1 });
+    if (path === '/api/v1/connections' && method === 'GET') return json(route, 200, [
+      { id: 'legacy-aircraft', name: 'Aircraft', status: 'available', scope: 'global', datasets: [
+        { id: 'legacy-aircraft:positions', connectionId: 'legacy-aircraft', domain: 'aircraft', availability: 'available', coverage: 'Fixture area', attribution: 'Fixture aircraft' }] },
+      { id: 'legacy-earthquakes', name: 'Earthquakes', status: 'available', scope: 'global', datasets: [
+        { id: 'legacy-earthquakes:events', connectionId: 'legacy-earthquakes', domain: 'earthquake', availability: 'available', coverage: 'Fixture feed', attribution: 'Fixture earthquakes' }] },
+    ]);
     if (path === '/api/v1/workspaces' && method === 'GET')
       return json(route, 200, [{ id: workspace.id, ownerId, name: workspace.name, revision: workspace.revision, updatedAt: workspace.updatedAt }]);
     if (path === `/api/v1/workspaces/${workspaceId}`) {
@@ -74,12 +91,16 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
   });
   await page.route('https://tile.openstreetmap.org/**', route => route.abort());
   await page.route('http://localhost:8180/**', route => route.abort());
+  const openAircraftFilters = async () => {
+    await page.getByRole('group', { name: 'Aircraft group; open options with Shift+F10' }).click({ button: 'right' });
+    await page.getByRole('menu', { name: 'Aircraft group options' }).getByRole('menuitem', { name: 'Filters' }).click();
+  };
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   for (const area of ['Workspaces', 'Apps', 'System', 'Account'])
     await expect(page.getByRole('region', { name: area })).toBeVisible();
-  await expect(page.getByRole('button', { name: /NEXUS/i })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'System' }).getByRole('button', { name: 'Open NEXUS — Data Manager' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
   await expect(page.getByRole('img', { name: 'VANTAGE' })).toHaveAttribute('src', '/brand/vantage-wordmark-white.svg');
   expect(workspaceReads).toBe(0);
@@ -94,6 +115,10 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
   await expect(page.getByText('ready', { exact: true })).toHaveCount(2);
   expect(workspaceReads).toBe(0);
   await page.getByRole('combobox', { name: 'Theme' }).selectOption('light');
+  await page.getByRole('combobox', { name: 'Default map region' }).selectOption('denmark');
+  await page.getByRole('combobox', { name: 'Display timezone' }).selectOption('Europe/Copenhagen');
+  expect(preference.defaultRegion).toBe('denmark');
+  expect(preference.timeZone).toBe('Europe/Copenhagen');
   await expect(page.getByRole('img', { name: 'VANTAGE' })).toHaveAttribute('src', '/brand/vantage-wordmark-black.svg');
   expect(preference.theme).toBe('light');
   expect(workspace.revision).toBe(1);
@@ -111,21 +136,23 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
   await page.getByRole('dialog').getByRole('button', { name: 'Fixture workspace', exact: true }).click();
   await expect.poll(() => workspaceReads).toBe(1);
   await expect(page.getByRole('img', { name: 'ATLAS' })).toHaveAttribute('src', '/brand/atlas-wordmark-black.svg');
-  const aircraftFilter = page.getByRole('textbox', { name: 'Filter aircraft' });
-  await expect(aircraftFilter).toBeVisible();
-  await aircraftFilter.fill('draft only');
+  await openAircraftFilters();
+  await page.getByRole('textbox', { name: 'Filter aircraft' }).fill('draft only');
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Unsaved$/ })).toBeVisible();
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: /Unsaved work in Fixture workspace/ })).toBeVisible();
   await page.getByRole('button', { name: 'Open Fixture workspace', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Unsaved workspace changes' })).toHaveCount(0);
+  await openAircraftFilters();
   await expect(page.getByRole('textbox', { name: 'Filter aircraft' })).toHaveValue('draft only');
+  await page.getByRole('button', { name: 'Discard' }).click();
   expect(workspace.revision).toBe(1);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
   expect(workspace.revision).toBe(2);
-  expect(workspace.panes[0].context.filters).toEqual({ query: 'draft only' });
+  expect(workspace.panes[0].state.layers[0].filters).toEqual({ query: 'draft only', freshness: 'all' });
   expect(preference.theme).toBe('light');
   expect(unexpectedRequests).toEqual([]);
 
@@ -148,11 +175,15 @@ test('fixture-only Home, Settings, ATLAS state and sign-out with an unsaved draf
 
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   await page.getByRole('button', { name: 'Open Fixture workspace', exact: true }).click();
+  await openAircraftFilters();
   await page.getByRole('textbox', { name: 'Filter aircraft' }).fill('keep unsaved');
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByRole('status').filter({ hasText: /^Unsaved$/ })).toBeVisible();
   page.once('dialog', async dialog => { expect(dialog.type()).toBe('beforeunload'); await dialog.dismiss(); });
   await page.getByRole('button', { name: 'Sign out' }).first().click();
+  await openAircraftFilters();
   await expect(page.getByRole('textbox', { name: 'Filter aircraft' })).toHaveValue('keep unsaved');
+  await page.getByRole('button', { name: 'Discard' }).click();
   expect(logoutPosts).toBe(0);
 
   page.once('dialog', async dialog => { expect(dialog.type()).toBe('beforeunload'); await dialog.accept(); });

@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="../../contracts/schemas/v1/*.json" Link="Schemas/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../contracts/templates/v1/*.json" Link="Templates/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

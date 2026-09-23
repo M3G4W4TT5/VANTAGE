@@ -33,6 +33,8 @@ Supplied on 2026-09-22: 14 PNGs and [gotham_europa_notes.txt](<Gotham Europa Inf
 
 The [consolidated change record](../../docs/atlas-workspace-change-record-2026-09-22.md) maps individual screenshot times to the observed patterns and records the approved VANTAGE adaptations: category/layer controls, separate grouped record results, source/history inspection, acquisition-aware timelines, image-region notes, evidence clips, a saved-work library and inspectable AI run details. Home/NEXUS and the platform architecture are VANTAGE decisions informed by the discussion, not claims about Gotham internals.
 
+The [Gotham and Gotham Europa capability inventory](../../docs/gotham-europa-capability-inventory.md) brings the screenshot observations together with the public service definition, Europa page, and API documentation without changing VANTAGE scope.
+
 Chat/team editing, advanced video intelligence, full reporting/slides and visual ML pipelines remain deferred. Ordinary map-linked audio/video/still-image discovery and playback remain in the prototype. Capture dates do not establish product release dates; stills do not verify synchronization, accessibility, model quality, security or processing scale. The original VANTAGE palette and branding remain authoritative.
 
 ## Historical: website and case-study captures

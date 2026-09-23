@@ -8,13 +8,13 @@ using Vantage.Api.Platform.Observations;
 
 namespace Vantage.Api.Connectors.AdsbLol;
 
-public sealed partial class AdsbLolClient(HttpClient http, IConfiguration configuration) : IAircraftSource
+public sealed partial class AdsbLolClient(HttpClient http) : IAircraftSource
 {
     public AircraftSourceDto Metadata { get; } = new(SourceId, "ADSB.lol", "https://www.adsb.lol/docs/open-data/api/",
         License, Attribution, ["bounded_query", "live_subscription", "local_cache"],
-        Math.Clamp(configuration.GetValue("Sources:AdsbLol:PollSeconds", 30), 30, 600), 250, ResultLimit,
+        30, 250, ResultLimit,
         AircraftCachePolicy.RetentionHours, 10, "Public receiver coverage is incomplete; addresses may be reused or misreported.");
-    public bool Enabled { get; } = configuration.GetValue("Sources:AdsbLol:Enabled", true);
+    public bool Enabled => true;
     public TimeSpan MinimumRequestInterval => TimeSpan.FromSeconds(8);
     public const string SourceId = "adsb-lol";
     public const string Attribution = "ADSB.lol contributors · ODbL 1.0";

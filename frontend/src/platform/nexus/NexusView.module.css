@@ -1,0 +1,66 @@
+.nexus { flex: 1; min-height: 0; overflow: auto; padding: 24px 28px 48px; width: 100%; }
+.heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; max-width: 1600px; margin: 0 auto 24px; }
+.eyebrow { margin: 0; color: var(--text-muted); font-size: 11px; letter-spacing: .12em; font-weight: 500; }
+.heading h1 { margin: 4px 0 6px; font-size: 24px; font-weight: 600; }
+.heading p:last-child { margin: 0; color: var(--text-muted); }
+.headingActions, .detailActions, .formActions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.alert { max-width: 1600px; margin: 0 auto 12px; }
+.alert button { margin-left: 12px; }
+.loading { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 240px; color: var(--text-muted); }
+.layout { display: grid; grid-template-columns: minmax(240px, 290px) minmax(0, 1fr); align-items: start; gap: 20px; max-width: 1600px; margin: 0 auto; }
+.sidebar, .panel { min-width: 0; border: 1px solid var(--divider); background: var(--surface); }
+.sidebar { position: sticky; top: 0; }
+.sectionTitle { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px; border-bottom: 1px solid var(--divider); }
+.sectionTitle h2, .sectionTitle h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.sectionTitle span { color: var(--text-muted); font-size: 12px; }
+.list { padding: 0; margin: 0; list-style: none; max-height: 48vh; overflow: auto; }
+.list li + li { border-top: 1px solid var(--divider); }
+.connection { display: grid; width: 100%; min-height: 72px; gap: 3px; padding: 10px 12px; border: 0; border-left: 3px solid transparent; color: var(--text); background: transparent; text-align: left; }
+.connection:hover { background: var(--hover); }
+.connection.selected { background: var(--selection-bg); border-left-color: var(--selection-outline); }
+.connection strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.connection span, .connection small { font-size: 12px; color: var(--text-muted); }
+.addBlock { padding: 12px; border-top: 1px solid var(--divider); }
+.addBlock h3 { margin: 0 0 5px; font-size: 12px; font-weight: 600; }
+.addBlock h3:not(:first-child) { margin-top: 14px; }
+.addBlock button { justify-content: flex-start; min-height: 32px; }
+.empty { padding: 14px; color: var(--text-muted); }
+.detail { min-width: 0; display: grid; gap: 16px; }
+.emptyDetail { padding: 24px; border: 1px solid var(--divider); color: var(--text-muted); background: var(--surface); }
+.detailHeading { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--divider); padding-bottom: 12px; }
+.detailHeading h2 { margin: 4px 0 0; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.columns { display: grid; grid-template-columns: minmax(300px, 1.15fr) minmax(260px, .85fr); align-items: start; gap: 16px; }
+.facts { display: grid; gap: 16px; }
+.panel { padding: 16px; }
+.panel > .sectionTitle { margin: -16px -16px 16px; }
+.panel h3 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+.form { display: grid; gap: 4px; }
+.form :global(.bp6-form-group) { margin-bottom: 8px; }
+.twoFields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.settings { margin: 8px 0 14px; padding: 12px; border: 1px solid var(--divider); }
+.settings legend { padding: 0 4px; font-weight: 500; }
+.settings p, .note { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--text-muted); }
+.formActions { margin: 10px 0 0; }
+.problems { margin: 8px 0; padding-left: 22px; color: var(--danger); }
+.importError { color: var(--danger); }
+.factsList { display: grid; grid-template-columns: minmax(110px, 35%) minmax(0, 1fr); gap: 8px 12px; margin: 0; }
+.factsList dt { color: var(--text-muted); }
+.factsList dd { margin: 0; overflow-wrap: anywhere; }
+.factsList dd span { display: block; color: var(--text-muted); font-size: 12px; }
+.dataset + .dataset { border-top: 1px solid var(--divider); margin-top: 16px; padding-top: 16px; }
+.dataset h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+.dataset h4 span { color: var(--text-muted); font-weight: 400; }
+.tableWrap { overflow-x: auto; }
+.tableWrap table { width: 100%; border-collapse: collapse; text-align: left; }
+.tableWrap th, .tableWrap td { border-bottom: 1px solid var(--divider); padding: 7px 8px; white-space: nowrap; }
+.tableWrap th { color: var(--text-muted); font-weight: 500; }
+@media (max-width: 1050px) { .columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) {
+  .nexus { padding: 20px 16px 32px; }
+  .heading { align-items: flex-start; flex-direction: column; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { position: static; }
+  .list { max-height: 240px; }
+  .twoFields { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 420px) { .factsList { grid-template-columns: minmax(0, 1fr); gap: 2px; } .factsList dd { margin-bottom: 8px; } }

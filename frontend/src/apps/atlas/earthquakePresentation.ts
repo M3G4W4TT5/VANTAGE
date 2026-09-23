@@ -29,8 +29,8 @@ export const earthquakeColumns: ResultColumn<EarthquakeRecord>[] = [
   { id: 'magnitude', label: 'Magnitude', width: 110, value: r => r.observation.properties.magnitude?.toFixed(1) ?? 'Unknown' },
   { id: 'type', label: 'Magnitude type', width: 120, value: r => r.observation.properties.magnitudeType ?? 'Unknown' },
   { id: 'depth', label: 'Depth · km', width: 120, value: r => r.observation.properties.depthKilometres?.toFixed(1) ?? 'Unknown' },
-  { id: 'occurred', label: 'Occurred · UTC', width: 210, value: r => utc(r.observation.observedAt) },
-  { id: 'updated', label: 'Source updated · UTC', width: 210, value: r => utc(r.observation.properties.sourceUpdatedAt) },
-  { id: 'retrieved', label: 'Version retrieved · UTC', width: 210, value: r => utc(r.observation.retrievedAt) },
+  { id: 'occurred', label: 'Occurred', width: 210, value: r => utc(r.observation.observedAt) },
+  { id: 'updated', label: 'Source updated', width: 210, value: r => utc(r.observation.properties.sourceUpdatedAt) },
+  { id: 'retrieved', label: 'Version retrieved', width: 210, value: r => utc(r.observation.retrievedAt) },
   { id: 'source', label: 'Provenance · source / event ID', width: 240, value: r => `${r.observation.sourceId} / ${r.observation.provenance.sourceRecordId}` },
 ];

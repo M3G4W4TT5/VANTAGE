@@ -10,9 +10,12 @@ export type HostServices = {
   changeContext(patch: Partial<Pick<Context, 'selection' | 'area' | 'time' | 'filters' | 'layerIds'>>): void;
   subscribe(listener: (event: ContextEvent) => void): () => void;
   notify(message: string): void;
+  openSystemTool?(id: string, referenceId?: string): void;
 };
 export type AppViewProps = { pane: Pane; host: HostServices; updateState(state: Record<string, unknown>): void };
-export type SystemViewProps = { session: AuthenticatedSession; theme: 'dark' | 'light'; themeDisabled: boolean; onThemeChange(theme: 'dark' | 'light'): void };
+export type SystemViewProps = { session: AuthenticatedSession; theme: 'dark' | 'light'; themeDisabled: boolean;
+  onThemeChange(theme: 'dark' | 'light'): void; onDirtyChange?(dirty: boolean): void; focusReferenceId?: string;
+  defaultRegion?: string; timeZone?: string; onDisplayPreferenceChange?(patch: { defaultRegion?: string; timeZone?: string }): void };
 export type AppAction = { id: string; label: string; acceptedKinds: string[]; requiredCapabilities: string[];
   run(selection: Selection, context: Context, host: HostServices): void };
 export type AppModule = {

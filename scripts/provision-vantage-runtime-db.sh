@@ -23,7 +23,11 @@ GRANT CONNECT ON DATABASE vantage TO vantage_app;
 REVOKE ALL ON SCHEMA platform FROM vantage_app;
 GRANT USAGE ON SCHEMA platform TO vantage_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON platform.workspaces, platform.personal_preferences, platform.observations,
-  platform.current_aircraft, platform.current_earthquakes, platform.earthquake_feeds TO vantage_app;
+  platform.current_aircraft, platform.current_earthquakes, platform.earthquake_feeds,
+  platform.connections, platform.datasets, platform.observation_deliveries TO vantage_app;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO vantage_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON private.connection_secrets TO vantage_app;
 REVOKE ALL ON platform.users FROM vantage_app;
 GRANT SELECT ON platform.users TO vantage_app;
 SQL
@@ -37,6 +41,10 @@ if ! PGPASSWORD="$VANTAGE_APP_DB_PASSWORD" psql -X -q -v ON_ERROR_STOP=1 -h db -
 fi
 if ! PGPASSWORD="$VANTAGE_APP_DB_PASSWORD" psql -X -q -v ON_ERROR_STOP=1 -h db -U vantage_app -d vantage -c 'SELECT count(*) FROM platform.personal_preferences' >"$result" 2>&1; then
   echo 'Runtime role cannot read personal preferences. Apply migrations and provision the table grants.' >&2
+  exit 1
+fi
+if ! PGPASSWORD="$VANTAGE_APP_DB_PASSWORD" psql -X -q -v ON_ERROR_STOP=1 -h db -U vantage_app -d vantage -c 'SELECT count(*) FROM platform.connections' >"$result" 2>&1; then
+  echo 'Runtime role cannot read connections. Apply migrations and provision the table grants.' >&2
   exit 1
 fi
 if PGPASSWORD="$VANTAGE_APP_DB_PASSWORD" psql -X -q -v ON_ERROR_STOP=1 -h db -U vantage_app -d keycloak -c 'SELECT 1' >"$result" 2>&1; then

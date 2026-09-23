@@ -59,6 +59,12 @@ services:
     command: ["--migrate"]
     environment:
       ConnectionStrings__Vantage: "Host=db;Database=vantage;Username=vantage;Password=${POSTGRES_PASSWORD}"
+      Sources__Aircraft__Provider: ${VANTAGE_AIRCRAFT_PROVIDER:-adsb-lol}
+      Sources__AdsbLol__Enabled: ${VANTAGE_ADSB_ENABLED:-true}
+      Sources__AdsbLol__PollSeconds: ${VANTAGE_ADSB_POLL_SECONDS:-30}
+      Sources__Earthquakes__Provider: ${VANTAGE_EARTHQUAKE_PROVIDER:-usgs-earthquakes}
+      Sources__Usgs__Enabled: ${VANTAGE_USGS_ENABLED:-true}
+      Sources__Usgs__PollSeconds: ${VANTAGE_USGS_POLL_SECONDS:-60}
       Identity__InitialOperator__Id: ${VANTAGE_OWNER_ID:?Run node scripts/init-local.mjs first}
       Identity__InitialOperator__Issuer: ${VANTAGE_IDENTITY_ISSUER:?Run node scripts/init-local.mjs first}
       Identity__InitialOperator__Subject: ${VANTAGE_OWNER_SUBJECT:?Run node scripts/init-local.mjs first}
@@ -80,6 +86,7 @@ services:
       Sources__AdsbLol__Enabled: ${VANTAGE_ADSB_ENABLED:-true}
       Sources__AdsbLol__PollSeconds: ${VANTAGE_ADSB_POLL_SECONDS:-30}
       ConnectionStrings__VantageRuntime: "Host=db;Database=vantage;Username=vantage_app;Password=${VANTAGE_APP_DB_PASSWORD:?Run node scripts/init-local.mjs first}"
+      Connections__EncryptionKey: ${VANTAGE_CONNECTION_KEY:?Run node scripts/init-local.mjs first}
       Identity__Authority: ${VANTAGE_IDENTITY_ISSUER}
       Identity__MetadataAddress: http://keycloak:8080/realms/vantage/.well-known/openid-configuration
       Identity__IntrospectionEndpoint: http://keycloak:8080/realms/vantage/protocol/openid-connect/token/introspect
