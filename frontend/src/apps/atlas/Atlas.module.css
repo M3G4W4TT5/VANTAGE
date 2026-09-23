@@ -211,3 +211,4 @@
   .mapListResize { flex-basis: 8px; cursor: row-resize; border: 0; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); }
   .mapListResize::after { top: 2px; left: calc(50% - 18px); width: 36px; height: 2px; }
 }
+.sourceProperties { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; font: 12px/1.5 ui-monospace, monospace; }

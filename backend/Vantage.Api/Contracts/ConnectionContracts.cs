@@ -22,7 +22,7 @@ public sealed record DuplicateConnectionRequest(string Name, long Revision);
 public sealed record ConnectionTestRequest(long Revision, int SchemaVersion, JsonElement Settings);
 public sealed record ConnectionPreviewRequest(string ConnectorTypeId, int SchemaVersion, JsonElement Settings);
 public sealed record ConnectionPreviewRowDto(string Id, string Label, DateTimeOffset? SourceTime,
-    DateTimeOffset RetrievedAt, double? Longitude, double? Latitude);
+    DateTimeOffset RetrievedAt, double? Longitude, double? Latitude, string? GeometryType = null);
 public sealed record ConnectionTestDto(bool Valid, string State, string Message, string[] Problems,
     int? PreviewCount, DateTimeOffset? TestedAt, ConnectionPreviewRowDto[] PreviewRows);
 public sealed record ConnectionStatusDto(string ConnectionId, string HealthState, string HealthMessage,

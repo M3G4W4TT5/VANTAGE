@@ -9,7 +9,7 @@ import type { AircraftLayer, AtlasLayer, AtlasState } from './atlasModule';
 import { layerShown } from './atlasGroups';
 import type { AtlasChannel } from './atlasDemand';
 import { layerDemandKey } from './atlasDemand';
-import { composedMarkers } from './atlasMarkerComposition';
+import { composedMarkers, composedVectors } from './atlasMarkerComposition';
 import { matchesAircraft } from './aircraftLayerData';
 import { PlaceSearch } from './PlaceSearch';
 
@@ -37,12 +37,13 @@ export function ComposedAtlasMap({ state, layers, channels, workspaceId, selecte
     const layer = layers.find(item => item.id === reference.layerInstanceId);
     const channel = layer && channels.get(layerDemandKey(layer, workspaceId));
     const record = channel?.getSnapshot().records.find(value => value.entity.id === reference.entityId);
-    return `${record?.entity.label ?? reference.entityId} · ${layer?.domain === 'aircraft' ? 'Aircraft' : 'Earthquakes'} · ${layer?.id.slice(0, 8) ?? 'layer'}`;
+    return `${record?.entity.label ?? reference.entityId} · ${layer?.domain === 'aircraft' ? 'Aircraft' : layer?.domain === 'earthquakes' ? 'Earthquakes' : 'GeoJSON'} · ${layer?.id.slice(0, 8) ?? 'layer'}`;
   };
   return <PointMap label="ATLAS composed map" basemapId={basemapId} mode={state.mapMode} setMode={setMode}
     camera={state.camera} selectedId={selectedAppearance} select={select} describePick={describePick} setCamera={setCamera}
     setViewport={setViewport} drawOrderKey={layers.map(layer => layer.id).join('|')} setBasemap={setBasemap}
     subscribe={subscribe} getMarkers={() => composedMarkers(layers, channels, workspaceId, Date.now(), reportFailure, state)}
+    getVectors={() => composedVectors(layers, channels, workspaceId, reportFailure, state)}
     suppressCameraSave={follow}
     afterPaint={viewer => {
       try {

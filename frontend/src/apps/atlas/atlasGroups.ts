@@ -3,7 +3,7 @@ import type { AtlasLayer } from './atlasModule';
 export type AtlasGroup = { id: string; name: string; domain: AtlasLayer['domain']; layers: AtlasLayer[]; visible: boolean };
 
 export const groupId = (layer: AtlasLayer) => layer.groupId ?? layer.id;
-export const groupName = (layer: AtlasLayer) => layer.groupName ?? (layer.domain === 'aircraft' ? 'Aircraft' : 'Earthquakes');
+export const groupName = (layer: AtlasLayer) => layer.groupName ?? (layer.domain === 'aircraft' ? 'Aircraft' : layer.domain === 'earthquakes' ? 'Earthquakes' : 'GeoJSON features');
 // Old v2 workspaces can contain visible but unused layers. Keep those dormant until explicitly shown.
 export const layerShown = (layer: AtlasLayer) => layer.visible && layer.participating;
 // Showing a dormant layer is explicit activation. Hiding an active layer changes presentation only.

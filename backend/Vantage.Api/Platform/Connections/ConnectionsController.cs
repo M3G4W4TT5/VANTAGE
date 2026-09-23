@@ -7,6 +7,8 @@ using Vantage.Api.Contracts;
 using Vantage.Api.Persistence;
 using Vantage.Api.Platform.Identity;
 using Vantage.Api.Platform.Observations;
+using Vantage.Api.Connectors.GeoJson;
+using NetTopologySuite.Geometries;
 
 namespace Vantage.Api.Platform.Connections;
 
@@ -14,7 +16,8 @@ namespace Vantage.Api.Platform.Connections;
 public sealed class ConnectionsController(VantageDbContext db, PlatformAccess access, ConnectorRegistry registry,
     ConnectionSecretStore secrets, ProviderRequestBudget budget, IEnumerable<IConnectionDemandControl> demandControls,
     AircraftSources aircraft, EarthquakeSources earthquakes, AircraftCoordinator aircraftCoordinator,
-    EarthquakeCoordinator earthquakeCoordinator) : ControllerBase
+    EarthquakeCoordinator earthquakeCoordinator, HttpGeoJsonSource geoJson, GeoJsonCoordinator geoJsonCoordinator,
+    GeoJsonStore geoJsonStore) : ControllerBase
 {
     [HttpGet("connector-types", Name = "ListConnectorTypes")]
     public async Task<ActionResult<ConnectorTypeDto[]>> Types(CancellationToken ct)
@@ -55,8 +58,9 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
     {
         var row = await Owned(id, ct);
         var aircraftType = row.ConnectorTypeId == "adsb-lol";
-        var providerAvailable = aircraftType ? aircraft.Active.Enabled : earthquakes.Active.Enabled;
-        var demand = aircraftType ? aircraftCoordinator.Snapshot(id) : earthquakeCoordinator.Snapshot(id);
+        var geoJsonType = row.ConnectorTypeId == "http-geojson";
+        var providerAvailable = geoJsonType || (aircraftType ? aircraft.Active.Enabled : earthquakes.Active.Enabled);
+        var demand = geoJsonType ? geoJsonCoordinator.Snapshot(id) : aircraftType ? aircraftCoordinator.Snapshot(id) : earthquakeCoordinator.Snapshot(id);
         DateTimeOffset? cachedAt;
         int cachedRecords;
         if (aircraftType)
@@ -65,14 +69,20 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
             cachedAt = await cached.Select(x => (DateTimeOffset?)x.RetrievedAt).MaxAsync(ct);
             cachedRecords = await cached.CountAsync(ct);
         }
+        else if (geoJsonType)
+        {
+            var cached = await geoJsonStore.CacheStatusAsync(id, ct);
+            cachedAt = cached.RetrievedAt; cachedRecords = cached.Records;
+        }
         else
         {
             cachedAt = await db.EarthquakeFeeds.AsNoTracking().Where(x => x.ConnectionId == id)
                 .Select(x => (DateTimeOffset?)x.RetrievedAt).MaxAsync(ct);
             cachedRecords = await db.CurrentEarthquakes.AsNoTracking().CountAsync(x => x.ConnectionId == id && x.InLatestFeed, ct);
         }
+        var credentialReady = await CredentialReady(row, ct);
         var state = row.RemovedAt is not null ? "removed" : !row.Enabled ? "disabled" :
-            row.CredentialRef is not null ? "setup_required" : !providerAvailable ? "unavailable" :
+            !credentialReady ? "setup_required" : !providerAvailable ? "unavailable" :
             demand.HealthState ?? "not_checked";
         var message = state switch
         {
@@ -122,7 +132,7 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
             TemplateVersion = request.TemplateId is null ? null : registry.Template(request.TemplateId)!.Version,
             SchemaVersion = request.SchemaVersion, SettingsJson = request.Settings.GetRawText(), Scope = request.Scope,
             WorkspaceId = request.WorkspaceId, Enabled = request.Enabled, CreatedAt = now, UpdatedAt = now };
-        db.Connections.Add(row); db.Datasets.Add(registry.NewDataset(row.Id, row.ConnectorTypeId));
+        db.Connections.Add(row); db.Datasets.Add(registry.NewDataset(row.Id, row.ConnectorTypeId, row.SettingsJson));
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Get), new { id = row.Id }, await ToDto(row, ct));
     }
@@ -136,8 +146,22 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
         var problem = await Validate(request.Name, row.ConnectorTypeId, request.SchemaVersion,
             request.Settings, request.Scope, request.WorkspaceId, row.OwnerId, ct);
         if (problem is not null) return BadRequest(problem);
+        if (row.ConnectorTypeId == "http-geojson" && HttpGeoJsonSettings.Read(row.SettingsJson).SourceId !=
+            HttpGeoJsonSettings.Read(request.Settings.GetRawText()).SourceId)
+            return BadRequest(new ApiError("source_identity_locked", "Use a new connection when the declared source identity changes."));
         if (request.Settings.GetProperty("pollSeconds").GetInt32() != registry.PollSeconds(row.ConnectorTypeId, row.SettingsJson))
             return BadRequest(new ApiError("polling_controls_deferred", "Polling cadence is not an editable connection control in this prototype."));
+        if (row.ConnectorTypeId == "http-geojson")
+        {
+            var previous = HttpGeoJsonSettings.Read(row.SettingsJson);
+            var next = HttpGeoJsonSettings.Read(request.Settings.GetRawText());
+            if (previous.Authentication != next.Authentication || previous.Endpoint != next.Endpoint)
+            {
+                var oldSecrets = await db.ConnectionSecrets.Where(x => x.ConnectionId == row.Id).ToArrayAsync(ct);
+                db.ConnectionSecrets.RemoveRange(oldSecrets);
+                row.CredentialRef = next.Authentication == "bearer" ? "unresolved:" + Guid.NewGuid().ToString("N") : null;
+            }
+        }
         row.Name = request.Name.Trim(); row.SettingsJson = request.Settings.GetRawText();
         row.Scope = request.Scope; row.WorkspaceId = request.WorkspaceId;
         row.Enabled = request.Enabled; row.SchemaVersion = request.SchemaVersion;
@@ -170,7 +194,7 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
             SchemaVersion = original.SchemaVersion, SettingsJson = original.SettingsJson, Scope = original.Scope,
             WorkspaceId = original.WorkspaceId, Enabled = original.Enabled, CreatedAt = now, UpdatedAt = now,
             CredentialRef = original.CredentialRef is null ? null : "unresolved:" + Guid.NewGuid().ToString("N") };
-        db.Connections.Add(copy); db.Datasets.Add(registry.NewDataset(copy.Id, copy.ConnectorTypeId));
+        db.Connections.Add(copy); db.Datasets.Add(registry.NewDataset(copy.Id, copy.ConnectorTypeId, copy.SettingsJson));
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Get), new { id = copy.Id }, await ToDto(copy, ct));
     }
@@ -193,7 +217,8 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
     {
         var row = await Owned(id, ct);
         var datasets = await db.Datasets.AsNoTracking().Where(x => x.ConnectionId == id).ToArrayAsync(ct);
-        return datasets.Select(x => registry.Dataset(row, x)).ToArray();
+        var ready = await CredentialReady(row, ct);
+        return datasets.Select(x => registry.Dataset(row, x) with { Availability = ready ? registry.Dataset(row, x).Availability : "setup_required" }).ToArray();
     }
 
     // Explicit, side-effect-free provider preview. No Save or collection occurs on a successful test.
@@ -205,7 +230,9 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
         if (problems.Length > 0) return BadRequest(new ConnectionTestDto(false, "invalid", "Settings failed validation.", problems, null, null, []));
         if (request.Settings.GetProperty("pollSeconds").GetInt32() != registry.DefaultPollSeconds(request.ConnectorTypeId))
             return BadRequest(new ConnectionTestDto(false, "invalid", "New connections use the provider's bounded default cadence.", [], null, null, []));
-        return await PreviewProvider(request.ConnectorTypeId, ct);
+        if (request.ConnectorTypeId == "http-geojson" && HttpGeoJsonSettings.Read(request.Settings.GetRawText()).Authentication == "bearer")
+            return new ConnectionTestDto(false, "setup_required", "Save the connection and configure its backend bearer credential before preview.", [], null, DateTimeOffset.UtcNow, []);
+        return await PreviewProvider(request.ConnectorTypeId, request.Settings.GetRawText(), null, ct);
     }
 
     [HttpPost("{id}/test", Name = "TestConnection")]
@@ -217,21 +244,38 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
         if (problems.Length > 0) return BadRequest(new ConnectionTestDto(false, "invalid", "Settings failed validation.", problems, null, null, []));
         if (request.Settings.GetProperty("pollSeconds").GetInt32() != registry.PollSeconds(row.ConnectorTypeId, row.SettingsJson))
             return BadRequest(new ConnectionTestDto(false, "invalid", "Polling cadence is not editable in this prototype.", [], null, null, []));
-        if (row.RemovedAt is not null || !row.Enabled || row.CredentialRef is not null)
+        if (row.RemovedAt is not null || !row.Enabled || !await CredentialReady(row, ct))
             return new ConnectionTestDto(false, row.RemovedAt is not null ? "removed" : !row.Enabled ? "disabled" : "setup_required",
                 "The connection is unavailable for testing.", [], null, null, []);
-        return await PreviewProvider(row.ConnectorTypeId, ct);
+        if (row.ConnectorTypeId == "http-geojson" && HttpGeoJsonSettings.Read(row.SettingsJson).Authentication == "bearer" &&
+            HttpGeoJsonSettings.Read(row.SettingsJson).Endpoint !=
+            HttpGeoJsonSettings.Read(request.Settings.GetRawText()).Endpoint)
+            return new ConnectionTestDto(false, "setup_required", "Save the new endpoint and replace its backend credential before testing.", [], null, DateTimeOffset.UtcNow, []);
+        var credential = row.ConnectorTypeId == "http-geojson" ? await secrets.ResolveAsync(row, ct) : null;
+        return await PreviewProvider(row.ConnectorTypeId, request.Settings.GetRawText(), credential, ct);
     }
 
-    private async Task<ConnectionTestDto> PreviewProvider(string connectorTypeId, CancellationToken ct)
+    private async Task<ConnectionTestDto> PreviewProvider(string connectorTypeId, string settingsJson, string? credential, CancellationToken ct)
     {
-        if (connectorTypeId == "adsb-lol" ? !aircraft.Active.Enabled : !earthquakes.Active.Enabled)
+        if (connectorTypeId != "http-geojson" && (connectorTypeId == "adsb-lol" ? !aircraft.Active.Enabled : !earthquakes.Active.Enabled))
             return new ConnectionTestDto(false, "unavailable", "The installed provider is unavailable.", [], null, null, []);
-        if (budget.Reserve(connectorTypeId, TimeSpan.FromSeconds(connectorTypeId == "adsb-lol" ? 8 : 30)) is { } ready)
+        var budgetKey = connectorTypeId == "http-geojson" ?
+            "http-geojson:" + new Uri(HttpGeoJsonSettings.Read(settingsJson).Endpoint).Host : connectorTypeId;
+        if (budget.Reserve(budgetKey, TimeSpan.FromSeconds(connectorTypeId == "adsb-lol" ? 8 : connectorTypeId == "http-geojson" ? 10 : 30)) is { } ready)
             return new ConnectionTestDto(false, "rate_limited", $"The provider request budget is reserved until {ready:O}.",
                 [], null, DateTimeOffset.UtcNow, []);
         try
         {
+            if (connectorTypeId == "http-geojson")
+            {
+                var fetch = await geoJson.FetchAsync(HttpGeoJsonSettings.Read(settingsJson), credential, ct);
+                return new ConnectionTestDto(true, "healthy", "A complete GeoJSON FeatureCollection was interpreted; no observations were saved.",
+                    [], fetch.Records.Length, DateTimeOffset.UtcNow,
+                    fetch.Records.Take(3).Select(x => new ConnectionPreviewRowDto(x.Record.Observation.Provenance.SourceRecordId, x.Record.Entity.Label,
+                        x.Record.Observation.ObservedAt, x.Record.Observation.RetrievedAt,
+                        x.Geometry is Point point ? point.X : null, x.Geometry is Point located ? located.Y : null,
+                        x.Record.Observation.Geometry?.Type ?? "None (List only)")).ToArray());
+            }
             if (connectorTypeId == "adsb-lol")
             {
                 var fetch = await aircraft.Active.FetchAsync(new AircraftQuery(), ct);
@@ -262,7 +306,7 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
             .OrderBy(x => x.Name).Take(100).ToArrayAsync(ct);
         return new ConnectionImportRequest(1, rows.Select(x => new ConnectionExportDto(1, x.ConnectorTypeId, x.Name,
             x.Scope, x.WorkspaceId, x.Enabled, JsonDocument.Parse(x.SettingsJson).RootElement.Clone(),
-            x.CredentialRef is not null)).ToArray());
+            x.ConnectorTypeId == "http-geojson" && HttpGeoJsonSettings.Read(x.SettingsJson).Authentication == "bearer" || x.CredentialRef is not null)).ToArray());
     }
 
     [HttpPost("import", Name = "ImportConnections")]
@@ -284,6 +328,9 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
             var issue = await Validate(definition.Name, definition.ConnectorTypeId, definition.SchemaVersion,
                 definition.Settings, definition.Scope, definition.WorkspaceId, owner, ct);
             if (issue is not null) problems.Add($"Connection {index + 1}: {issue.Message}");
+            if (issue is null && definition.ConnectorTypeId == "http-geojson" &&
+                HttpGeoJsonSettings.Read(definition.Settings.GetRawText()).Authentication == "none" && definition.RequiresCredential)
+                problems.Add($"Connection {index + 1}: a credential is not used with authentication set to none.");
         }
         if (problems.Count > 0) return BadRequest(new ConnectionImportResultDto([], request.Connections.Length, problems.ToArray()));
         var now = DateTimeOffset.UtcNow; var rows = new List<ConnectionRow>();
@@ -293,9 +340,11 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
                 ConnectorTypeId = definition.ConnectorTypeId, SchemaVersion = 1, Scope = definition.Scope,
                 WorkspaceId = definition.WorkspaceId, Enabled = definition.Enabled,
                 SettingsJson = definition.Settings.GetRawText(),
-                CredentialRef = definition.RequiresCredential ? "unresolved:" + Guid.NewGuid().ToString("N") : null,
+                CredentialRef = definition.RequiresCredential || definition.ConnectorTypeId == "http-geojson" &&
+                    HttpGeoJsonSettings.Read(definition.Settings.GetRawText()).Authentication == "bearer" ?
+                    "unresolved:" + Guid.NewGuid().ToString("N") : null,
                 CreatedAt = now, UpdatedAt = now };
-            rows.Add(row); db.Connections.Add(row); db.Datasets.Add(registry.NewDataset(row.Id, row.ConnectorTypeId));
+            rows.Add(row); db.Connections.Add(row); db.Datasets.Add(registry.NewDataset(row.Id, row.ConnectorTypeId, row.SettingsJson));
         }
         await db.SaveChangesAsync(ct);
         return new ConnectionImportResultDto(await ToDtos(rows.ToArray(), ct), 0, []);
@@ -307,7 +356,8 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
         var row = await OwnedForEdit(id, ct);
         if (row.Revision != request.Revision) return Conflict(RevisionConflict);
         if (row.RemovedAt is not null) return Conflict(new ApiError("removed", "Removed connections cannot receive credentials."));
-        if (registry.Find(row.ConnectorTypeId)?.AuthenticationModes is not { } modes || !modes.Contains("bearer"))
+        if (registry.Find(row.ConnectorTypeId)?.AuthenticationModes is not { } modes || !modes.Contains("bearer") ||
+            HttpGeoJsonSettings.Read(row.SettingsJson).Authentication != "bearer")
             return BadRequest(new ApiError("unsupported_credential", "This connector does not use a credential."));
         if (request.Value is null || request.Value.Length is < 1 or > 4096)
             return BadRequest(new ApiError("invalid_credential", "The credential must contain 1–4096 characters."));
@@ -354,16 +404,25 @@ public sealed class ConnectionsController(VantageDbContext db, PlatformAccess ac
     {
         var ids = rows.Select(x => x.Id).ToArray();
         var datasets = await db.Datasets.AsNoTracking().Where(x => ids.Contains(x.ConnectionId)).ToArrayAsync(ct);
-        return rows.Select(x => ToDto(x, datasets.Where(d => d.ConnectionId == x.Id).ToArray())).ToArray();
+        var refs = rows.Where(x => x.CredentialRef is not null).Select(x => x.CredentialRef!).ToArray();
+        var stored = (await db.ConnectionSecrets.AsNoTracking().Where(x => refs.Contains(x.Id)).Select(x => x.Id).ToArrayAsync(ct)).ToHashSet();
+        return rows.Select(x => ToDto(x, datasets.Where(d => d.ConnectionId == x.Id).ToArray(),
+            CredentialReady(x, stored))).ToArray();
     }
     private async Task<ConnectionDto> ToDto(ConnectionRow row, CancellationToken ct) =>
-        ToDto(row, await db.Datasets.AsNoTracking().Where(x => x.ConnectionId == row.Id).ToArrayAsync(ct));
-    private ConnectionDto ToDto(ConnectionRow row, DatasetRow[] datasets) =>
+        ToDto(row, await db.Datasets.AsNoTracking().Where(x => x.ConnectionId == row.Id).ToArrayAsync(ct),
+            await CredentialReady(row, ct));
+    private bool CredentialReady(ConnectionRow row, HashSet<string> stored) => registry.CredentialReady(row) &&
+        (row.ConnectorTypeId != "http-geojson" || row.CredentialRef is null || stored.Contains(row.CredentialRef));
+    private async Task<bool> CredentialReady(ConnectionRow row, CancellationToken ct) => registry.CredentialReady(row) &&
+        (row.ConnectorTypeId != "http-geojson" || row.CredentialRef is null ||
+            await db.ConnectionSecrets.AsNoTracking().AnyAsync(x => x.Id == row.CredentialRef && x.ConnectionId == row.Id, ct));
+    private ConnectionDto ToDto(ConnectionRow row, DatasetRow[] datasets, bool credentialReady) =>
         new(row.Id, row.Name, row.ConnectorTypeId, row.TemplateId, row.TemplateVersion, row.SchemaVersion,
             row.Scope, row.WorkspaceId, row.Enabled, row.Revision, JsonDocument.Parse(row.SettingsJson).RootElement.Clone(),
-            row.CredentialRef is not null, row.RemovedAt is not null ? "removed" : !row.Enabled ? "disabled" :
-                row.CredentialRef is not null ? "setup_required" : "available",
-            datasets.Select(x => registry.Dataset(row, x)).ToArray(), row.CreatedAt, row.UpdatedAt, row.RemovedAt);
+            row.CredentialRef is not null && credentialReady, row.RemovedAt is not null ? "removed" : !row.Enabled ? "disabled" :
+            !credentialReady ? "setup_required" : "available",
+            datasets.Select(x => registry.Dataset(row, x) with { Availability = credentialReady ? registry.Dataset(row, x).Availability : "setup_required" }).ToArray(), row.CreatedAt, row.UpdatedAt, row.RemovedAt);
     private void Cancel(string id) { foreach (var control in demandControls) control.Cancel(id); }
     private static ApiError RevisionConflict => new("revision_conflict", "Connection changed elsewhere. Reload before saving.");
 }

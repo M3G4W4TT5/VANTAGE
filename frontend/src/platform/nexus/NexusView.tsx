@@ -370,12 +370,13 @@ export function NexusView({ onDirtyChange, focusReferenceId }: SystemViewProps) 
               <h3 id="nexus-preview">Explicit test / preview</h3><p><strong>{stateLabel(preview.state)}</strong> · {preview.message}</p>
               <p>{preview.valid ? `${preview.previewCount ?? 0} normalized records parsed. No observations were saved.` : 'No configuration was changed.'}</p>
               {preview.problems?.length ? <ul>{preview.problems.map(problem => <li key={problem}>{problem}</li>)}</ul> : null}
-              {preview.previewRows?.length ? <div className={styles.tableWrap}><table><thead><tr><th>Record</th><th>Label</th><th>Source time</th><th>Location WGS84</th></tr></thead><tbody>
+              {preview.previewRows?.length ? <div className={styles.tableWrap}><table><thead><tr><th>Record</th><th>Label</th><th>Source time</th><th>Geometry</th><th>Location WGS84</th></tr></thead><tbody>
                 {preview.previewRows.map(row => <tr key={row.id}><td>{row.id}</td><td>{row.label}</td><td>{row.sourceTime ? utc(row.sourceTime) : 'Unknown'}</td>
+                  <td>{row.geometryType ?? 'Point'}</td>
                   <td>{row.longitude === undefined || row.longitude === null || row.latitude === undefined || row.latitude === null ? 'Unknown' : `${row.longitude.toFixed(3)}, ${row.latitude.toFixed(3)}`}</td></tr>)}
               </tbody></table></div> : null}
             </section>}
-            {connector?.authenticationModes?.includes('bearer') && selected && !selected.removedAt && <section aria-labelledby="nexus-credential" className={styles.panel}>
+            {connector?.authenticationModes?.includes('bearer') && draft.settings.authentication === 'bearer' && selected && !selected.removedAt && <section aria-labelledby="nexus-credential" className={styles.panel}>
               <h3 id="nexus-credential">Credential</h3><p>Stored credentials are write only. Export includes a setup marker, never the secret.</p>
               <FormGroup label="Replace bearer credential" labelFor="nexus-secret"><InputGroup id="nexus-secret" type="password" autoComplete="new-password"
                 value={credential} onChange={event => setCredential(event.target.value)} /></FormGroup>

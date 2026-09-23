@@ -24,6 +24,7 @@ REVOKE ALL ON SCHEMA platform FROM vantage_app;
 GRANT USAGE ON SCHEMA platform TO vantage_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON platform.workspaces, platform.personal_preferences, platform.observations,
   platform.current_aircraft, platform.current_earthquakes, platform.earthquake_feeds,
+  platform.current_geojson, platform.geojson_feeds,
   platform.connections, platform.datasets, platform.observation_deliveries TO vantage_app;
 REVOKE ALL ON SCHEMA private FROM PUBLIC;
 GRANT USAGE ON SCHEMA private TO vantage_app;

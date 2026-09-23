@@ -81,23 +81,25 @@ export class ObservationChannel<R extends ObservationRecord, C extends { limit: 
   private openStream() {
     if (this.disposed) return;
     try { sessionService.assertCurrent(this.boundary); } catch { this.dispose(); return; }
-    this.stream?.dispose(); this.sequence = -1; this.subscriptionId = null;
-    this.stream = this.connection!.stream<unknown>(this.options.method, ...this.options.args).subscribe({
+    const previous = this.stream; this.stream = undefined; previous?.dispose();
+    this.sequence = -1; this.subscriptionId = null;
+    const subscription = this.connection!.stream<unknown>(this.options.method, ...this.options.args).subscribe({
       next: value => {
-        if (this.disposed) return;
+        if (this.disposed || this.stream !== subscription) return;
         try { sessionService.assertCurrent(this.boundary); } catch { this.dispose(); return; }
         try { if (this.accept(value) === 'gap') this.recover('A subscription gap was detected. Requesting a fresh snapshot.'); }
         catch { this.recover('An invalid data batch was rejected. Requesting a fresh snapshot.'); }
       },
-      error: () => this.recover('The observation subscription ended. Retrying with a fresh snapshot.'),
-      complete: () => { /* Disposal and transport reconnection are handled separately. */ },
+      error: () => { if (this.stream === subscription) this.recover('The observation subscription ended. Retrying with a fresh snapshot.'); },
+      complete: () => { if (this.stream === subscription) this.recover('The observation subscription ended. Check the connection in NEXUS; retrying.', 15000); },
     });
+    this.stream = subscription;
   }
-  private recover(message: string) {
+  private recover(message: string, retryMs = 2000) {
     if (this.disposed) return;
     this.disconnected(message); clearTimeout(this.retry);
-    this.stream?.dispose(); this.stream = undefined;
-    this.retry = setTimeout(() => { if (this.references && this.connection?.state === 'Connected') this.openStream(); }, 2000);
+    const stream = this.stream; this.stream = undefined; stream?.dispose();
+    this.retry = setTimeout(() => { if (this.references && this.connection?.state === 'Connected') this.openStream(); }, retryMs);
   }
   // Public for the deterministic sequence/recovery test; all wire data is validated before mutation.
   accept(value: unknown): 'accepted' | 'duplicate' | 'gap' {

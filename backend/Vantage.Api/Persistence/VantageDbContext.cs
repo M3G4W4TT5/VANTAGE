@@ -41,6 +41,8 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
 
     public DbSet<CurrentEarthquakeRow> CurrentEarthquakes => Set<CurrentEarthquakeRow>();
     public DbSet<EarthquakeFeedRow> EarthquakeFeeds => Set<EarthquakeFeedRow>();
+    public DbSet<CurrentGeoJsonRow> CurrentGeoJson => Set<CurrentGeoJsonRow>();
+    public DbSet<GeoJsonFeedRow> GeoJsonFeeds => Set<GeoJsonFeedRow>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -133,6 +135,21 @@ public sealed class VantageDbContext(DbContextOptions<VantageDbContext> options)
             e.HasIndex(x => x.Position).HasMethod("gist");
         });
         model.Entity<EarthquakeFeedRow>(e => { e.ToTable("earthquake_feeds", "platform"); e.HasKey(x => new { x.ConnectionId, x.SourceId }); e.Property(x => x.ConnectionId).HasMaxLength(160); });
+        model.Entity<CurrentGeoJsonRow>(e =>
+        {
+            e.ToTable("current_geojson", "platform"); e.HasKey(x => new { x.ConnectionId, x.Id });
+            e.Property(x => x.ConnectionId).HasMaxLength(160); e.Property(x => x.Id).HasMaxLength(160);
+            e.Property(x => x.SourceId).HasMaxLength(80); e.Property(x => x.Shape).HasColumnType("geometry (Geometry,4326)");
+            e.Property(x => x.RecordJson).HasColumnType("jsonb");
+            e.HasIndex(x => new { x.ConnectionId, x.InLatestFeed, x.SourceTime }); e.HasIndex(x => x.Shape).HasMethod("gist");
+            e.HasOne<ConnectionRow>().WithMany().HasForeignKey(x => x.ConnectionId).OnDelete(DeleteBehavior.Restrict);
+        });
+        model.Entity<GeoJsonFeedRow>(e =>
+        {
+            e.ToTable("geojson_feeds", "platform"); e.HasKey(x => x.ConnectionId);
+            e.Property(x => x.ConnectionId).HasMaxLength(160); e.Property(x => x.SourceId).HasMaxLength(80);
+            e.HasOne<ConnectionRow>().WithMany().HasForeignKey(x => x.ConnectionId).OnDelete(DeleteBehavior.Restrict);
+        });
         model.Entity<WorkspaceRow>(entity =>
         {
             entity.ToTable("workspaces", "platform");

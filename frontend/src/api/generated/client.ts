@@ -739,6 +739,174 @@ export class VantageClient {
         return Promise.resolve<EarthquakeRecordDto[]>(null as any);
     }
 
+    geoJson_Source(connectionId?: string | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<GeoJsonSourceDto> {
+        let url_ = this.baseUrl + "/api/v1/geojson/source?";
+        if (connectionId === null)
+            throw new globalThis.Error("The parameter 'connectionId' cannot be null.");
+        else if (connectionId !== undefined)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGeoJson_Source(_response);
+        });
+    }
+
+    protected processGeoJson_Source(response: Response): Promise<GeoJsonSourceDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GeoJsonSourceDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GeoJsonSourceDto>(null as any);
+    }
+
+    geoJson_Query(connectionId?: string | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<GeoJsonSnapshotDto> {
+        let url_ = this.baseUrl + "/api/v1/geojson?";
+        if (connectionId === null)
+            throw new globalThis.Error("The parameter 'connectionId' cannot be null.");
+        else if (connectionId !== undefined)
+            url_ += "connectionId=" + encodeURIComponent("" + connectionId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGeoJson_Query(_response);
+        });
+    }
+
+    protected processGeoJson_Query(response: Response): Promise<GeoJsonSnapshotDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GeoJsonSnapshotDto;
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GeoJsonSnapshotDto>(null as any);
+    }
+
+    geoJson_Observation(id: string, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<GeoJsonRecordDto> {
+        let url_ = this.baseUrl + "/api/v1/geojson/observations/{id}?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGeoJson_Observation(_response);
+        });
+    }
+
+    protected processGeoJson_Observation(response: Response): Promise<GeoJsonRecordDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GeoJsonRecordDto;
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ApiError;
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GeoJsonRecordDto>(null as any);
+    }
+
+    geoJson_Versions(id: string, sourceId?: string | undefined, workspaceId?: string | null | undefined, signal?: AbortSignal): Promise<GeoJsonRecordDto[]> {
+        let url_ = this.baseUrl + "/api/v1/geojson/entities/{id}/observations?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sourceId === null)
+            throw new globalThis.Error("The parameter 'sourceId' cannot be null.");
+        else if (sourceId !== undefined)
+            url_ += "sourceId=" + encodeURIComponent("" + sourceId) + "&";
+        if (workspaceId !== undefined && workspaceId !== null)
+            url_ += "workspaceId=" + encodeURIComponent("" + workspaceId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            signal,
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGeoJson_Versions(_response);
+        });
+    }
+
+    protected processGeoJson_Versions(response: Response): Promise<GeoJsonRecordDto[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as GeoJsonRecordDto[];
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GeoJsonRecordDto[]>(null as any);
+    }
+
     session_Get(signal?: AbortSignal): Promise<SessionDto> {
         let url_ = this.baseUrl + "/api/v1/session";
         url_ = url_.replace(/[?&]$/, "");
@@ -1687,6 +1855,67 @@ export interface EarthquakeCompletenessDto {
     rejectedCount?: number;
 }
 
+export interface GeoJsonSourceDto {
+    id?: string;
+    name?: string;
+    documentationUrl?: string;
+    termsUrl?: string;
+    attribution?: string;
+    capabilities?: string[];
+    pollSeconds?: number;
+    resultLimit?: number;
+    cacheHours?: number;
+    coverage?: string;
+    scopeLabel?: string;
+    staleAfterSeconds?: number;
+}
+
+export interface GeoJsonSnapshotDto {
+    records?: GeoJsonRecordDto[];
+    completeness?: GeoJsonCompletenessDto;
+    source?: GeoJsonSourceDto;
+}
+
+export interface GeoJsonRecordDto {
+    entity?: EntityDto;
+    observation?: GeoJsonObservationDto;
+    identityRule?: string;
+    identityDescription?: string | undefined;
+}
+
+export interface GeoJsonObservationDto {
+    id?: string;
+    entityId?: string;
+    sourceId?: string;
+    observedAt?: string | undefined;
+    retrievedAt?: string;
+    geometry?: GeoJsonGeometryDto | undefined;
+    locationRole?: string | undefined;
+    precision?: PrecisionDto;
+    evidenceClass?: string;
+    properties?: any;
+    validFrom?: string | undefined;
+    validTo?: string | undefined;
+    provenance?: ProvenanceDto;
+    supersedesObservationId?: string | undefined;
+    schemaVersion?: number;
+}
+
+export interface GeoJsonGeometryDto {
+    type?: string;
+    coordinates?: any;
+}
+
+export interface GeoJsonCompletenessDto {
+    returned?: number;
+    limit?: number;
+    truncated?: boolean;
+    coverage?: string;
+    feedRetrievedAt?: string | undefined;
+    providerCount?: number | undefined;
+    rejectedCount?: number;
+}
+
 export interface SessionDto {
     schemaVersion?: number;
     authenticated?: boolean;
@@ -1823,6 +2052,7 @@ export interface ConnectionPreviewRowDto {
     retrievedAt?: string;
     longitude?: number | undefined;
     latitude?: number | undefined;
+    geometryType?: string | undefined;
 }
 
 export interface ConnectionPreviewRequest {

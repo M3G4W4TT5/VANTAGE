@@ -25,6 +25,7 @@ export function LayerLegendHint({ name, domain }: { name: string; domain: AtlasL
     onFocus={event => { clear(); setPosition(location(event.currentTarget)); }}
     onBlur={() => setPosition(null)}>{name}</span>
     {position && createPortal(<div id={id} className={styles.legendPopover} role="tooltip" style={position}>
-      {domain === 'aircraft' ? <AircraftLegend /> : <EarthquakeLegend />}
+      {domain === 'aircraft' ? <AircraftLegend /> : domain === 'earthquakes' ? <EarthquakeLegend /> :
+        <p>GeoJSON points, lines and polygons use one generic source style. Null geometry remains in List. Source time and precision may be unknown.</p>}
     </div>, document.body)}</>;
 }

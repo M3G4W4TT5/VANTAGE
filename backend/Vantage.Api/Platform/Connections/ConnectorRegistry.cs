@@ -1,6 +1,7 @@
 using System.Text.Json;
 using NJsonSchema;
 using Vantage.Api.Contracts;
+using Vantage.Api.Connectors.GeoJson;
 
 namespace Vantage.Api.Platform.Connections;
 
@@ -29,7 +30,12 @@ public sealed class ConnectorRegistry
                 ["current_catalog", "live_subscription", "local_cache"], ["none"],
                 "/api/v1/connections/connector-types/usgs-earthquakes/settings-schema",
                 "Worldwide reported events in the past-day M2.5+ feed; reporting can be revised.",
-                "U.S. Geological Survey · contributing seismic networks", 60, 1000, "usgs-earthquakes")
+                "U.S. Geological Survey · contributing seismic networks", 60, 1000, "usgs-earthquakes"),
+            new ConnectorTypeDto("http-geojson", 1, "HTTP GeoJSON FeatureCollection", "geojson",
+                ["current_catalog", "live_subscription", "local_cache", "point_line_polygon"], ["none", "bearer"],
+                "/api/v1/connections/connector-types/http-geojson/settings-schema",
+                "Operator-declared feed coverage; snapshot omission is not an event end.",
+                "Operator-declared source attribution", 120, HttpGeoJsonSettings.FeatureLimit, "configured-geojson")
         }.ToDictionary(x => x.Id, StringComparer.Ordinal);
         var schemas = new Dictionary<string, JsonSchema>(StringComparer.Ordinal);
         var templateSchema = await JsonSchema.FromFileAsync(Path.Combine(root, "Schemas", "connection-template.schema.json"));
@@ -58,30 +64,39 @@ public sealed class ConnectorRegistry
         if (schemaVersion != 1) return ["Unsupported settings schema version."];
         if (settings.ValueKind != JsonValueKind.Object) return ["Settings must be an object."];
         if (settings.GetRawText().Length > 8192) return ["Settings exceed the 8 KiB limit."];
-        return schema.Validate(settings.GetRawText()).Select(x => $"{x.Path}: {x.Kind}").Take(20).ToArray();
+        var problems = schema.Validate(settings.GetRawText()).Select(x => $"{x.Path}: {x.Kind}").Take(20).ToArray();
+        return problems.Length > 0 || id != "http-geojson" ? problems : HttpGeoJsonSettings.Validate(settings);
     }
     public string[] ValidateExport(JsonElement document) => document.ValueKind != JsonValueKind.Object || document.GetRawText().Length > 131072
         ? ["Portable definition must be an object of at most 128 KiB."] :
         portableSchema.Validate(document.GetRawText()).Select(x => $"{x.Path}: {x.Kind}").Take(20).ToArray();
     public int PollSeconds(string type, string settingsJson) => JsonDocument.Parse(settingsJson).RootElement.GetProperty("pollSeconds").GetInt32();
     public int DefaultPollSeconds(string type) => templates.Values.Single(x => x.ConnectorTypeId == type).Settings.GetProperty("pollSeconds").GetInt32();
-    public DatasetRow NewDataset(string connectionId, string type)
+    public DatasetRow NewDataset(string connectionId, string type, string? settingsJson = null)
     {
         var definition = types[type];
-        var product = type == "adsb-lol" ? "positions" : "events";
+        var product = type == "adsb-lol" ? "positions" : type == "usgs-earthquakes" ? "events" : "features";
+        var sourceId = type == "http-geojson" ? HttpGeoJsonSettings.Read(settingsJson!).SourceId : definition.SourceId;
         return new DatasetRow { Id = connectionId + ":" + product, ConnectionId = connectionId, ProductId = product,
-            SourceId = definition.SourceId, Domain = definition.Domain,
+            SourceId = sourceId, Domain = definition.Domain,
             MetadataJson = JsonSerializer.Serialize(new { schemaVersion = 1, definition.Capabilities, definition.Coverage,
                 definition.Attribution, allowedOperations = type == "adsb-lol" ? new[] { "query", "subscribe", "local_cache" } :
                     new[] { "catalog", "subscribe", "local_cache" } }) };
+    }
+    public bool CredentialReady(ConnectionRow row)
+    {
+        if (row.ConnectorTypeId != "http-geojson") return row.CredentialRef is null;
+        var settings = HttpGeoJsonSettings.Read(row.SettingsJson);
+        return settings.Authentication == "none" || row.CredentialRef is { } reference && !reference.StartsWith("unresolved:", StringComparison.Ordinal);
     }
     public DatasetDto Dataset(ConnectionRow connection, DatasetRow row)
     {
         var type = types[connection.ConnectorTypeId];
         var state = connection.RemovedAt is not null ? "removed" : !connection.Enabled ? "disabled" :
-            connection.CredentialRef is not null ? "setup_required" : "available";
+            !CredentialReady(connection) ? "setup_required" : "available";
+        var geo = type.Id == "http-geojson" ? HttpGeoJsonSettings.Read(connection.SettingsJson) : null;
         return new(row.Id, row.ConnectionId, row.ProductId, row.SourceId, row.Domain,
-            type.Capabilities, type.Coverage, type.Attribution,
+            type.Capabilities, geo?.Coverage ?? type.Coverage, geo?.Attribution ?? type.Attribution,
             type.Domain == "aircraft" ? ["query", "subscribe", "local_cache"] : ["catalog", "subscribe", "local_cache"],
             PollSeconds(type.Id, connection.SettingsJson), type.Domain == "aircraft" ? 900 :
                 Math.Max(180, PollSeconds(type.Id, connection.SettingsJson) * 3), state);

@@ -1,14 +1,16 @@
 import { expect, test } from 'vitest';
 import { aircraftChannel, clearAircraftChannels } from '../src/platform/data/AircraftChannel';
 import { earthquakeChannel, clearEarthquakeChannel } from '../src/platform/data/EarthquakeChannel';
-import type { AircraftLayer, AtlasLayer, AtlasState, EarthquakeLayer } from '../src/apps/atlas/atlasModule';
-import { composedMarkers, markerQuota } from '../src/apps/atlas/atlasMarkerComposition';
+import { geoJsonChannel, clearGeoJsonChannel } from '../src/platform/data/GeoJsonChannel';
+import type { AircraftLayer, AtlasLayer, AtlasState, EarthquakeLayer, GeoJsonLayer } from '../src/apps/atlas/atlasModule';
+import { composedMarkers, composedVectors, markerQuota } from '../src/apps/atlas/atlasMarkerComposition';
 import { collectResults, fairRows, resultCounts, scopedLayers } from '../src/apps/atlas/atlasResults';
 import type { LayerResults } from '../src/apps/atlas/atlasResults';
 import { layerDemandKey } from '../src/apps/atlas/atlasDemand';
 import { atlasGroups, layerShown, mapRecordKey, mapVisibility, setGroupMapRecordsShown, setGroupsVisible } from '../src/apps/atlas/atlasGroups';
 import { aircraftFixture } from './fixtures/aircraft';
 import { earthquakeFixture } from './fixtures/earthquakes';
+import { geoJsonFixture, geoJsonRecord } from './fixtures/geojson';
 
 const query = { longitude: 12, latitude: 58, radiusNm: 250 };
 const aircraft = (id: string): AircraftLayer => ({ id, domain: 'aircraft', connectionId: 'legacy-aircraft',
@@ -126,4 +128,35 @@ test('a hidden group defaults all current and future map records off while recor
   expect(setGroupMapRecordsShown(selected, group, true)).toMatchObject({ hiddenMapGroupIds: [], shownMapRecordIds: [] });
   expect(collectResults([first, second], channels, 'workspace-a', Date.now()).map(group => group.rows.length)).toEqual([1, 1]);
   clearAircraftChannels();
+});
+
+test('generic features share demand, retain null geometry in List and render separate point and vector appearances', () => {
+  const one: GeoJsonLayer = { id: 'geo-a', domain: 'geojson', connectionId: 'feed-one', datasetId: 'feed-one:features',
+    visible: true, participating: true, filters: { query: '' }, appearance: { opacity: 1, sizeScale: 1 } };
+  const two: GeoJsonLayer = { ...one, id: 'geo-b', filters: { query: 'TEST LINE' } };
+  const other: GeoJsonLayer = { ...one, id: 'geo-c', connectionId: 'feed-two', datasetId: 'feed-two:features' };
+  const dormant: GeoJsonLayer = { ...one, id: 'geo-dormant', participating: false };
+  expect(layerShown(dormant)).toBe(false);
+  expect(setGroupsVisible([dormant], new Set(['geo-dormant']), false)[0].participating).toBe(false);
+  expect(setGroupsVisible([dormant], new Set(['geo-dormant']), true)[0].participating).toBe(true);
+  expect(layerDemandKey(one, 'workspace-a')).toBe(layerDemandKey(two, 'workspace-a'));
+  expect(layerDemandKey(one, 'workspace-a')).not.toBe(layerDemandKey(other, 'workspace-a'));
+  const channel = geoJsonChannel(one.connectionId, 'workspace-a');
+  expect(geoJsonChannel(two.connectionId, 'workspace-a')).toBe(channel);
+  expect(geoJsonChannel(other.connectionId, 'workspace-a')).not.toBe(channel);
+  expect(channel.accept(geoJsonFixture())).toBe('accepted');
+  const channels = new Map([[layerDemandKey(one, 'workspace-a'), channel]]);
+  const results = collectResults([one, two], channels, 'workspace-a', Date.now());
+  expect(results.map(group => group.rows.length)).toEqual([4, 1]);
+  expect(results[0].rows.find(row => row.record.entity.label === 'TEST UNKNOWN')?.record.observation.geometry).toBeNull();
+  expect(composedMarkers([one, two], channels, 'workspace-a', Date.now(), () => {})).toHaveLength(1);
+  expect(composedVectors([one, two], channels, 'workspace-a', () => {})).toHaveLength(3);
+  expect(composedVectors([one, two], channels, 'workspace-a', () => {}, { hiddenMapGroupIds: ['geo-a'] })).toHaveLength(1);
+  const damaged = geoJsonFixture([geoJsonRecord('BAD', { type: 'Point', coordinates: [181, 58] })]);
+  expect(() => channel.accept(damaged)).toThrow();
+  expect(channel.getSnapshot().records).toHaveLength(4);
+  const invalid = geoJsonFixture([geoJsonRecord('DIFFERENT', null, 'other-source')]);
+  invalid.sequence = 1;
+  expect(() => channel.accept(invalid)).toThrow();
+  clearGeoJsonChannel();
 });

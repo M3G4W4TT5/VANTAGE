@@ -7,7 +7,7 @@ using Vantage.Api.Platform.Connections;
 
 namespace Vantage.Api.Platform.Observations;
 
-public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeCoordinator earthquakes, PlatformAccess access,
+public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeCoordinator earthquakes, GeoJsonCoordinator geoJson, PlatformAccess access,
     ConnectionAccess connections, ISessionLifetime sessions) : Hub
 {
     public override async Task OnConnectedAsync()
@@ -61,5 +61,13 @@ public sealed class ObservationsHub(AircraftCoordinator coordinator, EarthquakeC
         var connection = await connections.RequireActiveAsync(connectionId, workspaceId, ct);
         if (connection.ConnectorTypeId != "usgs-earthquakes") throw new HubException("This connection does not provide earthquake observations.");
         await foreach (var batch in earthquakes.Subscribe(ct, connection)) yield return batch;
+    }
+    public async IAsyncEnumerable<GeoJsonBatchDto> GeoJsonConnection(string connectionId, string? workspaceId,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var linked = StreamCancellation(ct); ct = linked.Token;
+        var connection = await connections.RequireActiveAsync(connectionId, workspaceId, ct);
+        if (connection.ConnectorTypeId != "http-geojson") throw new HubException("This connection does not provide GeoJSON features.");
+        await foreach (var batch in geoJson.Subscribe(connection, ct)) yield return batch;
     }
 }

@@ -7,7 +7,7 @@
   "properties": {
     "id": { "type": "string", "minLength": 1, "maxLength": 80 },
     "version": { "const": 1 },
-    "connectorTypeId": { "enum": ["adsb-lol", "usgs-earthquakes"] },
+    "connectorTypeId": { "enum": ["adsb-lol", "usgs-earthquakes", "http-geojson"] },
     "name": { "type": "string", "minLength": 1, "maxLength": 120 },
     "schemaVersion": { "const": 1 },
     "settings": { "type": "object" }

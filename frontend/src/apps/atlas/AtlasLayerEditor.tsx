@@ -27,7 +27,7 @@ export function AtlasLayerEditor({ group, view = 'settings', connections, worksp
   const first = members[0];
   const visible = group?.visible ?? true;
   const sourceList: Source[] = connections.flatMap(connection => (connection.datasets ?? [])
-    .filter(dataset => dataset.domain === (domain === 'aircraft' ? 'aircraft' : 'earthquake'))
+    .filter(dataset => dataset.domain === (domain === 'aircraft' ? 'aircraft' : domain === 'earthquakes' ? 'earthquake' : 'geojson'))
     .map(dataset => ({ connection, dataset })));
   const selected = new Set(members.map(layer => sourceKey(layer.connectionId, layer.datasetId)));
   const usable = (source: Source) => source.connection.status === 'available' && source.dataset.availability === 'available' &&
@@ -41,14 +41,20 @@ export function AtlasLayerEditor({ group, view = 'settings', connections, worksp
         latitude: Math.max(-85, Math.min(85, camera.latitude)), radiusNm: 250 }),
         filters: structuredClone(previous?.filters ?? { query: '', freshness: 'all' }) };
     }
-    const previous = first?.domain === 'earthquakes' ? first : undefined;
-    return { ...base, domain, filters: structuredClone(previous?.filters ?? defaultEarthquakeSettings) };
+    if (domain === 'earthquakes') {
+      const previous = first?.domain === 'earthquakes' ? first : undefined;
+      return { ...base, domain, filters: structuredClone(previous?.filters ?? defaultEarthquakeSettings) };
+    }
+    const previous = first?.domain === 'geojson' ? first : undefined;
+    return { ...base, domain, filters: structuredClone(previous?.filters ?? { query: '' }) };
   };
   const updateShared = (changed: AtlasLayer) => setMembers(current => current.map(layer => {
     if (layer.domain !== changed.domain) return layer;
     if (changed.domain === 'aircraft' && layer.domain === 'aircraft')
       return { ...layer, filters: changed.filters, query: changed.query, appearance: changed.appearance };
     if (changed.domain === 'earthquakes' && layer.domain === 'earthquakes')
+      return { ...layer, filters: changed.filters, appearance: changed.appearance };
+    if (changed.domain === 'geojson' && layer.domain === 'geojson')
       return { ...layer, filters: changed.filters, appearance: changed.appearance };
     return layer;
   }));
@@ -70,7 +76,8 @@ export function AtlasLayerEditor({ group, view = 'settings', connections, worksp
         <label>Group name<input value={name} maxLength={120} onChange={event => setName(event.target.value)} /></label>
         <label>Type<select value={domain} disabled={!!group || members.length > 0}
           onChange={event => setDomain(event.target.value as AtlasLayer['domain'])}>
-          <option value="aircraft">Aircraft</option><option value="earthquakes">Earthquakes</option></select></label>
+          <option value="aircraft">Aircraft</option><option value="earthquakes">Earthquakes</option>
+          <option value="geojson">GeoJSON features</option></select></label>
       </div>
       <div className={styles.editorTabs} role="tablist" aria-label="Group settings">{tabs.map(item => <button key={item} role="tab"
         aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} onClick={() => setTab(item)}
@@ -82,7 +89,7 @@ export function AtlasLayerEditor({ group, view = 'settings', connections, worksp
           (event.currentTarget.parentElement?.querySelectorAll('button[role="tab"]')[next] as HTMLButtonElement | undefined)?.focus();
         }}>{item}</button>)}</div>
       {tab === 'Sources' && <div className={styles.editorPanel} role="tabpanel">
-        <p>Choose one or more configured {domain === 'aircraft' ? 'aircraft' : 'earthquake'} datasets. Connection settings remain in NEXUS.</p>
+        <p>Choose one or more configured {domain === 'aircraft' ? 'aircraft' : domain === 'earthquakes' ? 'earthquake' : 'GeoJSON'} datasets. Connection settings remain in NEXUS.</p>
         {sourceList.map(source => {
           const key = sourceKey(source.connection.id!, source.dataset.id!);
           const checked = selected.has(key);
@@ -101,6 +108,8 @@ export function AtlasLayerEditor({ group, view = 'settings', connections, worksp
       {view === 'filters' && <div className={styles.editorPanel}>{first?.domain === 'aircraft' ?
         <AircraftLayerFilters key={first.id} layer={first as AircraftLayer} paneId={paneId} update={updateShared} /> :
         first?.domain === 'earthquakes' ? <EarthquakeLayerFilters layer={first as EarthquakeLayer} paneId={paneId} update={updateShared} /> :
+        first?.domain === 'geojson' ? <label className={styles.fieldLabel}>Filter generic features by label, ID or properties
+          <input value={first.filters.query} maxLength={500} onChange={event => updateShared({ ...first, filters: { query: event.target.value } })} /></label> :
           <p>This group has no configured dataset.</p>}</div>}
       {view === 'settings' && tab === 'Appearance' && <div className={styles.editorPanel} role="tabpanel">{first ? <>
         <label className={styles.fieldLabel}>Marker opacity · {first.appearance.opacity.toFixed(1)}

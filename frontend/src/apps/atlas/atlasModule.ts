@@ -11,11 +11,12 @@ export type AtlasLayerBase = { id: string; connectionId: string; datasetId: stri
   appearance: { opacity: number; sizeScale: number }; lastSelection?: Selection };
 export type AircraftLayer = AtlasLayerBase & { domain: 'aircraft'; query: AircraftQuery; filters: { query: string; freshness: 'all' | 'recent' | 'older' } };
 export type EarthquakeLayer = AtlasLayerBase & { domain: 'earthquakes'; filters: EarthquakeSettings };
-export type AtlasLayer = AircraftLayer | EarthquakeLayer;
+export type GeoJsonLayer = AtlasLayerBase & { domain: 'geojson'; filters: { query: string } };
+export type AtlasLayer = AircraftLayer | EarthquakeLayer | GeoJsonLayer;
 export type AtlasState = {
   schemaVersion: 2; camera: CameraState; layers: AtlasLayer[]; focusedLayerId: string; selectedLayerId: string | null;
   resultScope: 'focused' | 'participating' | 'selected' | 'map-area'; resultLayerIds?: string[];
-  resultTable?: 'mixed' | 'aircraft' | 'earthquakes'; sidebarTab?: 'layers' | 'sources' | 'tools';
+  resultTable?: 'mixed' | 'aircraft' | 'earthquakes' | 'geojson'; sidebarTab?: 'layers' | 'sources' | 'tools';
   showMap?: boolean; showList?: boolean; mapListRatio?: number; timelineOpen?: boolean;
   hiddenMapRecordIds?: string[]; hiddenMapGroupIds?: string[]; shownMapRecordIds?: string[];
   basemapId?: string; mapMode: '2d' | '3d';
@@ -29,7 +30,7 @@ export const atlasModule: AppModule = {
     kind: 'app', workspaceRequired: true,
     branding: { dark: '/brand/atlas-wordmark-white.svg', light: '/brand/atlas-wordmark-black.svg', alt: 'ATLAS' },
     navigation: { label: 'ATLAS', order: 10 },
-    acceptedEntityKinds: ['aircraft', 'earthquake'], actions: [], searchProviders: [] },
+    acceptedEntityKinds: ['aircraft', 'earthquake', 'geojson-feature'], actions: [], searchProviders: [] },
   View: AtlasView,
   actions: [], searchProviders: [],
   serializeState: state => structuredClone(state),

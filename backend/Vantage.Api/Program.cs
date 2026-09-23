@@ -8,6 +8,7 @@ using Vantage.Api.Platform.Workspaces;
 using Vantage.Api.Platform.Observations;
 using Vantage.Api.Connectors.AdsbLol;
 using Vantage.Api.Connectors.Usgs;
+using Vantage.Api.Connectors.GeoJson;
 using Vantage.Api.Platform.Identity;
 using Vantage.Api.Platform.Connections;
 
@@ -61,6 +62,19 @@ builder.Services.AddScoped<EarthquakeStore>();
 builder.Services.AddSingleton<EarthquakeCoordinator>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<EarthquakeCoordinator>());
 builder.Services.AddSingleton<IConnectionDemandControl>(sp => sp.GetRequiredService<EarthquakeCoordinator>());
+builder.Services.AddHttpClient<HttpGeoJsonSource>(http =>
+{
+    http.Timeout = TimeSpan.FromSeconds(15);
+    http.DefaultRequestHeaders.UserAgent.ParseAdd("VANTAGE-ATLAS/0.4 (local prototype)");
+}).ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler {
+    AllowAutoRedirect = false, UseProxy = false, AutomaticDecompression = System.Net.DecompressionMethods.GZip |
+        System.Net.DecompressionMethods.Deflate, ConnectCallback = PublicHttpsDestination.ConnectAsync,
+    PooledConnectionLifetime = TimeSpan.FromMinutes(1)
+});
+builder.Services.AddScoped<GeoJsonStore>();
+builder.Services.AddSingleton<GeoJsonCoordinator>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GeoJsonCoordinator>());
+builder.Services.AddSingleton<IConnectionDemandControl>(sp => sp.GetRequiredService<GeoJsonCoordinator>());
 builder.Services.AddSignalR(o => { o.MaximumReceiveMessageSize = 16384; o.MaximumParallelInvocationsPerClient = 1; })
     .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new UtcTimestampConverter()));
 var app = builder.Build();

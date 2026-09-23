@@ -18,7 +18,7 @@ export function AtlasResultsView({ groups, selectedLayerId, selectedId, select, 
   const visibility = mapVisibility(visibilityState);
   const selectedKey = selectedLayerId && selectedId ? `${selectedLayerId}:${selectedId}` : null;
   return <section className={styles.hierarchicalList} aria-label="ATLAS records">
-    {(['Vehicles & satellites', 'Events & alerts'] as const).map(category => {
+    {(['Vehicles & satellites', 'Events & alerts', 'Feeds & reports'] as const).map(category => {
       const categoryGroups = layerGroups.filter(group => categoryOf(group.domain) === category);
       if (!categoryGroups.length) return null;
       return <details key={category} open className={styles.listCategory}>

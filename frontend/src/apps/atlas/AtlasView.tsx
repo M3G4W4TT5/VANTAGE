@@ -7,6 +7,8 @@ import { aircraftChannel } from '../../platform/data/AircraftChannel';
 import type { AircraftChannel } from '../../platform/data/AircraftChannel';
 import { earthquakeChannel } from '../../platform/data/EarthquakeChannel';
 import type { EarthquakeChannel } from '../../platform/data/EarthquakeChannel';
+import { geoJsonChannel } from '../../platform/data/GeoJsonChannel';
+import type { GeoJsonChannel } from '../../platform/data/GeoJsonChannel';
 import { useSourceServices } from '../../platform/sources/SourceServices';
 import { client, errorMessage } from '../../platform/workspaces/WorkspaceService';
 import { PanelResize } from '../../platform/ui/PanelResize';
@@ -18,9 +20,9 @@ import { atlasGroups, groupId, layerShown, mapRecordKey, setGroupMapRecordsShown
 import type { AtlasGroup } from './atlasGroups';
 import { categoryOf, collectResults, domainLabel } from './atlasResults';
 import type { AtlasResult } from './atlasResults';
-import { MAP_MARKER_LIMIT, markerQuota } from './atlasMarkerComposition';
+import { MAP_MARKER_LIMIT, MAP_VECTOR_LIMIT, markerQuota } from './atlasMarkerComposition';
 import { ContributorBoundary } from './ContributorBoundary';
-import type { AircraftLayer, AtlasLayer, AtlasState, EarthquakeLayer } from './atlasModule';
+import type { AircraftLayer, AtlasLayer, AtlasState, EarthquakeLayer, GeoJsonLayer } from './atlasModule';
 import type { AtlasChannel } from './atlasDemand';
 import { layerDemandKey } from './atlasDemand';
 import { EarthquakeInspector } from './EarthquakeInspector';
@@ -28,10 +30,11 @@ import { AtlasContextMenu } from './AtlasContextMenu';
 import type { AtlasMenuItem, GroupAction } from './AtlasContextMenu';
 import { LayerLegendHint } from './LayerLegendHint';
 import { MapListResize } from './MapListResize';
+import { GeoJsonInspector } from './GeoJsonInspector';
 import styles from './Atlas.module.css';
 
 const ComposedAtlasMap = lazy(() => import('./ComposedAtlasMap').then(module => ({ default: module.ComposedAtlasMap })));
-const dataDomain = (domain: AtlasLayer['domain']) => domain === 'aircraft' ? 'aircraft' : 'earthquake';
+const dataDomain = (domain: AtlasLayer['domain']) => domain === 'aircraft' ? 'aircraft' : domain === 'earthquakes' ? 'earthquake' : 'geojson';
 const noViewport = () => {};
 const groupMenuItems: AtlasMenuItem<GroupAction>[] = [
   { action: 'filters', label: 'Filters' }, { action: 'actions', label: 'Actions' },
@@ -106,9 +109,10 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
   const channels = useMemo(() => {
     const result = new Map<string, AtlasChannel>();
     const requests = JSON.parse(demandJson) as ({ key: string; domain: 'aircraft'; connectionId: string; workspaceId: string; query: AircraftLayer['query'] } |
-      { key: string; domain: 'earthquakes'; connectionId: string; workspaceId: string })[];
+      { key: string; domain: 'earthquakes' | 'geojson'; connectionId: string; workspaceId: string })[];
     for (const request of requests) result.set(request.key, request.domain === 'aircraft' ?
-      aircraftChannel(request.query, request.connectionId, request.workspaceId) : earthquakeChannel(request.connectionId, request.workspaceId));
+      aircraftChannel(request.query, request.connectionId, request.workspaceId) : request.domain === 'earthquakes' ?
+        earthquakeChannel(request.connectionId, request.workspaceId) : geoJsonChannel(request.connectionId, request.workspaceId));
     return result;
   }, [demandJson]);
   const visibleDemandJson = JSON.stringify([...new Set(state.layers.filter(layerShown)
@@ -138,11 +142,13 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
   const selectedId = context.selection.entityIds[0];
   const aircraftFor = (layer: AircraftLayer) => channels.get(layerDemandKey(layer, workspaceId)) as AircraftChannel | undefined;
   const earthquakeFor = (layer: EarthquakeLayer) => channels.get(layerDemandKey(layer, workspaceId)) as EarthquakeChannel | undefined;
+  const geoJsonFor = (layer: GeoJsonLayer) => channels.get(layerDemandKey(layer, workspaceId)) as GeoJsonChannel | undefined;
   const select = (layerId: string, entityId: string, observationId?: string) => {
     const layer = state.layers.find(item => item.id === layerId);
     if (!layer) return;
     const record = layer.domain === 'aircraft' ? aircraftFor(layer)?.getSnapshot().records.find(item => item.entity.id === entityId) :
-      earthquakeFor(layer)?.getSnapshot().records.find(item => item.entity.id === entityId);
+      layer.domain === 'earthquakes' ? earthquakeFor(layer)?.getSnapshot().records.find(item => item.entity.id === entityId) :
+        geoJsonFor(layer)?.getSnapshot().records.find(item => item.entity.id === entityId);
     if (!record) return;
     const selection = { entityIds: [entityId], observationIds: [observationId ?? record.observation.id] };
     host.changeContext({ selection });
@@ -154,7 +160,9 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
     aircraftFor(selectedLayer)?.getSnapshot().records.find(record => record.entity.id === selectedId) : undefined;
   const selectedEarthquake = selectedLayer?.domain === 'earthquakes' ?
     earthquakeFor(selectedLayer)?.getSnapshot().records.find(record => record.entity.id === selectedId) : undefined;
-  const showInspector = state.inspectorOpen && !!selectedLayer && layerShown(selectedLayer) && (!!selectedAircraft || !!selectedEarthquake);
+  const selectedGeoJson = selectedLayer?.domain === 'geojson' ?
+    geoJsonFor(selectedLayer)?.getSnapshot().records.find(record => record.entity.id === selectedId) : undefined;
+  const showInspector = state.inspectorOpen && !!selectedLayer && layerShown(selectedLayer) && (!!selectedAircraft || !!selectedEarthquake || !!selectedGeoJson);
 
   const toggleGroup = (group: AtlasGroup, visible: boolean) =>
     setLayers(setGroupsVisible(state.layers, new Set([group.id]), visible));
@@ -216,7 +224,18 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
   };
   const allGroups = collectResults(state.layers.filter(layerShown), channels, workspaceId, now);
   const quota = markerQuota(allGroups.length);
-  const mapLimited = allGroups.some(group => group.rows.filter(row => row.record.observation.geometry).length > quota);
+  const markerCount = (group: typeof allGroups[number]) => group.rows.reduce((total, row) => {
+    const geometry = row.record.observation.geometry;
+    if (row.layer.domain === 'geojson' && geometry?.type === 'MultiPoint') return total + geometry.coordinates.length;
+    return total + (geometry?.type === 'Point' ? 1 : 0);
+  }, 0);
+  const mapLimited = allGroups.some(group => markerCount(group) > quota);
+  const geoGroups = allGroups.filter(group => group.layer.domain === 'geojson');
+  const vectorQuota = Math.max(1, Math.floor(MAP_VECTOR_LIMIT / (geoGroups.length || 1)));
+  const vectorsLimited = geoGroups.some(group => group.rows.filter(row => {
+    const type = row.record.observation.geometry?.type;
+    return type && type !== 'Point' && type !== 'MultiPoint';
+  }).length > vectorQuota);
   const selectResult = (row: AtlasResult) => select(row.layer.id, row.record.entity.id, row.record.observation.id);
   const messages: Message[] = [];
   if (connectionError) messages.push({ key: 'connections', text: connectionError, severity: 'error' });
@@ -232,13 +251,16 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
       continue;
     }
     const snapshot = channel.getSnapshot();
-    if (snapshot.health.state !== 'healthy' && snapshot.health.state !== 'loading')
+    if (snapshot.transport === 'offline')
+      messages.push({ key, text: `${domainLabel(layer.domain)} · ${snapshot.health.message}`, severity: 'warning' });
+    else if (snapshot.health.state !== 'healthy' && snapshot.health.state !== 'loading')
       messages.push({ key, text: `${domainLabel(layer.domain)} · ${snapshot.health.message}`, severity:
         snapshot.health.state === 'error' || snapshot.health.state === 'setup_required' ? 'error' : 'warning' });
     if (snapshot.completeness.truncated)
       messages.push({ key: key + ':limit', text: `${domainLabel(layer.domain)} returned a limited batch. List counts cover only the current cache.`, severity: 'warning' });
   }
   if (mapLimited) messages.push({ key: 'map-limit', text: `Map symbols are limited to ${quota} per source appearance (${MAP_MARKER_LIMIT} per pane). List retains all cached matches.`, severity: 'info' });
+  if (vectorsLimited) messages.push({ key: 'vector-limit', text: `Map lines and areas are limited to ${vectorQuota} per GeoJSON appearance (${MAP_VECTOR_LIMIT} per pane). List retains all cached matches.`, severity: 'info' });
   if (allGroups.some(group => group.error)) messages.push({ key: 'list-presenter', text: 'A group could not prepare its records. Other groups remain available.', severity: 'error' });
   if (failedLayers.length) messages.push({ key: 'presenter', text: `Presentation failed for ${failedLayers.join(', ')}. Other groups remain available.`, severity: 'error' });
   if (context.time.mode !== 'live') messages.push({ key: 'saved-time', text: `Saved ${context.time.mode} time is retained, but current groups show live cache only.`, severity: 'warning' });
@@ -285,7 +307,7 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
             icon={<UiIcon name="plus" size={17} />} aria-label="Add group" title="Add group"
             onClick={() => setEditingGroup({ id: null, view: 'settings' })} /></div>
           <div className={styles.layerColumns}><span>Group</span><span>Show</span></div>
-          {(['Vehicles & satellites', 'Events & alerts'] as const).map(category => {
+          {(['Vehicles & satellites', 'Events & alerts', 'Feeds & reports'] as const).map(category => {
             const members = groups.filter(group => categoryOf(group.domain) === category);
             if (!members.length) return null;
             return <details key={category} className={styles.category} open>
@@ -377,6 +399,10 @@ export function AtlasView({ pane, host, updateState }: AppViewProps) {
             const coordinates = selectedEarthquake.observation.geometry?.coordinates;
             if (coordinates) patch({ camera: { longitude: coordinates[0], latitude: coordinates[1], height: 750000 }, showMap: true, viewMode: 'canvas' });
           }} /></ContributorBoundary>}
+        {selectedGeoJson && <ContributorBoundary key={selectedLayer?.id} label="GeoJSON inspector"><GeoJsonInspector record={selectedGeoJson}
+          selectedObservationId={context.selection.observationIds[0]} workspaceId={workspaceId}
+          expanded={state.expandedDetails} toggleExpanded={() => patch({ expandedDetails: !state.expandedDetails })}
+          close={() => patch({ inspectorOpen: false })} /></ContributorBoundary>}
         <PanelResize label="Inspector width" edge="left" value={state.inspectorWidth} min={280} max={520}
           onChange={inspectorWidth => patch({ inspectorWidth })} />
       </div>}

@@ -769,6 +769,185 @@
         }
       }
     },
+    "/api/v1/geojson/source": {
+      "get": {
+        "tags": [
+          "GeoJson"
+        ],
+        "operationId": "GeoJson_Source",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeoJsonSourceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geojson": {
+      "get": {
+        "tags": [
+          "GeoJson"
+        ],
+        "operationId": "GeoJson_Query",
+        "parameters": [
+          {
+            "name": "connectionId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeoJsonSnapshotDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geojson/observations/{id}": {
+      "get": {
+        "tags": [
+          "GeoJson"
+        ],
+        "operationId": "GeoJson_Observation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeoJsonRecordDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geojson/entities/{id}/observations": {
+      "get": {
+        "tags": [
+          "GeoJson"
+        ],
+        "operationId": "GeoJson_Versions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "sourceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GeoJsonRecordDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session": {
       "get": {
         "tags": [
@@ -2156,6 +2335,200 @@
           }
         }
       },
+      "GeoJsonSourceDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "termsUrl": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resultLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cacheHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "scopeLabel": {
+            "type": "string"
+          },
+          "staleAfterSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GeoJsonSnapshotDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeoJsonRecordDto"
+            }
+          },
+          "completeness": {
+            "$ref": "#/components/schemas/GeoJsonCompletenessDto"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GeoJsonSourceDto"
+          }
+        }
+      },
+      "GeoJsonRecordDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "$ref": "#/components/schemas/EntityDto"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/GeoJsonObservationDto"
+          },
+          "identityRule": {
+            "type": "string"
+          },
+          "identityDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "GeoJsonObservationDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retrievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "geometry": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GeoJsonGeometryDto"
+              }
+            ]
+          },
+          "locationRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "precision": {
+            "$ref": "#/components/schemas/PrecisionDto"
+          },
+          "evidenceClass": {
+            "type": "string"
+          },
+          "properties": {},
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "validTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceDto"
+          },
+          "supersedesObservationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GeoJsonGeometryDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "coordinates": {}
+        }
+      },
+      "GeoJsonCompletenessDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "returned": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "coverage": {
+            "type": "string"
+          },
+          "feedRetrievedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "providerCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rejectedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "SessionDto": {
         "type": "object",
         "additionalProperties": false,
@@ -2595,6 +2968,10 @@
           "latitude": {
             "type": "number",
             "format": "double",
+            "nullable": true
+          },
+          "geometryType": {
+            "type": "string",
             "nullable": true
           }
         }

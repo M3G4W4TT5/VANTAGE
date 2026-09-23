@@ -5,6 +5,8 @@ import { Cartesian2, Cartesian3, Color, Ion, Math as CesiumMath, SceneMode,
   ScreenSpaceEventHandler, ScreenSpaceEventType, Viewer, EllipsoidTerrainProvider, WebMercatorProjection } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { PointMarkers, northernEuropeCamera, uniquePickedReferences } from './PointMarkers';
+import { GeoJsonVectors } from './GeoJsonVectors';
+import type { GeoJsonVector } from './GeoJsonVectors';
 import type { CameraState, PointMarker, RecordReference, ViewportBounds } from './PointMarkers';
 import { UiIcon } from '../ui/UiIcon';
 import { useSourceServices } from '../sources/SourceServices';
@@ -34,10 +36,10 @@ function visibleBounds(viewer: Viewer): ViewportBounds | null {
     north: top ? CesiumMath.toDegrees(top.latitude) : 90 };
 }
 
-export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMode, camera, selectedId, select, setCamera,
+export function PointMap({ label, basemapId, subscribe, getMarkers, getVectors, mode, setMode, camera, selectedId, select, setCamera,
   setup, afterPaint, suppressCameraSave = false, action, toolContent, setBasemap, describePick, setViewport, drawOrderKey = '' }: {
   label: string; basemapId: string; mode: '2d' | '3d'; setMode(mode: '2d' | '3d'): void; camera?: CameraState; selectedId?: string;
-  subscribe(listener: () => void): () => void; getMarkers(): PointMarker[];
+  subscribe(listener: () => void): () => void; getMarkers(): PointMarker[]; getVectors?(): GeoJsonVector[];
   select(reference: RecordReference): void; setCamera(camera: CameraState): void;
   setViewport?(bounds: ViewportBounds | null): void;
   drawOrderKey?: string;
@@ -55,7 +57,8 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
   const [overlap, setOverlap] = useState<{ choices: RecordReference[]; x: number; y: number } | null>(null);
   const firstChoice = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (overlap) firstChoice.current?.focus(); }, [overlap]);
-  const selected = useEffectEvent(() => selectedId); const points = useEffectEvent(getMarkers); const picked = useEffectEvent(select);
+  const selected = useEffectEvent(() => selectedId); const points = useEffectEvent(getMarkers);
+  const vectors = useEffectEvent(() => getVectors?.() ?? []); const picked = useEffectEvent(select);
   const order = useEffectEvent(() => drawOrderKey);
   const persistCamera = useEffectEvent(setCamera); const skipSave = useEffectEvent(() => suppressCameraSave);
   const updateViewport = useEffectEvent((bounds: ViewportBounds | null) => setViewport?.(bounds));
@@ -64,7 +67,8 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
   const initialCamera = useEffectEvent(() => camera ?? northernEuropeCamera);
   useEffect(() => {
     let cancelled = false; let viewer: Viewer | undefined; let handler: ScreenSpaceEventHandler | undefined;
-    let frame = 0; let removeDomain = () => {}; let markers: PointMarkers | undefined; let theme: MutationObserver | undefined; let removeMove = () => {}; let removeError = () => {}; let removeTiles = () => {}; let removeBasemap = () => {};
+    let frame = 0; let removeDomain = () => {}; let markers: PointMarkers | undefined; let shapes: GeoJsonVectors | undefined;
+    let theme: MutationObserver | undefined; let removeMove = () => {}; let removeError = () => {}; let removeTiles = () => {}; let removeBasemap = () => {};
     const start = async () => {
       try {
         Ion.defaultAccessToken = '';
@@ -101,10 +105,11 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
         viewer.camera.setView({ destination: Cartesian3.fromDegrees(initial.longitude, initial.latitude, initial.height) });
         publishViewport();
         markers = new PointMarkers(viewer);
+        shapes = new GeoJsonVectors(viewer);
         removeDomain = setupDomain(viewer);
         const paint = () => {
           frame = 0; if (!viewer || viewer.isDestroyed()) return;
-          markers?.setDrawOrderKey(order()); markers?.update(points(), selected()); paintDomain(viewer);
+          markers?.setDrawOrderKey(order()); markers?.update(points(), selected()); shapes?.update(vectors(), selected()); paintDomain(viewer);
         };
         const schedule = () => { if (!frame) frame = requestAnimationFrame(paint); };
         redraw.current = schedule; schedule();
@@ -113,7 +118,7 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
         handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((movement: { position: Cartesian2 }) => {
           const hits: unknown[] = viewer?.scene.drillPick(movement.position, 32) ?? [];
-          const choices = uniquePickedReferences(hits, id => markers?.pick(id));
+          const choices = uniquePickedReferences(hits, id => markers?.pick(id) ?? shapes?.pick(id));
           if (choices.length === 1) { setOverlap(null); picked(choices[0]); }
           else if (choices.length > 1) setOverlap({ choices, x: movement.position.x, y: movement.position.y });
           else setOverlap(null);
@@ -129,7 +134,7 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
       } catch { if (!cancelled) setError('The map could not start. WebGL may be unavailable; the list remains usable.'); }
     };
     void start();
-    return () => { cancelled = true; cancelAnimationFrame(frame); theme?.disconnect(); removeDomain(); markers?.dispose(); removeMove(); removeError(); removeTiles(); removeBasemap(); handler?.destroy();
+    return () => { cancelled = true; cancelAnimationFrame(frame); theme?.disconnect(); removeDomain(); markers?.dispose(); shapes?.dispose(); removeMove(); removeError(); removeTiles(); removeBasemap(); handler?.destroy();
       if (viewer && !viewer.isDestroyed()) viewer.destroy(); viewerRef.current = null; redraw.current = () => {}; };
   }, [mode, basemapId, attempt, basemapSources, offlineBasemap]);
   useEffect(() => {
@@ -137,7 +142,7 @@ export function PointMap({ label, basemapId, subscribe, getMarkers, mode, setMod
     redraw.current();
     return unsubscribe;
   }, [subscribe]);
-  useEffect(() => { redraw.current(); }, [selectedId, getMarkers, afterPaint, drawOrderKey]);
+  useEffect(() => { redraw.current(); }, [selectedId, getMarkers, getVectors, afterPaint, drawOrderKey]);
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !camera) return;

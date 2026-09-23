@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vantage.local/schemas/v1/http-geojson-settings.schema.json",
+  "title": "HTTP GeoJSON FeatureCollection settings v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["endpoint", "sourceId", "sourceName", "attribution", "termsUrl", "coverage", "identityProperty", "labelProperty", "sourceTimeProperty", "validFromProperty", "validToProperty", "authentication", "pollSeconds"],
+  "properties": {
+    "endpoint": { "type": "string", "title": "HTTPS FeatureCollection URL", "description": "Public HTTPS host on port 443; redirects, URL credentials, query strings and fragments are refused.", "minLength": 12, "maxLength": 2048 },
+    "sourceId": { "type": "string", "title": "Stable source ID", "description": "Publisher/product identity, separate from this connection. Changing it requires a new connection.", "pattern": "^[A-Za-z][A-Za-z0-9._-]{2,62}$" },
+    "sourceName": { "type": "string", "title": "Source name", "minLength": 1, "maxLength": 120 },
+    "attribution": { "type": "string", "title": "Attribution", "minLength": 1, "maxLength": 240 },
+    "termsUrl": { "type": "string", "title": "Source terms URL", "description": "Public HTTPS terms or licence page, reviewed by the operator before use.", "minLength": 12, "maxLength": 2048 },
+    "coverage": { "type": "string", "title": "Declared coverage", "description": "Describe what this result set covers; do not claim completeness without source evidence.", "minLength": 1, "maxLength": 240 },
+    "identityProperty": { "type": "string", "title": "Identity property", "description": "Blank uses GeoJSON feature.id; otherwise a direct properties key. Stable unique IDs are required.", "maxLength": 80 },
+    "labelProperty": { "type": "string", "title": "Label property", "description": "Blank displays the stable feature ID.", "maxLength": 80 },
+    "sourceTimeProperty": { "type": "string", "title": "Source time property", "description": "Optional ISO-8601 instant with an explicit UTC offset; blank means unknown.", "maxLength": 80 },
+    "validFromProperty": { "type": "string", "title": "Valid from property", "description": "Optional source-supplied validity instant.", "maxLength": 80 },
+    "validToProperty": { "type": "string", "title": "Valid to property", "description": "Optional source-supplied validity instant.", "maxLength": 80 },
+    "authentication": { "type": "string", "title": "Backend authentication", "enum": ["none", "bearer"] },
+    "pollSeconds": { "type": "integer", "title": "Polling cadence", "description": "Fixed bounded connector default.", "const": 120, "readOnly": true }
+  }
+}

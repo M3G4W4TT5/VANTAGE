@@ -4,7 +4,7 @@ using Vantage.Api.Platform.Identity;
 
 namespace Vantage.Api.Platform.Connections;
 
-public sealed class ConnectionAccess(VantageDbContext db, PlatformAccess access)
+public sealed class ConnectionAccess(VantageDbContext db, PlatformAccess access, ConnectorRegistry registry)
 {
     public async Task<ConnectionRow> RequireAsync(string id, string? workspaceId, CancellationToken ct)
     {
@@ -20,7 +20,9 @@ public sealed class ConnectionAccess(VantageDbContext db, PlatformAccess access)
     public async Task<ConnectionRow> RequireActiveAsync(string id, string? workspaceId, CancellationToken ct)
     {
         var row = await RequireAsync(id, workspaceId, ct);
-        if (row.RemovedAt is not null || !row.Enabled || row.CredentialRef is not null)
+        var credentialReady = registry.CredentialReady(row) && (row.ConnectorTypeId != "http-geojson" ||
+            row.CredentialRef is null || await db.ConnectionSecrets.AsNoTracking().AnyAsync(x => x.Id == row.CredentialRef && x.ConnectionId == row.Id, ct));
+        if (row.RemovedAt is not null || !row.Enabled || !credentialReady)
             throw new ConnectionUnavailableException(row.RemovedAt is not null ? "removed" : !row.Enabled ? "disabled" : "setup_required");
         return row;
     }

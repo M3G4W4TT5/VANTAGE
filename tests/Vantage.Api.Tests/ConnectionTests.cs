@@ -46,10 +46,10 @@ public sealed class ConnectionTests
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync("/api/v1/connections/" + BuiltinConnections.Aircraft)).StatusCode);
 
         var types = (await owner.GetFromJsonAsync<ConnectorTypeDto[]>("/api/v1/connections/connector-types"))!;
-        Assert.Equal(2, types.Length);
+        Assert.Equal(3, types.Length);
         Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync(types[0].SettingsSchemaUrl)).StatusCode);
         var templates = (await owner.GetFromJsonAsync<ConnectionTemplateDto[]>("/api/v1/connections/templates"))!;
-        Assert.Equal(2, templates.Length);
+        Assert.Equal(3, templates.Length);
 
         var workspaceResponse = await owner.PostAsJsonAsync("/api/v1/workspaces", new CreateWorkspaceRequest("Scoped target"));
         Assert.Equal(HttpStatusCode.Created, workspaceResponse.StatusCode);
